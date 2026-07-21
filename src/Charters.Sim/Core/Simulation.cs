@@ -29,7 +29,7 @@ public sealed class Simulation
         Entities = World.Create();
         UnitFactory = new UnitFactory(this);
         Events = new SimulationEvents();
-        FacilityStatistics = new FacilityStatisticsView();
+        FacilityStatistics = new FacilityStatistics();
 
         Events.FacilityProducedItems += FacilityStatistics.OnProduced;
         Events.FacilityConsumedItems += FacilityStatistics.OnConsumed;
@@ -42,7 +42,7 @@ public sealed class Simulation
     public World Entities { get; }
     public UnitFactory UnitFactory { get; }
     public SimulationEvents Events { get; }
-    public FacilityStatisticsView FacilityStatistics { get; }
+    public FacilityStatistics FacilityStatistics { get; }
 
     public void Advance(int ticks)
     {

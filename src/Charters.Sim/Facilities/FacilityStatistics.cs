@@ -1,29 +1,48 @@
-﻿using System.Runtime.InteropServices;
-using Charters.Sim.Items;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
+using Charters.Sim.Facilities.Events;
 
 namespace Charters.Sim.Facilities;
 
+// Event-driven way of consuming data from the ECS.
 public sealed class FacilityStatistics
 {
-    private readonly Dictionary<ItemDefinition, (long produced, long consumed)> _totals = [];
+    private readonly Dictionary<long, FacilityStatisticsRow> _statisticsPerFacility = [];
 
-    public void Produced(ItemQuantity itemQuantity)
+    public void OnProduced(FacilityProducedItems @event)
     {
-        ref var current = ref CollectionsMarshal.GetValueRefOrAddDefault(
-            _totals,
-            itemQuantity.Item,
-            out _);
+        var statistics = GetStatistics(@event.FacilityId);
 
-        current.produced += itemQuantity.Quantity;
+        foreach (var itemQuantity in @event.Output.Span)
+        {
+            statistics.Produced(itemQuantity);
+        }
     }
 
-    public void Consumed(ItemQuantity itemQuantity)
+    public void OnConsumed(FacilityConsumedItems @event)
     {
-        ref var current = ref CollectionsMarshal.GetValueRefOrAddDefault(
-            _totals,
-            itemQuantity.Item,
-            out _);
+        var statistics = GetStatistics(@event.FacilityId);
 
-        current.consumed += itemQuantity.Quantity;
+        foreach (var itemQuantity in @event.Inputs.Span)
+        {
+            statistics.Consumed(itemQuantity);
+        }
+    }
+
+    private FacilityStatisticsRow GetStatistics(long facilityId)
+    {
+        ref var statistics = ref CollectionsMarshal.GetValueRefOrAddDefault(
+            _statisticsPerFacility,
+            facilityId,
+            out var exists);
+
+        if (!exists)
+        {
+            statistics = new FacilityStatisticsRow();
+        }
+
+        Debug.Assert(statistics is not null);
+
+        return statistics;
     }
 }
