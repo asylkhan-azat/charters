@@ -6,17 +6,8 @@ namespace Charters.Sim.Units.Definitions;
 public sealed record UnitDefinition(
     string Id,
     string Name,
-    int BaseMaxHitPoints,
     IReadOnlyList<UnitFeatureDefinition> Features) : IDefinition
 {
-    public UnitDefinition(
-        string Id,
-        string Name,
-        int BaseMaxHitPoints)
-        : this(Id, Name, BaseMaxHitPoints, [])
-    {
-    }
-
     public TFeature? Feature<TFeature>() where TFeature : UnitFeatureDefinition
     {
         for (var featureIndex = 0; featureIndex < Features.Count; featureIndex++)

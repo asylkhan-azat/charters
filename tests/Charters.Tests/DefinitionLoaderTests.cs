@@ -15,7 +15,6 @@ public sealed class DefinitionLoaderTests
         Assert.Equal("Marsh", definitions.Terrains["marsh"].Name);
         Assert.Equal(["infantry", "worker", "truck-logist"],
             definitions.Units.Select(static unit => unit.Id));
-        Assert.Equal(100, definitions.Units["infantry"].BaseMaxHitPoints);
     }
 
     [Fact]

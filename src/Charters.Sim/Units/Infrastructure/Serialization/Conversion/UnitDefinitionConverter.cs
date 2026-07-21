@@ -14,7 +14,7 @@ internal static class UnitDefinitionConverter
             result[i] = new UnitDefinition(
                 unit.Id!,
                 unit.Name!,
-                unit.BaseMaxHitPoints!.Value);
+                []);
         }
 
         return result;

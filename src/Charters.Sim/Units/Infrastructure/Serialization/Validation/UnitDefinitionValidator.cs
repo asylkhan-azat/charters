@@ -14,6 +14,7 @@ internal static class UnitDefinitionValidator
         for (var i = 0; i < units.Count; i++)
         {
             var unit = units[i];
+            
             DefinitionValidationRules.ValidateIdentity(
                 FileName,
                 "unit",
@@ -21,20 +22,6 @@ internal static class UnitDefinitionValidator
                 unit.Name,
                 seenIds,
                 errors);
-            ValidateValues(unit, errors);
-        }
-    }
-
-    private static void ValidateValues(UnitDto unit, ValidationCollector errors)
-    {
-        var id = DefinitionValidationRules.DisplayId(unit.Id);
-        if (unit.BaseMaxHitPoints is null)
-        {
-            errors.Add($"{FileName}: unit '{id}' is missing baseMaxHitPoints");
-        }
-        else if (unit.BaseMaxHitPoints < 1)
-        {
-            errors.Add($"{FileName}: unit '{id}' baseMaxHitPoints must be at least 1");
         }
     }
 }
