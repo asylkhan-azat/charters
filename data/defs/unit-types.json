@@ -1,0 +1,17 @@
+[
+  {
+    "id": "infantry",
+    "name": "Infantry",
+    "baseMaxHitPoints": 100
+  },
+  {
+    "id": "worker",
+    "name": "Worker",
+    "baseMaxHitPoints": 80
+  },
+  {
+    "id": "truck-logist",
+    "name": "Truck Logist",
+    "baseMaxHitPoints": 80
+  }
+]

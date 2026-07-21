@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ColorPalette" format=3 uid="uid://btisrmo2worev"]
+
+[ext_resource type="Script" uid="uid://dya2by6gay6y3" path="res://Shared/ColorPalette.cs" id="1_palette"]
+
+[resource]
+script = ExtResource("1_palette")
+Colors = Dictionary[String, Color]({
+"infantry": Color(0.75, 0.2, 0.15, 1),
+"truck-logist": Color(0.12627739, 0.5684647, 0.3703968, 1),
+"worker": Color(0.373706, 0.39929268, 0.9786667, 1)
+})

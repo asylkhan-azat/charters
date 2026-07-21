@@ -1,0 +1,6 @@
+[*]
+
+# ReSharper properties
+resharper_arguments_literal_severity = none
+resharper_braces_for_for = required
+resharper_braces_for_ifelse = required

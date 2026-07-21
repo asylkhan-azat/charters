@@ -1,0 +1,35 @@
+[gd_scene load_steps=8 format=3 uid="uid://certt6uxv2keg"]
+
+[ext_resource type="Script" uid="uid://cpnl8yy7mfvan" path="res://Worlds/World.cs" id="1_f3sb7"]
+[ext_resource type="Script" uid="uid://ca0m7w3fuxymp" path="res://Worlds/HexMapRenderer.cs" id="2_hexmap"]
+[ext_resource type="Script" uid="uid://ej625c2gb83s" path="res://FreeCameraController.cs" id="3_camera"]
+[ext_resource type="Resource" uid="uid://dsft787s33xsw" path="res://Data/terrain_palette.tres" id="3_dwbse"]
+[ext_resource type="Script" uid="uid://k72k0b6ig8ih" path="res://Worlds/TickDriver.cs" id="5_tick"]
+[ext_resource type="Script" path="res://Visuals/UnitRenderer.cs" id="5_units"]
+[ext_resource type="Resource" uid="uid://btisrmo2worev" path="res://Data/unit_palette.tres" id="6_unit_palette"]
+
+[node name="World" type="Node3D" unique_id=1897925246]
+script = ExtResource("1_f3sb7")
+
+[node name="Map" type="MultiMeshInstance3D" parent="." unique_id=1050706035]
+script = ExtResource("2_hexmap")
+TerrainPalette = ExtResource("3_dwbse")
+
+[node name="Units" type="MultiMeshInstance3D" parent="."]
+script = ExtResource("5_units")
+UnitPalette = ExtResource("6_unit_palette")
+
+[node name="TickDriver" type="Node" parent="."]
+script = ExtResource("5_tick")
+
+[node name="Camera" type="Camera3D" parent="." unique_id=2114766763]
+script = ExtResource("3_camera")
+
+[node name="Ui" type="CanvasLayer" parent="."]
+
+[node name="TickLabel" type="Label" parent="Ui"]
+offset_left = 12.0
+offset_top = 8.0
+offset_right = 320.0
+offset_bottom = 34.0
+text = "tick 0 - x1"
