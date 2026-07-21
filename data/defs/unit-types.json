@@ -1,17 +1,14 @@
 [
   {
     "id": "infantry",
-    "name": "Infantry",
-    "baseMaxHitPoints": 100
+    "name": "Infantry"
   },
   {
     "id": "worker",
-    "name": "Worker",
-    "baseMaxHitPoints": 80
+    "name": "Worker"
   },
   {
     "id": "truck-logist",
-    "name": "Truck Logist",
-    "baseMaxHitPoints": 80
+    "name": "Truck Logist"
   }
 ]
