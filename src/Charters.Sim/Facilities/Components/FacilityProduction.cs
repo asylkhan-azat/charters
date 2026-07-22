@@ -24,7 +24,7 @@ public struct FacilityProduction
                 return false;
             }
 
-            return ProgressTicks >= CurrentRecipe.ProgressTicks;
+            return ProgressTicks >= CurrentRecipe.WorkRequired;
         }
     }
 

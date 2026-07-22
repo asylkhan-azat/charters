@@ -1,0 +1,77 @@
+[
+  {
+    "id": "ore",
+    "display": "Ore",
+    "tags": [],
+    "stackLimit": 20,
+    "stockpileLimit": 200,
+    "features": []
+  },
+  {
+    "id": "sulfur",
+    "display": "Sulfur",
+    "tags": [],
+    "stackLimit": 20,
+    "stockpileLimit": 200,
+    "features": []
+  },
+  {
+    "id": "food",
+    "display": "Food",
+    "tags": [],
+    "stackLimit": 10,
+    "stockpileLimit": 100,
+    "features": []
+  },
+  {
+    "id": "materials",
+    "display": "Materials",
+    "tags": [],
+    "stackLimit": 10,
+    "stockpileLimit": 100,
+    "features": []
+  },
+  {
+    "id": "refined-sulfur",
+    "display": "Refined Sulfur",
+    "tags": [],
+    "stackLimit": 10,
+    "stockpileLimit": 100,
+    "features": []
+  },
+  {
+    "id": "rifle",
+    "display": "Rifle",
+    "tags": ["small-arms-weapons"],
+    "stackLimit": 1,
+    "stockpileLimit": 20,
+    "features": []
+  },
+  {
+    "id": "grenades",
+    "display": "Grenades",
+    "tags": ["assault-explosives"],
+    "stackLimit": 4,
+    "stockpileLimit": 80,
+    "features": []
+  },
+  {
+    "id": "ammunition",
+    "display": "Ammunition",
+    "tags": ["small-arms-ammunition"],
+    "stackLimit": 20,
+    "stockpileLimit": 400,
+    "features": []
+  },
+  {
+    "id": "field-pack",
+    "display": "Field Pack",
+    "tags": ["field-equipment"],
+    "stackLimit": 1,
+    "stockpileLimit": 20,
+    "features": [
+      { "type": "equippable", "equipmentSlot": "back" },
+      { "type": "slot-expansion", "additionalSlots": 2 }
+    ]
+  }
+]

@@ -1,5 +1,7 @@
 using Charters.Sim.Core.Definitions;
 using Charters.Sim.Core.Infrastructure.Serialization.Dto;
+using Charters.Sim.Facilities.Infrastructure.Serialization.Conversion;
+using Charters.Sim.Items.Infrastructure.Serialization.Conversion;
 using Charters.Sim.Map.Infrastructure.Serialization.Conversion;
 using Charters.Sim.Units.Infrastructure.Serialization.Conversion;
 
@@ -11,6 +13,9 @@ internal static class DefinitionSetConverter
     {
         var terrains = TerrainDefinitionConverter.Convert(definitions.Terrains);
         var units = UnitDefinitionConverter.Convert(definitions.Units);
-        return new DefinitionSet(terrains, units);
+        var items = ItemDefinitionConverter.Convert(definitions.Items);
+        var recipes = RecipeDefinitionConverter.Convert(definitions.Recipes, items);
+        var facilityTypes = FacilityTypeDefinitionConverter.Convert(definitions.FacilityTypes, recipes);
+        return new DefinitionSet(terrains, units, items, recipes, facilityTypes);
     }
 }

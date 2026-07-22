@@ -169,8 +169,7 @@ The definition aggregate gains the following validated records:
 
 | Definition | Required fields |
 |---|---|
-| Item group | `id`, `name` |
-| Item | `id`, `display`, `requestGroups`, `stackLimit`, `stockpileLimit`, `features` |
+| Item | `id`, `display`, `tags`, `stackLimit`, `stockpileLimit`, `features` |
 | Item feature: equippable | `type: "equippable"`, `equipmentSlot` |
 | Item feature: slot expansion | `type: "slot-expansion"`, `additionalSlots` |
 | Recipe | `id`, `inputs`, `outputs`, `workRequired` |
@@ -198,7 +197,7 @@ The field pack is both equippable and a slot expansion. `slot-expansion` require
 {
   "id": "field-pack",
   "display": "Field Pack",
-  "requestGroups": ["field-equipment"],
+  "tags": ["field-equipment"],
   "stackLimit": 1,
   "stockpileLimit": 20,
   "features": [
@@ -235,9 +234,10 @@ one output item. At scenario load and whenever its recipe changes, the facility'
 must contain a deposit of that output item. The recipe itself remains deposit-agnostic. Facility
 types without this flag may use zero-input recipes, such as food production, without a deposit.
 
-Request groups are schema-only in A1. Ship the degenerate MVP groups `small-arms-weapons`,
-`small-arms-ammunition`, `assault-explosives`, and `field-equipment`, containing rifles,
-ammunition, grenades, and field packs respectively. No A1 behavior selects by group.
+Item tags are schema-only in A1: each item authors a flat set of kebab-case tags with no separate
+tag registry to resolve against. Ship the degenerate MVP tags `small-arms-weapons`,
+`small-arms-ammunition`, `assault-explosives`, and `field-equipment` on rifles, ammunition,
+grenades, and field packs respectively. No A1 behavior selects by tag.
 
 ### Carried inventory and equipment
 
@@ -611,12 +611,12 @@ continues so it cannot be misattributed to the iteration.
 
 **Outcome:** all A1 definition files load into immutable, fully resolved runtime definitions.
 
-- Add the item groups, polymorphic item/unit features, pure recipes, facility types, inventory, and
+- Add item tags, polymorphic item/unit features, pure recipes, facility types, inventory, and
   wear-slot additions described in [Authored data contracts](#authored-data-contracts).
 - Author the nine item/recipe rows and four facility types exactly as specified; values live in data,
   not code constants.
-- Resolve definition references once during conversion, including item-group membership, recipe
-  inputs/outputs, allowed recipes, and equipment wear slots.
+- Resolve definition references once during conversion, including recipe inputs/outputs, allowed
+  recipes, and equipment wear slots.
 - Validate feature discriminators, case-specific fields, duplicates, and cross-feature requirements;
   keep universal item limits flat and feature order semantically irrelevant.
 - Aggregate independent definition errors in one load failure. Do not stop at the first malformed
@@ -819,7 +819,7 @@ or focused lifecycle test, and no deferred 1B behavior was introduced to make A1
 - Verify feature order does not change the resolved definition and that hot unit capabilities are
   materialized at spawn rather than discovered by per-tick polymorphic scans.
 - Assert that recipe definitions expose only inputs, outputs, and work beyond definition identity.
-- Reject invalid request-group membership, recipes without output, disallowed facility recipes,
+- Reject duplicate item tags, recipes without output, disallowed facility recipes,
   deposit-required facilities with non-extraction recipes, mismatched mine/deposit placement, invalid
   equipment, over-capacity starting storage, invalid roads or generated locations, overlapping
   structures, and cross-owner/cross-position assignments.

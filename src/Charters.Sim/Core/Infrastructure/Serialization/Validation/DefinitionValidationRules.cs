@@ -30,6 +30,42 @@ internal static partial class DefinitionValidationRules
         return string.IsNullOrWhiteSpace(id) ? "<missing>" : id;
     }
 
+    public static void ValidatePositive(
+        string fileName,
+        string kind,
+        string? id,
+        string label,
+        int? value,
+        ValidationCollector errors)
+    {
+        if (value is null)
+        {
+            errors.Add($"{fileName}: {kind} '{DisplayId(id)}' is missing {label}");
+        }
+        else if (value.Value <= 0)
+        {
+            errors.Add($"{fileName}: {kind} '{DisplayId(id)}' has non-positive {label} '{value}'");
+        }
+    }
+
+    public static void ValidateNonNegative(
+        string fileName,
+        string kind,
+        string? id,
+        string label,
+        int? value,
+        ValidationCollector errors)
+    {
+        if (value is null)
+        {
+            errors.Add($"{fileName}: {kind} '{DisplayId(id)}' is missing {label}");
+        }
+        else if (value.Value < 0)
+        {
+            errors.Add($"{fileName}: {kind} '{DisplayId(id)}' has negative {label} '{value}'");
+        }
+    }
+
     public static void ValidateKebabCase(
         string fileName,
         string label,

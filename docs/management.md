@@ -17,8 +17,28 @@ tracks position and progress.*
 The implementation foundation and MVP roadmap are in place. Charter AI boundaries are captured in
 the [architecture](design/charter-ai-architecture.md), and
 [Loop 1 — The Moving Economy](design/loop-1-moving-economy.md) is the active execution design.
+[Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md) is underway.
+
+## Progress
+
+Iteration 1A work packages complete so far:
+
+- **Package 0 — Protect the foundation:** baseline repo checks (build, tests, determinism smoke)
+  confirmed clean before any A1 change; current unit/facility/item/event/digest/renderer entry
+  points identified; the facility/stockpile ECS slice, synchronous `SimulationEvents`, and random
+  Godot spawning confirmed as migration targets rather than prior art.
+- **Package 1 — Definitions and authored production data:** item, recipe, and facility-type
+  definitions added with polymorphic item/unit features (equippable, slot-expansion, inventory,
+  equipment-slots); the nine items/recipes and four facility types authored in `data/defs/`
+  matching the spec's tables; loader validation covers every family (identity, capacity, feature
+  cross-rules, recipe/facility cross-references). Items carry a flat `tags` set rather than a
+  separate request-group registry — the spec was updated to match.
+
+63 tests pass; `scripts/check.ps1` is green.
 
 ## Next
 
-- Implement [Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md) and its tuning
-  metrics.
+- Continue [Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md) with
+  **Package 2 — Runtime ownership and host boundary**: typed stable IDs and in-place registries for
+  Charters, facilities, depots, and ground stockpiles, plus the buffered fact-journal boundary and
+  `Simulation.Read` façade.

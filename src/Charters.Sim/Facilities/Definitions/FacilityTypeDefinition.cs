@@ -1,7 +1,11 @@
-﻿using Charters.Sim.Core.Definitions;
+using System.Collections.Immutable;
+using Charters.Sim.Core.Definitions;
 
 namespace Charters.Sim.Facilities.Definitions;
 
 public sealed record FacilityTypeDefinition(
     string Id,
-    int WorkerSlots) : IDefinition;
+    string Name,
+    int WorkerSlots,
+    ImmutableArray<RecipeDefinition> AllowedRecipes,
+    bool RequiresMatchingDeposit) : IDefinition;

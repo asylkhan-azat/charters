@@ -5,4 +5,6 @@ internal sealed class UnitDto
     public string? Id { get; init; }
 
     public string? Name { get; init; }
+
+    public IReadOnlyList<UnitFeatureDto>? Features { get; init; }
 }

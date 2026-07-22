@@ -1,0 +1,30 @@
+[
+  {
+    "id": "mine",
+    "name": "Mine",
+    "workerSlots": 2,
+    "allowedRecipes": ["produce-ore", "produce-sulfur"],
+    "requiresMatchingDeposit": true
+  },
+  {
+    "id": "farm",
+    "name": "Farm",
+    "workerSlots": 2,
+    "allowedRecipes": ["produce-food"],
+    "requiresMatchingDeposit": false
+  },
+  {
+    "id": "refinery",
+    "name": "Refinery",
+    "workerSlots": 4,
+    "allowedRecipes": ["produce-materials", "produce-refined-sulfur"],
+    "requiresMatchingDeposit": false
+  },
+  {
+    "id": "factory",
+    "name": "Factory",
+    "workerSlots": 4,
+    "allowedRecipes": ["produce-rifle", "produce-grenades", "produce-ammunition", "produce-field-pack"],
+    "requiresMatchingDeposit": false
+  }
+]

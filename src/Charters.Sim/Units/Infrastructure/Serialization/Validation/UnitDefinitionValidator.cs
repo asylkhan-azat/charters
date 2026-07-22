@@ -11,10 +11,8 @@ internal static class UnitDefinitionValidator
     public static void Validate(IReadOnlyList<UnitDto> units, ValidationCollector errors)
     {
         HashSet<string> seenIds = new(StringComparer.Ordinal);
-        for (var i = 0; i < units.Count; i++)
+        foreach (var unit in units)
         {
-            var unit = units[i];
-            
             DefinitionValidationRules.ValidateIdentity(
                 FileName,
                 "unit",
@@ -22,6 +20,69 @@ internal static class UnitDefinitionValidator
                 unit.Name,
                 seenIds,
                 errors);
+            ValidateFeatures(unit, errors);
+        }
+    }
+
+    private static void ValidateFeatures(UnitDto unit, ValidationCollector errors)
+    {
+        if (unit.Features is null)
+        {
+            errors.Add($"{FileName}: unit '{DefinitionValidationRules.DisplayId(unit.Id)}' is missing features");
+            return;
+        }
+
+        var inventories = unit.Features.OfType<InventoryUnitFeatureDto>().ToList();
+        var equipmentSlots = unit.Features.OfType<EquipmentSlotsUnitFeatureDto>().ToList();
+
+        if (inventories.Count > 1)
+        {
+            errors.Add($"{FileName}: unit '{DefinitionValidationRules.DisplayId(unit.Id)}' has duplicate inventory feature");
+        }
+
+        if (equipmentSlots.Count > 1)
+        {
+            errors.Add($"{FileName}: unit '{DefinitionValidationRules.DisplayId(unit.Id)}' has duplicate equipment-slots feature");
+        }
+
+        foreach (var inventory in inventories)
+        {
+            DefinitionValidationRules.ValidateNonNegative(
+                FileName,
+                "unit",
+                unit.Id,
+                "inventory slots",
+                inventory.Slots,
+                errors);
+        }
+
+        foreach (var feature in equipmentSlots)
+        {
+            ValidateEquipmentSlots(unit, feature, errors);
+        }
+    }
+
+    private static void ValidateEquipmentSlots(UnitDto unit, EquipmentSlotsUnitFeatureDto feature, ValidationCollector errors)
+    {
+        if (feature.Slots is null || feature.Slots.Count == 0)
+        {
+            errors.Add($"{FileName}: unit '{DefinitionValidationRules.DisplayId(unit.Id)}' has an empty equipment-slots feature");
+            return;
+        }
+
+        foreach (var (slotId, count) in feature.Slots)
+        {
+            DefinitionValidationRules.ValidateKebabCase(
+                FileName,
+                $"unit '{DefinitionValidationRules.DisplayId(unit.Id)}' equipment slot id",
+                slotId,
+                errors);
+
+            if (count < 0)
+            {
+                errors.Add(
+                    $"{FileName}: unit '{DefinitionValidationRules.DisplayId(unit.Id)}' has a negative equipment slot count for '{slotId}'");
+            }
         }
     }
 }

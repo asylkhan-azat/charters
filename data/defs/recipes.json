@@ -1,0 +1,62 @@
+[
+  {
+    "id": "produce-ore",
+    "inputs": [],
+    "outputs": [{ "item": "ore", "quantity": 4 }],
+    "workRequired": 8
+  },
+  {
+    "id": "produce-sulfur",
+    "inputs": [],
+    "outputs": [{ "item": "sulfur", "quantity": 4 }],
+    "workRequired": 8
+  },
+  {
+    "id": "produce-food",
+    "inputs": [],
+    "outputs": [{ "item": "food", "quantity": 4 }],
+    "workRequired": 8
+  },
+  {
+    "id": "produce-materials",
+    "inputs": [{ "item": "ore", "quantity": 4 }],
+    "outputs": [{ "item": "materials", "quantity": 2 }],
+    "workRequired": 12
+  },
+  {
+    "id": "produce-refined-sulfur",
+    "inputs": [{ "item": "sulfur", "quantity": 4 }],
+    "outputs": [{ "item": "refined-sulfur", "quantity": 2 }],
+    "workRequired": 12
+  },
+  {
+    "id": "produce-rifle",
+    "inputs": [{ "item": "materials", "quantity": 2 }],
+    "outputs": [{ "item": "rifle", "quantity": 1 }],
+    "workRequired": 16
+  },
+  {
+    "id": "produce-grenades",
+    "inputs": [
+      { "item": "materials", "quantity": 1 },
+      { "item": "refined-sulfur", "quantity": 1 }
+    ],
+    "outputs": [{ "item": "grenades", "quantity": 4 }],
+    "workRequired": 16
+  },
+  {
+    "id": "produce-ammunition",
+    "inputs": [
+      { "item": "materials", "quantity": 1 },
+      { "item": "refined-sulfur", "quantity": 1 }
+    ],
+    "outputs": [{ "item": "ammunition", "quantity": 20 }],
+    "workRequired": 16
+  },
+  {
+    "id": "produce-field-pack",
+    "inputs": [{ "item": "materials", "quantity": 2 }],
+    "outputs": [{ "item": "field-pack", "quantity": 1 }],
+    "workRequired": 16
+  }
+]

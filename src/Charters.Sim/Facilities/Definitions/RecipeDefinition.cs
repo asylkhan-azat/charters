@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using Charters.Sim.Core.Definitions;
 using Charters.Sim.Items;
 
@@ -8,4 +8,4 @@ public sealed record RecipeDefinition(
     string Id,
     ImmutableArray<ItemQuantity> Inputs,
     ImmutableArray<ItemQuantity> Outputs,
-    int ProgressTicks) : IDefinition;
+    int WorkRequired) : IDefinition;

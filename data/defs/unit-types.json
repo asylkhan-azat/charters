@@ -1,14 +1,25 @@
 [
   {
     "id": "infantry",
-    "name": "Infantry"
+    "name": "Infantry",
+    "features": [
+      { "type": "inventory", "slots": 2 },
+      { "type": "equipment-slots", "slots": { "back": 1 } }
+    ]
   },
   {
     "id": "worker",
-    "name": "Worker"
+    "name": "Worker",
+    "features": [
+      { "type": "inventory", "slots": 1 },
+      { "type": "equipment-slots", "slots": { "back": 1 } }
+    ]
   },
   {
     "id": "truck-logist",
-    "name": "Truck Logist"
+    "name": "Truck Logist",
+    "features": [
+      { "type": "inventory", "slots": 12 }
+    ]
   }
 ]
