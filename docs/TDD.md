@@ -83,8 +83,8 @@ use; architectural symmetry is not a justification.
 | Facilities | Plain sealed objects in a typed registry | Low-count, mostly stationary, cohesive production state. |
 | Depots | Plain sealed objects in a typed registry | Few nation-wide infrastructure objects with Charter compartments. |
 | Ground stockpiles | Plain sealed objects in a typed registry | Identified but expected to remain low-count and transient. |
-| Hosted stationary stock | Host-owned `Stockpile` object | Storage has no lifecycle or identity apart from its facility, depot/Charter pair, or ground host. |
-| Unit inventory and paths | Reusable reference containers reached from ECS components | Variable-sized state needs reference semantics but must not allocate during ordinary ticks. |
+| Hosted stationary stock | Host-owned `Stockpile` implementing `IItemContainer` | Storage has no lifecycle or identity apart from its facility, depot/Charter pair, or ground host. |
+| Unit inventory and paths | Reusable `Inventory` and `NavPath` references reached from ECS components | Variable-sized state needs reference semantics but must not allocate during ordinary ticks. `Inventory` implements `IItemContainer`. |
 | Map and hex state | Dense indexed arrays plus address lookup | Topology is dense, stable, and accessed by integer index in hot algorithms. |
 | Definitions | Immutable registries | Loaded once, validated once, and shared by reference. |
 | Goals, needs, requests, operations, and relationships | Plain domain objects and registries | Low-count, long-lived workflows linked by stable domain identity. |
@@ -101,10 +101,10 @@ The index is never exposed, serialized, or used as observable ordering.
 ### Components and variable-sized state
 
 Use structs for small, self-contained ECS components with genuine value semantics. A struct must not
-hide shared mutable collections or depend on accidental copying behavior. Variable-sized state such
-as `NavPath` and `UnitInventory` is a sealed owned container allocated during loading or spawn and
-reused thereafter. It may retain grown capacity after an explicit cold-path resize; routine tick
-logic does not replace it or allocate backing storage.
+hide shared mutable collections or depend on accidental copying behavior. Variable-sized state uses
+sealed owned containers such as `NavPath` and `Inventory`, allocated during loading or spawn and
+reused thereafter. A container may retain grown capacity after an explicit cold-path resize; routine
+tick logic does not replace it or allocate backing storage.
 
 This is not a prohibition on objects. A one-time allocation is cheaper than a pool, handle table, or
 unsafe buffer whose complexity has not been earned.
@@ -141,10 +141,47 @@ precheck before mutating so operations are atomic.
 - A depot owns one compartment per same-nation Charter; each compartment owns one stockpile.
 - A ground-stockpile object owns one stockpile and supplies its independent identity, owner,
   absolute address, and expiry.
-- A unit owns a slot-based `UnitInventory`; it does not reuse stationary stockpile rules.
+- A unit owns a slot-based `Inventory`; it does not reuse stationary stockpile rules.
 
 An owned mutable container is never copied to imply a transfer and is never shared between hosts.
 Item movement changes quantities through domain operations and records the corresponding fact.
+
+### Shared item-container contract
+
+`Stockpile` and `Inventory` implement the narrow transfer-facing `IItemContainer` contract:
+
+```csharp
+public interface IItemContainer
+{
+    int QuantityOf(ItemDefinition item);
+
+    bool CanAccept(ItemQuantity itemQuantity);
+
+    void Put(ItemQuantity itemQuantity);
+
+    void Take(ItemQuantity itemQuantity);
+}
+```
+
+`CanAccept` means the complete positive quantity can be accepted, not that some portion fits. A
+caller guards `Put` with `CanAccept` and guards `Take` by comparing `QuantityOf` with the requested
+quantity. Implementations still reject a violated precondition as an invariant failure rather than
+overflowing, underflowing, or partially mutating.
+
+The contract abstracts quantity and capacity behavior only. It contains no storage identity, owner,
+position, transaction kind, or journal dependency. A transfer coordinator resolves the source and
+destination containers from their hosts, preflights both sides, performs `Take` then `Put`, and only
+after success appends the item transaction with the separate storage addresses, owners, and absolute
+positions.
+
+`Inventory` implements `CanAccept`, `Put`, and `Take` through its slot/stack rules. Stack merging,
+compaction, and canonical slot cleanup remain private implementation details. Equipped items are
+audited under the unit's storage address but are not counted or removed through `Inventory`; a later
+explicit equip/unequip operation owns movement between carried and worn state.
+
+This interface guarantees one-`ItemQuantity` preflight. A multi-item recipe or later batch operation
+must preflight the entire batch against the concrete destination state before applying any mutation,
+because independently acceptable item quantities may compete for the same inventory slots.
 
 ## 5. Runtime positions and loading
 

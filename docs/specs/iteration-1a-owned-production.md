@@ -39,6 +39,61 @@ are implemented and tested directly, but the A1 scenario does not kill a Charter
 authored per facility. Truck-logist remains one unit whose availability and cargo capacity will both
 be reserved in 1B.
 
+## How to use this specification
+
+This document is the implementation handoff for A1. A fresh-context implementer should work in this
+order:
+
+1. Read the [technical architecture](../TDD.md), especially the ECS admission, ownership,
+   determinism, diagnostics, and public-boundary sections.
+2. Read this document's domain sections for the work package being implemented; do not infer behavior
+   from the existing facility prototype when this specification replaces it.
+3. Implement the [work packages](#implementation-work-packages) in dependency order and land the
+   tests named by each package with the behavior, not at the end.
+4. Use [Validation and tests](#validation-and-tests) as the acceptance matrix and the
+   [Completion gate](#completion-gate) as the final definition of done.
+
+When documents appear to disagree, the GDD owns player-facing mechanics, the TDD owns technical
+architecture, and this specification owns the A1 cut and concrete values. Do not silently choose a
+fourth behavior, preserve a contradicted prototype as a compatibility layer, or pull 1B behavior
+forward. Escalate a genuine unresolved design decision before coding it.
+
+### Non-negotiable A1 invariants
+
+These are review blockers, not implementation suggestions:
+
+| Area | Invariant |
+|---|---|
+| ECS boundary | Units are the only Arch entities; facilities, Charters, depots, and ground piles are registry-owned domain objects. |
+| Identity | Cross-domain references use typed stable IDs. Arch handles and authored strings do not escape their owning boundary. |
+| Position | Generation may be region-relative; every runtime position is an absolute world `HexAddress`. |
+| Ownership | Every item and unit has a Charter owner. “Charterless” means owned by the nation's Commons Charter. |
+| Storage | `Stockpile` and carried `Inventory` share the narrow `IItemContainer` behavior; hosted stock remains anonymous and only a ground stockpile has independent identity. |
+| Depot role | A depot is ownerless national infrastructure, never a facility or Charter property. Its compartments are Charter-owned. |
+| Recipe purity | Beyond definition identity, a recipe contains only inputs, outputs, and required work. Deposit compatibility belongs to the facility type. |
+| Mutation boundary | Arch, registries, and mutable map state stay inside `Charters.Sim`; hosts consume `Simulation.Read`. |
+| Ordering | Observable choices, redistribution, facts, reports, and hashes use documented stable ordering, never collection or ECS iteration accident. |
+| Conservation | Every quantity change is represented by an item transaction and is auditable by item, owner, storage address, and location. |
+
+### A1 state and fact flow
+
+```text
+authored definitions + map + scenario
+    → aggregate validation and string-ID resolution
+    → absolute map data + registry objects + unit ECS state
+    → ordered simulation phases
+        → one-pass unit aggregates where order is irrelevant
+        → stable-ID domain-object transitions where order is observable
+    → buffered immutable facts
+    → conservation + metrics + presentation history
+    → Simulation.Read projections
+    → headless and Godot hosts
+```
+
+The simulation state is authoritative throughout this flow. DTOs do not become runtime objects,
+facts do not become gameplay control flow, diagnostics are not read back by systems, and hosts never
+receive mutation authority.
+
 ## Domain, position, and ownership model
 
 ### Stable identities
@@ -53,7 +108,7 @@ An embedded stockpile has no identity of its own.
 ### Runtime representation
 
 Units are the only Arch ECS entities in A1. Unit components hold their stable identity, owner,
-absolute `Position`, facility assignment, and a reference to their reusable slot-based inventory.
+absolute `Position`, facility assignment, and a reference to their reusable slot-based `Inventory`.
 The unit slice maintains the internal `UnitId` → Arch entity index used to resolve stable references;
 neither that index nor the Arch world leaves the simulation.
 
@@ -139,10 +194,10 @@ ammunition, grenades, and field packs respectively. No A1 behavior selects by gr
 
 ### Carried inventory and equipment
 
-A carried inventory contains a fixed number of ordered slots. Each non-empty slot holds one item
-type up to that item's `slotCapacity`. Inserts fill existing partial stacks in slot order, then empty
-slots in slot order. Removal drains matching slots in slot order. Both operations are atomic: if the
-entire requested quantity cannot be inserted or removed, state does not change.
+`Inventory` is the carried item container and contains a fixed number of ordered slots. Each non-empty
+slot holds one item type up to that item's `slotCapacity`. Inserts fill existing partial stacks in slot
+order, then empty slots in slot order. Removal drains matching slots in slot order. Both operations are
+atomic: if the entire requested quantity cannot be inserted or removed, state does not change.
 
 Equipped items occupy wear slots rather than inventory slots and remain physical counted items. An
 equipped field pack occupies one `back` slot and adds two inventory slots while worn. A1 scenarios
@@ -164,6 +219,30 @@ atomic, and reject overflow, underflow, zero quantities, and negative quantities
 
 The object is owned and identified only through its host; it is never shared or reassigned between
 hosts. Ground storage gains identity from `GroundStockpileId`, not from the stockpile object.
+
+### Shared container and transfer behavior
+
+`Stockpile` and `Inventory` implement the
+[`IItemContainer` contract](../TDD.md#shared-item-container-contract). Generic inter-container movement
+depends only on that contract for quantities and acceptance; it does not branch on whether either end
+uses slots or stationary per-item caps.
+
+For one `ItemQuantity`, the coordinating operation:
+
+1. verifies that the source `QuantityOf` is sufficient;
+2. verifies that the destination `CanAccept` the entire quantity;
+3. calls `Take` on the source and `Put` on the destination; and
+4. appends the appropriate transaction using owner, `StorageAddress`, and absolute-position context
+   held outside the containers.
+
+A failed preflight changes neither container and records no successful transfer. `Put` and `Take`
+remain guarded operations but must still reject misuse as an invariant failure. Inventory stack
+merging, compaction, and canonical cleanup are invisible to the coordinator.
+
+`Inventory.QuantityOf` counts carried slots only. Equipped items remain physical goods audited at the
+same `UnitStorage(UnitId)` address, but cannot be taken through `Inventory`; A1 has no runtime
+equip/unequip operation. The one-item interface also does not replace whole-batch preflight: any
+multi-item operation must prove the entire mutation fits before changing either container.
 
 ### Scenario generation
 
@@ -450,29 +529,227 @@ references Arch. Remove random bootstrap spawning. Render:
 
 Do not add stock numbers, production state, pain-map data, or interactive controls in A1.
 
-## Implementation order
+## Implementation work packages
 
-1. Extend definition DTOs, validation, conversion, and registries for items, groups, pure recipes,
-   facility deposit rules, inventory slots, and equipment slots.
-2. Add generation DTOs and conversion for Commons colors, region-relative placements, absolute map
-   deposits, roads, facilities, national depots, ground piles, and absolute runtime positions.
-3. Add typed identities; stable registries for Charters, facilities, depots, and ground piles; unit
-   ECS identity and reusable inventory; the closed storage-address model; automatic Commons creation;
-   depot compartment synchronization; and dense host-owned stationary storage.
-4. Move facility production out of ECS into the facility object, then add the one-pass worker
-   aggregation, stable facility processing, and production statuses.
-5. Add Charter death, facility ownership transfer, capped ground-pile splitting, 180-tick decay, item
-   transactions, the buffered fact journal, and conservation auditing.
-6. Replace public Arch access and synchronous callbacks with `Simulation.Read` and post-phase journal
-   consumers, then add facility/depot/lifecycle metrics, deterministic JSON, and complete digest
-   coverage.
-7. Author the map/scenario, replace random bootstrap with shared scenario loading, add the minimal
-   renderers, and run the acceptance suite.
+Implement these packages in order. A package is complete only when its focused tests pass and the
+repository remains runnable through the normal check path. Prefer completing one coherent package to
+partially scaffolding several. Later packages may extend an earlier public projection or diagnostic
+row, but must not overturn its ownership or ordering contract.
 
-Each stage must leave the touched domain slice coherent. Do not preserve a universal stockpile
-identity, depot-as-facility representation, facility or stationary-stock ECS components, public Arch
-access, synchronous simulation callbacks, foreign facility buffers, region-relative runtime state,
-or recipe-owned deposit rules as compatibility shims.
+Expected gameplay conditions return explicit results or production statuses. Invalid authored data
+is rejected by the loader. Missing required runtime relationships, duplicate depot compartments,
+ledger mismatches, and other states promised impossible are invariant failures; do not silently
+repair or skip them.
+
+### Package 0 — Protect the foundation
+
+**Outcome:** establish a clean baseline and isolate the prototype code that A1 is authorized to
+replace.
+
+- Run the existing repository checks and identify the current unit, facility, item, event, digest,
+  and renderer entry points.
+- Preserve working map generation, pathfinding, movement, deterministic random streams, tick cadence,
+  and headless seed behavior unless a later package explicitly changes their public boundary.
+- Treat the facility/stockpile ECS slice, synchronous `SimulationEvents`, random Godot spawning, and
+  public Arch access as migration targets rather than architectural examples.
+- Avoid opportunistic cleanup in unrelated slices; reshape a touched slice only when the A1 contract
+  requires it.
+
+**Gate:** the pre-change checks are understood, and any existing failure is recorded before A1 work
+continues so it cannot be misattributed to the iteration.
+
+### Package 1 — Definitions and authored production data
+
+**Outcome:** all A1 definition files load into immutable, fully resolved runtime definitions.
+
+- Add the item groups, items, equipment features, pure recipes, facility types, and unit inventory and
+  wear-slot additions described in [Authored data contracts](#authored-data-contracts).
+- Author the nine item/recipe rows and four facility types exactly as specified; values live in data,
+  not code constants.
+- Resolve definition references once during conversion, including item-group membership, recipe
+  inputs/outputs, allowed recipes, and equipment wear slots.
+- Aggregate independent definition errors in one load failure. Do not stop at the first malformed
+  record or let DTO nullability leak into runtime code.
+
+**Gate:** loader tests cover valid content and each validation family; a runtime recipe exposes only
+identity, inputs, outputs, and work, and the shipped data matches the tables in this document.
+
+### Package 2 — Runtime ownership and host boundary
+
+**Outcome:** the simulation owns its state through the approved hybrid boundary before A1 systems
+build on it.
+
+- Add typed stable runtime identities and stable-ordered registries for Charters, facilities, depots,
+  and ground stockpiles.
+- Keep units in the internal Arch world and maintain the internal `UnitId` → Arch entity index as one
+  operation with unit creation and destruction.
+- Introduce the buffered fact-journal boundary and the `Simulation.Read` façade. Move existing map and
+  unit consumers to read-only projections before removing public mutable Arch/map access.
+- Ensure registry objects, component references, Arch handles, and mutable map cells cannot cross into
+  Godot or headless. Do not expose an internal collection temporarily as the de facto public API.
+
+**Gate:** stable-ID lookup and iteration tests pass; copied projections cannot mutate authoritative
+state; Godot and headless no longer use `Arch.Core` or `Simulation.Entities`.
+
+### Package 3 — Storage, inventory, and transaction vocabulary
+
+**Outcome:** every A1 storage host has bounded, deterministic, atomic item behavior before production
+or lifecycle code moves goods.
+
+- Implement the closed storage-address variants from [Storage addresses](#storage-addresses).
+- Replace dictionary-backed stationary storage with dense, item-indexed, host-owned stockpiles using
+  per-item caps and all-or-nothing multi-item operations.
+- Implement the shared `IItemContainer` contract on `Stockpile` and `Inventory`, keeping ownership,
+  addresses, transaction meaning, and journal access in the coordinating operation.
+- Add reusable unit carried `Inventory` and equipment state with ordered homogeneous slots, authored
+  wear slots, and field-pack capacity. Allocate at load/spawn and reuse during ticks.
+- Add the immutable item-transaction vocabulary and append surface, without allowing a stockpile to
+  invent transfer, ownership, or destruction meaning on its own. The coordinating operation records
+  that meaning.
+
+**Gate:** focused tests prove slot ordering, equipment capacity, stationary caps, atomic failure,
+generic transfer between both container kinds, storage-address identity, and stable item iteration
+without routine tick allocations.
+
+### Package 4 — Scenario loading and absolute world state
+
+**Outcome:** one loader converts the authored map/scenario into validated runtime state for both
+hosts.
+
+- Add the scenario-generation contract for diagnostics/tuning, Charters, deposits, facilities,
+  depots, units, equipment, initial stock, assignments, and road endpoints.
+- Resolve every generated location to an absolute `HexAddress` before constructing a registry object
+  or ECS unit. Roads and deposits become absolute map data at the same boundary.
+- Validate cross-record rules only after definition and identity resolution: owners and nations,
+  equipment legality, capacities, overlapping static structures, roads, assignments, and
+  mine/deposit compatibility.
+- Provide one scenario-loading bootstrap for headless and Godot to adopt in their later host packages;
+  keep presentation setup out of the loader.
+
+**Gate:** conversion tests prove the expected absolute addresses and rejected authoring cases, and a
+minimal scenario produces the same initialized simulation state on repeated loads.
+
+### Package 5 — Commons, Charters, and national depots
+
+**Outcome:** ownership and depot compartments are valid immediately after any supported initialization
+order.
+
+- Create exactly one Commons Charter per nation before named scenario Charters when performing normal
+  initialization; Commons is never authored as an ordinary Charter.
+- Register named Charters as plain domain objects and create the missing same-nation compartment in
+  every existing depot.
+- Register each ownerless national depot with an empty compartment for every active same-nation
+  Charter, including Commons. Apply authored starting compartment contents only after the complete
+  compartment set exists.
+- Centralize Charter/depot synchronization so scenario loading, tests, and later runtime creation
+  cannot establish different invariants.
+
+**Gate:** Charter-first and depot-first tests produce the same ordered compartments; duplicate,
+missing, foreign-nation, or owner-bearing depot state fails explicitly.
+
+### Package 6 — Facilities, staffing, and production
+
+**Outcome:** all nine recipes run through plain facility objects with attributable idle states.
+
+- Replace the prototype facility ECS entity and stockpile component with registry-owned facilities
+  containing production state and one embedded stockpile.
+- Validate selected recipes against facility type and, for deposit-bound types, the absolute map hex
+  at load and between-batch recipe changes.
+- On each production tick, perform the one-pass commutative worker aggregation described in
+  [Production execution](#production-execution), then process facilities in stable facility-ID order.
+- Implement batch input consumption, linear worker contribution, same-tick completion, retained
+  blocked output, between-batch recipe switching, and exactly one status classification per facility
+  per production tick.
+- Append item and production facts through the journal; do not invoke diagnostic consumers from the
+  facility transition.
+
+**Gate:** production tests cover every staffing and state transition, every shipped recipe, stable
+facility ordering, exact facts, and the absence of facility or stationary-stock ECS components.
+
+### Package 7 — Ownership changes and ground-stockpile lifecycle
+
+**Outcome:** Charter death and facility transfer conserve every item and produce deterministic ground
+overflow where required.
+
+- Implement ground-stockpile creation, stable identity allocation, capped multi-pile splitting,
+  immediate empty removal, and expiry with explicit destruction transactions.
+- Implement living facility ownership changes through the eviction bridge, preserving the former
+  owner on ejected ground goods and giving the new owner an empty embedded stockpile.
+- Implement the full Charter-death sequence in [Charter death](#charter-death): stable rare-path unit
+  ordering, in-place Commons transfer outside depots, local depot redistribution, overflow piles,
+  compartment removal, then Charter removal.
+- Keep location and ownership semantics distinct: same-hex rehosting is not physical transfer, and
+  ownership change does not renew an existing ground expiry.
+
+**Gate:** lifecycle tests force recipient capacity limits and multiple overflow piles, verify every
+transaction and ordering rule, and reconcile starting and ending quantities exactly.
+
+### Package 8 — Conservation and derived diagnostics
+
+**Outcome:** facts become deterministic diagnostics without feeding back into gameplay.
+
+- Snapshot initial custody across every storage host and apply journaled item transactions to the
+  expected ledger state.
+- Audit actual storage every ten ticks and at every report boundary, reporting the first discrepancy
+  in stable item/owner/storage/location order.
+- Consume production and lifecycle facts after their producing phase to maintain facility status
+  totals, throughput, transaction counts, and bounded presentation history.
+- Keep consumers cursor-based over reusable journal buffers and retain derived values rather than
+  references to journal storage.
+
+**Gate:** all transaction kinds reconcile; an injected untracked mutation fails at tick 10 and at an
+earlier report boundary; consumers observe append order and cannot run reentrantly.
+
+### Package 9 — Headless reporting and complete state digest
+
+**Outcome:** the headless host exposes the deterministic acceptance surface without privileged state
+access.
+
+- Add `--scenario` and `--metrics` with the output behavior defined in [Headless](#headless); preserve
+  the existing digest-only default and optional map override.
+- Produce every row through `Simulation.Read`, with the specified stable ordering and absolute
+  locations. Do not query Arch or registries directly from the host.
+- Extend the complete digest to all A1 authoritative state, including Commons, ownership, hosted
+  stock, production progress, compartments, equipment, assignments, ground expiry, and random state.
+- Keep JSON byte-stable for identical input and emit no incidental prose on metrics stdout.
+
+**Gate:** repeated identical runs produce byte-identical digest and JSON; report-boundary conservation
+audits run even when the regular ten-tick cadence has not elapsed.
+
+### Package 10 — Authored proof scenario and Godot presentation
+
+**Outcome:** the same authored scenario proves A1 headlessly and visibly.
+
+- Author the radius-4 map, three regions, three named Charters, automatic Commons, facilities,
+  depots, roads, workers, truck-logists, equipment, and initial goods from
+  [Proof map and scenario](#proof-map-and-scenario).
+- Preserve the intentional sulfur-side staffing/input bottleneck and seed transformation facilities
+  exactly as specified so all recipes run before transport exists.
+- Replace Godot's random unit bootstrap with shared scenario loading and render the required Charter
+  colors, facility types, neutral depots, roads, units, and ground-pile markers through
+  `Simulation.Read`.
+- Do not add A1-excluded overlays, interactive production controls, or placeholder 1B transport.
+
+**Gate:** the 120-tick acceptance run exercises all recipes, records the intended missing-input state
+and sulfur lag, reports zero conservation discrepancy, and the Godot project boots with every required
+marker.
+
+### Package 11 — Remove migration residue and close A1
+
+**Outcome:** the finished slice has one architecture rather than a new path beside the prototype.
+
+- Remove obsolete facility/stockpile ECS state, synchronous simulation callbacks, public Arch access,
+  random host spawning, and compatibility adapters that preserve any of them. Once the code matches
+  the contract, remove the temporary A1 migration note from the TDD.
+- Search code, data, and documentation for universal stockpile identity, depot-as-facility behavior,
+  foreign facility buffers, region-relative runtime state, recipe-owned deposits, or ownerless goods.
+- Run the full validation matrix below, repository checks, and the Godot build. Review the complete
+  state digest and metrics schema as public acceptance surfaces.
+- If implementation changes an approved architectural fact, update the TDD and this specification in
+  the same review rather than documenting the divergence later.
+
+**Gate:** every item in the [Completion gate](#completion-gate) is demonstrated by authored scenario
+or focused lifecycle test, and no deferred 1B behavior was introduced to make A1 pass.
 
 ## Validation and tests
 
@@ -492,6 +769,11 @@ or recipe-owned deposit rules as compatibility shims.
 
 - Verify deterministic slot packing and draining, atomic failure, field-pack capacity, stationary
   dense item indexing, per-item caps, and inclusion of equipment in conservation.
+- Verify the same transfer coordinator handles stockpile-to-stockpile, stockpile-to-inventory,
+  inventory-to-stockpile, and inventory-to-inventory movement; insufficient source or destination
+  capacity leaves both sides and the transaction journal unchanged.
+- Verify equipped goods contribute to conservation but not `Inventory.QuantityOf` and cannot be
+  transferred without a future explicit unequip operation.
 - Verify that a facility's anonymous embedded stock follows its owner; depot compartments remain
   isolated by Charter; and only ground storage has an independent stockpile identity.
 - Cover zero, partial, full, and excess staffing; order-independent one-pass worker aggregation;

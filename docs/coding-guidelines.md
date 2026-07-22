@@ -48,7 +48,7 @@ the slice is reshaped, not appended to. Systems must never become the sum of the
 - **Common infrastructure doesn't know game rules.** Terrain knowledge stays with the caller of
   the pathfinder, not inside it; the same razor applies to any shared utility.
 - **Structs for small ECS values with real value semantics.** Use an owned class where identity,
-  reference semantics, or reusable variable-size storage earns it (`NavPath`, `UnitInventory`). A
+  reference semantics, or reusable variable-size storage earns it (`NavPath`, `Inventory`). A
   struct must not conceal a shared mutable collection.
 - **Allocation discipline in hot paths** — inline ECS queries, indexed loops, spans, and reused
   scratch — but keep mechanics subordinate to the rule being run. The TDD defines where the hot-path
