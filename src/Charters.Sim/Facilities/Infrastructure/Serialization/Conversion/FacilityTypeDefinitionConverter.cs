@@ -24,8 +24,7 @@ internal static class FacilityTypeDefinitionConverter
                 facilityType.Id!,
                 facilityType.Name!,
                 facilityType.WorkerSlots!.Value,
-                ConvertAllowedRecipes(facilityType.AllowedRecipes!, recipesById),
-                facilityType.RequiresMatchingDeposit!.Value);
+                ConvertAllowedRecipes(facilityType.AllowedRecipes!, recipesById));
         }
 
         return result;

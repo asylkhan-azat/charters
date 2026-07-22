@@ -71,7 +71,7 @@ These are review blockers, not implementation suggestions:
 | Ownership | Every item and unit has a Charter owner. “Charterless” means owned by the nation's Commons Charter. |
 | Storage | `Stockpile` and carried `Inventory` share the narrow `IItemContainer` behavior; hosted stock remains anonymous and only a ground stockpile has independent identity. |
 | Depot role | A depot is ownerless national infrastructure, never a facility or Charter property. Its compartments are Charter-owned. |
-| Recipe purity | Beyond definition identity, a recipe contains only inputs, outputs, and required work. Deposit compatibility belongs to the facility type. |
+| Recipe purity | Beyond definition identity, a recipe contains only inputs, outputs, and required work. Facility-to-deposit compatibility is deferred until a construction system exists. |
 | Mutation boundary | Arch, registries, and mutable map state stay inside `Charters.Sim`; hosts consume `Simulation.Read`. |
 | Ordering | Independent work iterates native storage in place. Contested outcomes use their mechanic's explicit rule, while reports and hashes canonicalize only on their cold output boundary. |
 | Conservation | Every quantity change is represented by an item transaction and is auditable by item, owner, storage address, and location. |
@@ -173,7 +173,7 @@ The definition aggregate gains the following validated records:
 | Item feature: equippable | `type: "equippable"`, `equipmentSlot` |
 | Item feature: slot expansion | `type: "slot-expansion"`, `additionalSlots` |
 | Recipe | `id`, `inputs`, `outputs`, `workRequired` |
-| Facility type | `id`, `name`, `workerSlots`, `allowedRecipes`, `requiresMatchingDeposit` |
+| Facility type | `id`, `name`, `workerSlots`, `allowedRecipes` |
 | Unit type additions | Polymorphic `features` list |
 | Unit feature: inventory | `type: "inventory"`, `slots` |
 | Unit feature: equipment slots | `type: "equipment-slots"`, `slots` keyed by slot ID and count |
@@ -229,10 +229,15 @@ item capacities, and equipment capacity bonuses must be positive when present. I
 must be unique and resolvable. A recipe must have at least one output. A facility's selected recipe
 must belong to its type's allowed set.
 
-A facility type with `requiresMatchingDeposit: true` may allow only zero-input recipes with exactly
-one output item. At scenario load and whenever its recipe changes, the facility's absolute map hex
-must contain a deposit of that output item. The recipe itself remains deposit-agnostic. Facility
-types without this flag may use zero-input recipes, such as food production, without a deposit.
+A1 does not validate facility-to-deposit matching: no facility type field or load-time check ties a
+facility's recipe to its absolute hex deposit. Extraction facility types use zero-input,
+single-output recipes the same way non-extraction facility types such as farms do. Deposits remain
+authored map data for scenario placement and presentation, but nothing enforces that a mine sits on
+a matching deposit or that a recipe change stays compatible with one.
+
+> **Deferred:** deposit matching is meaningful once a construction system lets Charters place
+> facilities themselves; at that point, revisit it as a placement-time constraint on the build
+> action rather than an authored facility-type flag or load-time validation rule.
 
 Item tags are schema-only in A1: each item authors a flat set of kebab-case tags with no separate
 tag registry to resolve against. Ship the degenerate MVP tags `small-arms-weapons`,
@@ -313,8 +318,8 @@ objects, and absolute ECS `Position` components for units.
 
 The loader rejects missing regions, offsets outside the region, overlapping static structures, road
 segments that leave the generated map, unknown nations, owners or definitions, duplicate IDs,
-invalid equipment, stock above capacity, invalid mine/deposit combinations, and worker assignments
-to a different absolute location or owner.
+invalid equipment, stock above capacity, and worker assignments to a different absolute location or
+owner.
 
 ## Initial authored content
 
@@ -339,20 +344,19 @@ The item IDs are `ore`, `sulfur`, `food`, `materials`, `refined-sulfur`, `rifle`
 
 ### Facility types
 
-| Facility type | Worker slots | Allowed recipes | Matching deposit required |
-|---|---:|---|---|
-| Mine | 2 | Ore, sulfur | Yes |
-| Farm | 2 | Food | No |
-| Refinery | 4 | Materials, refined sulfur | No |
-| Factory | 4 | Rifle, grenades, ammunition, field pack | No |
+| Facility type | Worker slots | Allowed recipes |
+|---|---:|---|
+| Mine | 2 | Ore, sulfur |
+| Farm | 2 | Food |
+| Refinery | 4 | Materials, refined sulfur |
+| Factory | 4 | Rifle, grenades, ammunition, field pack |
 
 Depots are not facility types and never carry facility type, production, recipe, staffing, or
 Charter-owner state.
 
 Recipe changes are explicit and have no A1 retooling cost, but are legal only between batches: the
-facility must have zero progress and no completed output waiting for space. A mine rejects a recipe
-whose sole output does not match its absolute hex deposit. Automatic selection and retooling friction
-remain deferred.
+facility must have zero progress and no completed output waiting for space. Automatic selection and
+retooling friction remain deferred.
 
 ### Proof map and scenario
 
@@ -429,8 +433,6 @@ their processing order is not a gameplay tiebreaker:
    append creation and completion facts and record `Producing`; otherwise retain the completed batch
    and record `OutputBlocked`.
 
-Mine placement and recipe compatibility are validated at load and recipe-change boundaries against
-the absolute map deposit. They are invariants, not recurring production inputs or idle statuses.
 Every facility contributes exactly one status tick per production tick.
 
 ## Depot and Charter lifecycle
@@ -672,8 +674,7 @@ hosts.
 - Resolve every generated location to an absolute `HexAddress` before constructing a registry object
   or ECS unit. Roads and deposits become absolute map data at the same boundary.
 - Validate cross-record rules only after definition and identity resolution: owners and nations,
-  equipment legality, capacities, overlapping static structures, roads, assignments, and
-  mine/deposit compatibility.
+  equipment legality, capacities, overlapping static structures, roads, and assignments.
 - Provide one scenario-loading bootstrap for headless and Godot to adopt in their later host packages;
   keep presentation setup out of the loader.
 
@@ -704,8 +705,7 @@ duplicate, missing, foreign-nation, or owner-bearing depot state fails explicitl
 
 - Replace the prototype facility ECS entity and stockpile component with registry-owned facilities
   containing production state and one embedded stockpile.
-- Validate selected recipes against facility type and, for deposit-bound types, the absolute map hex
-  at load and between-batch recipe changes.
+- Validate selected recipes against facility type at load and between-batch recipe changes.
 - On each production tick, perform the one-pass commutative worker aggregation described in
   [Production execution](#production-execution), then process facilities directly in registry order.
 - Implement batch input consumption, linear worker contribution, same-tick completion, retained
@@ -819,8 +819,7 @@ or focused lifecycle test, and no deferred 1B behavior was introduced to make A1
 - Verify feature order does not change the resolved definition and that hot unit capabilities are
   materialized at spawn rather than discovered by per-tick polymorphic scans.
 - Assert that recipe definitions expose only inputs, outputs, and work beyond definition identity.
-- Reject duplicate item tags, recipes without output, disallowed facility recipes,
-  deposit-required facilities with non-extraction recipes, mismatched mine/deposit placement, invalid
+- Reject duplicate item tags, recipes without output, disallowed facility recipes, invalid
   equipment, over-capacity starting storage, invalid roads or generated locations, overlapping
   structures, and cross-owner/cross-position assignments.
 - Verify region-relative generation inputs resolve to the expected absolute hexes, every positioned
@@ -839,7 +838,7 @@ or focused lifecycle test, and no deferred 1B behavior was introduced to make A1
   isolated by Charter; and only ground storage has an independent stockpile identity.
 - Cover zero, partial, full, and excess staffing; order-independent one-pass worker aggregation;
   preserved progress while unstaffed; missing inputs; linear work; same-tick output; blocked-output
-  retention; legal recipe switches; and mine/deposit compatibility.
+  retention; and legal recipe switches.
 - Exercise every shipped recipe and assert its exact inputs, outputs, work, and capacity data.
 
 ### Commons, depots, and lifecycle

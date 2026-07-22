@@ -7,5 +7,4 @@ public sealed record FacilityTypeDefinition(
     string Id,
     string Name,
     int WorkerSlots,
-    ImmutableArray<RecipeDefinition> AllowedRecipes,
-    bool RequiresMatchingDeposit) : IDefinition;
+    ImmutableArray<RecipeDefinition> AllowedRecipes) : IDefinition;

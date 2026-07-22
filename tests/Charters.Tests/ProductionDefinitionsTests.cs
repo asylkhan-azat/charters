@@ -81,19 +81,17 @@ public sealed class ProductionDefinitionsTests
 
         Assert.Equal(["mine", "farm", "refinery", "factory"], definitions.FacilityTypes.Select(static type => type.Id));
 
-        AssertFacilityType(definitions, "mine", workerSlots: 2, requiresDeposit: true, ["produce-ore", "produce-sulfur"]);
-        AssertFacilityType(definitions, "farm", workerSlots: 2, requiresDeposit: false, ["produce-food"]);
+        AssertFacilityType(definitions, "mine", workerSlots: 2, ["produce-ore", "produce-sulfur"]);
+        AssertFacilityType(definitions, "farm", workerSlots: 2, ["produce-food"]);
         AssertFacilityType(
             definitions,
             "refinery",
             workerSlots: 4,
-            requiresDeposit: false,
             ["produce-materials", "produce-refined-sulfur"]);
         AssertFacilityType(
             definitions,
             "factory",
             workerSlots: 4,
-            requiresDeposit: false,
             ["produce-rifle", "produce-grenades", "produce-ammunition", "produce-field-pack"]);
     }
 
@@ -117,7 +115,6 @@ public sealed class ProductionDefinitionsTests
         Assert.Equal(2, definitions.Items.Count);
         Assert.Single(definitions.Recipes);
         Assert.Single(definitions.FacilityTypes);
-        Assert.True(definitions.FacilityTypes["mine"].RequiresMatchingDeposit);
         Assert.Equal("produce-ore", definitions.FacilityTypes["mine"].AllowedRecipes[0].Id);
     }
 
@@ -151,12 +148,10 @@ public sealed class ProductionDefinitionsTests
         DefinitionSet definitions,
         string id,
         int workerSlots,
-        bool requiresDeposit,
         string[] allowedRecipes)
     {
         var facilityType = definitions.FacilityTypes[id];
         Assert.Equal(workerSlots, facilityType.WorkerSlots);
-        Assert.Equal(requiresDeposit, facilityType.RequiresMatchingDeposit);
         Assert.Equal(allowedRecipes, facilityType.AllowedRecipes.Select(static recipe => recipe.Id));
     }
 }

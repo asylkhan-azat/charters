@@ -9,6 +9,4 @@ internal sealed class FacilityTypeDto
     public int? WorkerSlots { get; init; }
 
     public IReadOnlyList<string>? AllowedRecipes { get; init; }
-
-    public bool? RequiresMatchingDeposit { get; init; }
 }

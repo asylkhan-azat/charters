@@ -40,12 +40,6 @@ internal static class FacilityTypeDefinitionValidator
                 facilityType.WorkerSlots,
                 errors);
 
-            if (facilityType.RequiresMatchingDeposit is null)
-            {
-                errors.Add(
-                    $"{FileName}: facility type '{DefinitionValidationRules.DisplayId(facilityType.Id)}' is missing requiresMatchingDeposit");
-            }
-
             ValidateAllowedRecipes(facilityType, recipesById, errors);
         }
     }
@@ -72,23 +66,11 @@ internal static class FacilityTypeDefinitionValidator
                 continue;
             }
 
-            if (!recipesById.TryGetValue(recipeId, out var recipe))
+            if (!recipesById.TryGetValue(recipeId, out _))
             {
                 errors.Add(
                     $"{FileName}: facility type '{DefinitionValidationRules.DisplayId(facilityType.Id)}' references unknown recipe '{recipeId}'");
-                continue;
-            }
-
-            if (facilityType.RequiresMatchingDeposit == true && !IsZeroInputSingleOutput(recipe))
-            {
-                errors.Add(
-                    $"{FileName}: facility type '{DefinitionValidationRules.DisplayId(facilityType.Id)}' requires a matching deposit but allows recipe '{recipeId}' which has inputs or more than one output");
             }
         }
-    }
-
-    private static bool IsZeroInputSingleOutput(RecipeDto recipe)
-    {
-        return (recipe.Inputs is null || recipe.Inputs.Count == 0) && recipe.Outputs is { Count: 1 };
     }
 }

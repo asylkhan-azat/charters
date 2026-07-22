@@ -201,8 +201,7 @@ public sealed class ProductionDefinitionValidationTests
                 "id": "Bad_Id",
                 "name": "Again",
                 "workerSlots": 2,
-                "allowedRecipes": [],
-                "requiresMatchingDeposit": false
+                "allowedRecipes": []
               }
             ]
             """);
@@ -213,51 +212,7 @@ public sealed class ProductionDefinitionValidationTests
         Assert.Contains("duplicate facility type id 'Bad_Id'", exception.Message);
         Assert.Contains("facility type 'Bad_Id' has empty name", exception.Message);
         Assert.Contains("facility type 'Bad_Id' has negative worker slots '-1'", exception.Message);
-        Assert.Contains("facility type 'Bad_Id' is missing requiresMatchingDeposit", exception.Message);
         Assert.Contains("facility type 'Bad_Id' has duplicate allowed recipe 'unknown-recipe'", exception.Message);
         Assert.Contains("facility type 'Bad_Id' references unknown recipe 'unknown-recipe'", exception.Message);
-    }
-
-    [Fact]
-    public void DepositRequiringFacilityTypeRejectsNonExtractionRecipe()
-    {
-        using TestDefinitionsDirectory directory = new();
-        directory.Write(
-            "recipes.json",
-            """
-            [
-              {
-                "id": "produce-ore",
-                "inputs": [],
-                "outputs": [{ "item": "ore", "quantity": 4 }],
-                "workRequired": 8
-              },
-              {
-                "id": "produce-materials",
-                "inputs": [{ "item": "ore", "quantity": 4 }],
-                "outputs": [{ "item": "ore", "quantity": 1 }],
-                "workRequired": 12
-              }
-            ]
-            """);
-        directory.Write(
-            "facility-types.json",
-            """
-            [
-              {
-                "id": "mine",
-                "name": "Mine",
-                "workerSlots": 2,
-                "allowedRecipes": ["produce-materials"],
-                "requiresMatchingDeposit": true
-              }
-            ]
-            """);
-
-        var exception = Assert.Throws<DefinitionValidationException>(() => DefinitionLoader.LoadFromDirectory(directory.Path));
-
-        Assert.Contains(
-            "facility type 'mine' requires a matching deposit but allows recipe 'produce-materials' which has inputs or more than one output",
-            exception.Message);
     }
 }
