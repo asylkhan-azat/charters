@@ -1,6 +1,9 @@
 using Arch.Core;
 using Charters.Sim.AI.Components;
+using Charters.Sim.Charters;
 using Charters.Sim.Core;
+using Charters.Sim.Facilities;
+using Charters.Sim.Facilities.Models;
 using Charters.Sim.Hexes;
 using Charters.Sim.Movement.Components;
 using Charters.Sim.Movement.Pathfinding;
@@ -21,16 +24,27 @@ public class UnitFactory
         _simulation = simulation;
     }
 
+    // A facility-assigned unit doesn't wander; an unassigned one keeps the local wandering heuristic.
     public UnitId Spawn(
         HexAddress address,
-        UnitDefinition type)
+        UnitDefinition type,
+        CharterId owner,
+        FacilityId? assignment = null)
     {
         var id = new UnitId(_idCounter++);
-        var entity = _simulation.Entities.Create(
-            new UnitIdentity(id, type),
-            new Position { Address = address },
-            new Navigation { Path = new NavPath() },
-            new Wandering());
+
+        var entity = assignment is { } facilityId
+            ? _simulation.Entities.Create(
+                new UnitIdentity(id, type),
+                new Position { Address = address },
+                new Owner(owner),
+                new FacilityAssignment(facilityId))
+            : _simulation.Entities.Create(
+                new UnitIdentity(id, type),
+                new Position { Address = address },
+                new Owner(owner),
+                new Navigation { Path = new NavPath() },
+                new Wandering());
 
         _entitiesByUnitId.Add(id, entity);
         return id;

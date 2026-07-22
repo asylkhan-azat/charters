@@ -8,6 +8,8 @@ public sealed class FacilitySimulationPhase : ISimulationPhase
 
     public void Execute(Simulation simulation)
     {
-        FacilitySystem.ProduceItems.Execute(simulation);
+        // Order matters: production reads the staffing each facility was just given this tick.
+        FacilityWorkerSystem.Execute(simulation);
+        FacilityProductionSystem.Execute(simulation);
     }
 }

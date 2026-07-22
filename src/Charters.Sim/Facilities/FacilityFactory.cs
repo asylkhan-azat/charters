@@ -1,0 +1,39 @@
+using Charters.Sim.Charters;
+using Charters.Sim.Core;
+using Charters.Sim.Facilities.Definitions;
+using Charters.Sim.Facilities.Models;
+using Charters.Sim.Hexes;
+
+namespace Charters.Sim.Facilities;
+
+public sealed class FacilityFactory
+{
+    private readonly Simulation _simulation;
+    private long _idCounter;
+
+    internal FacilityFactory(Simulation simulation)
+    {
+        _simulation = simulation;
+    }
+
+    public FacilityId Register(
+        FacilityTypeDefinition type,
+        CharterId owner,
+        HexAddress location,
+        RecipeDefinition recipe)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        ArgumentNullException.ThrowIfNull(recipe);
+
+        if (!type.AllowedRecipes.Contains(recipe))
+        {
+            throw new SimulationInvariantException(
+                $"Recipe '{recipe.Id}' is not in the allowed set for facility type '{type.Id}'.");
+        }
+
+        var id = new FacilityId(_idCounter++);
+        var facility = new Facility(id, type, owner, location, recipe);
+        _simulation.Registries.Facilities.Add(facility);
+        return id;
+    }
+}

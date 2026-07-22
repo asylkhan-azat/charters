@@ -425,36 +425,45 @@ recipes and reach at least one missing-input idle period without requiring trans
 
 ## Production execution
 
-`FacilityProduction` owns current recipe, completed work, whether a finished batch is waiting for
-space, and the most recent reportable status. It is state owned by the plain facility object alongside
-that facility's embedded stockpile. A worker unit carries a one-way `FacilityAssignment` by stable
-facility ID and an absolute ECS `Position`.
+The plain `Facility` object owns its current recipe, progress ticks, batch phase (awaiting inputs,
+in progress, or completed), most recent reportable status, and this tick's claimed-spot count,
+alongside its embedded stockpile. There is no separate production sub-object; a facility is the only
+place this state lives.
 
-At the start of each production tick, clear reusable eligible-worker counts keyed by `FacilityId`.
-Run one inline ECS query over worker units with owner, absolute position, and facility assignment.
-Resolve each assignment through the facility registry and increment its count
-only when owner and absolute address match, capped at the facility type's `workerSlots`. Addition is
-commutative, so ECS iteration order cannot affect the result and no per-facility unit query or sort is
-needed.
+Each production tick runs two systems in order:
 
-Then process facilities directly in registry order. Facility transitions are independent in A1, so
-their processing order is not a gameplay tiebreaker:
+`FacilityWorkerSystem` resets every facility's claimed-spot count to zero, then runs one inline ECS
+query over worker units with owner, absolute position, and facility assignment. For each worker, it
+resolves the assignment through the facility registry; if owner and absolute address match, the
+worker claims one spot directly on the facility (capped at the facility type's `workerSlots`) and, on
+a successful claim, immediately adds one work to that facility — hardcoded to one per worker for now,
+a placeholder for a future specialization system. Claiming and adding work happen per worker, in
+place on the facility object; there is no intermediate aggregate structure, so ECS iteration order
+cannot affect the result. Added work is silently dropped unless the facility's batch is already in
+progress, so a worker staffing an idle facility does not contribute on the tick that facility consumes
+inputs and begins a fresh batch — staffing from empty costs one tick before any work shows up.
 
-1. Read the aggregated eligible-worker count for this facility.
-2. If a completed batch is waiting, atomically insert its outputs into the embedded stockpile. On
-   success, append creation and batch-completion facts and clear progress. On failure, record
-   `OutputBlocked` for the tick and stop processing that facility.
-3. If no eligible worker remains, record `Unstaffed` and preserve any in-progress work.
-4. If no batch is active, atomically remove the selected recipe's inputs from the embedded stockpile.
-   If inputs are unavailable, record `MissingInputs`; otherwise append consumption and begin the
-   batch.
-5. Add one work per eligible worker, capped at `workRequired`. If the batch does not complete,
-   record `Producing`.
-6. When work completes, try to insert the entire output atomically during the same tick. On success,
-   append creation and completion facts and record `Producing`; otherwise retain the completed batch
-   and record `OutputBlocked`.
+Claimed spots are recomputed from scratch every tick rather than held as a sticky reservation released
+when a worker moves away or dies, because no A1 unit ever leaves or dies at its assigned facility. This
+needs an explicit release path once a later iteration adds either behavior.
 
-Every facility contributes exactly one status tick per production tick.
+`FacilityProductionSystem` then processes every registry-owned facility directly in registry order.
+Facility transitions are independent in A1, so their processing order is not a gameplay tiebreaker:
+
+1. If a completed batch is waiting, atomically insert its outputs into the embedded stockpile. On
+   success, clear progress and continue processing this facility — the freed capacity may let a new
+   batch begin the same tick. On failure, record `OutputBlocked` and stop processing that facility.
+2. If this tick's claimed-spot count is zero, record `Unstaffed` and stop; any in-progress work is
+   preserved untouched.
+3. If no batch is active, atomically remove the selected recipe's inputs from the embedded stockpile.
+   If inputs are unavailable, record `MissingInputs` and stop. Otherwise begin the batch at zero
+   progress — the worker sweep already ran this tick and its work does not carry over, so progress
+   only starts accruing next tick.
+4. Otherwise, record `Producing`.
+
+Facts carrying the facility ID and the consumed or produced goods are appended from what each
+facility's tick reports back, not read from the stockpile directly. Every facility contributes exactly
+one status per production tick.
 
 ## Depot and Charter lifecycle
 
@@ -722,13 +731,14 @@ duplicate, missing, foreign-nation, or owner-bearing depot state fails explicitl
 - Replace the prototype facility ECS entity and stockpile component with registry-owned facilities
   containing production state and one embedded stockpile.
 - Validate selected recipes against facility type at load and between-batch recipe changes.
-- On each production tick, perform the one-pass commutative worker aggregation described in
-  [Production execution](#production-execution), then process facilities directly in registry order.
-- Implement batch input consumption, linear worker contribution, same-tick completion, retained
+- On each production tick, run `FacilityWorkerSystem` to claim worker spots and apply their work
+  directly on each facility, then run `FacilityProductionSystem` to process facilities directly in
+  registry order, as described in [Production execution](#production-execution).
+- Implement batch input consumption, per-worker work contribution, same-tick output hand-off, retained
   blocked output, between-batch recipe switching, and exactly one status classification per facility
   per production tick.
-- Append production facts carrying the facility ID plus consumed and produced goods; do not invoke
-  diagnostic consumers from the facility transition.
+- Append production facts carrying the facility ID plus consumed and produced goods, read back from
+  each facility's tick outcome; do not invoke diagnostic consumers from the facility transition.
 
 **Gate:** production tests cover every staffing and state transition, every shipped recipe, expected
 facts independent of their append order, and the absence of facility or stationary-stock ECS
@@ -853,9 +863,9 @@ or focused lifecycle test, and no deferred 1B behavior was introduced to make A1
   transferred without a future explicit unequip operation.
 - Verify that a facility's anonymous embedded stock follows its owner; depot compartments remain
   isolated by Charter; and only ground storage has an independent stockpile identity.
-- Cover zero, partial, full, and excess staffing; order-independent one-pass worker aggregation;
-  preserved progress while unstaffed; missing inputs; linear work; same-tick output; blocked-output
-  retention; and legal recipe switches.
+- Cover zero, partial, full, and excess staffing; order-independent per-worker spot claiming;
+  preserved progress while unstaffed; missing inputs; per-tick work accrual; same-tick output
+  hand-off; blocked-output retention; and legal recipe switches.
 - Exercise every shipped recipe and assert its exact inputs, outputs, work, and capacity data.
 
 ### Commons, depots, and lifecycle

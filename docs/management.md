@@ -17,54 +17,44 @@ tracks position and progress.*
 The implementation foundation and MVP roadmap are in place. Charter AI boundaries are captured in
 the [architecture](design/charter-ai-architecture.md), and
 [Loop 1 — The Moving Economy](design/loop-1-moving-economy.md) is the active execution design.
-[Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md) is underway.
+[Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md) is underway: work packages
+0 through 6 (of 11) are complete.
 
 ## Progress
 
-Iteration 1A work packages complete so far:
+Packages 0–5 (baseline protection, authored item/recipe/facility-type definitions, typed-ID
+registries, `IItemContainer`/`Stockpile`/`Inventory` storage, scenario loading, and Commons/Charter/
+depot lifecycle) landed in prior sessions — see the spec's
+[work packages](specs/iteration-1a-owned-production.md#implementation-work-packages) for what each
+covers; implementation detail from those sessions is not repeated here.
 
-- **Package 0 — Protect the foundation:** baseline repo checks (build, tests, determinism smoke)
-  confirmed clean before any A1 change; current unit/facility/item/event/digest/renderer entry
-  points identified; the facility/stockpile ECS slice, synchronous `SimulationEvents`, and random
-  Godot spawning confirmed as migration targets rather than prior art.
-- **Package 1 — Definitions and authored production data:** item, recipe, and facility-type
-  definitions added with polymorphic item/unit features; loader validation covers every family
-  (identity, capacity, feature rules, recipe/facility cross-references). Items carry a flat `tags`
-  set rather than a separate request-group registry. The implementation and authored data still
-  contain the now-superseded `slot-expansion` feature and ninth field-pack recipe: the approved model
-  now keeps inventory capacity fixed by unit type, equips rifles and grenades one item per typed
-  equipment slot, and reuses the same equipment core for later machine modules. Package 1 must be
-  reconciled with the owning docs before Package 3 closes.
-- **Package 2 — Runtime ownership and host boundary:** typed stable IDs (`UnitId`, `CharterId`,
-  `FacilityId`, `DepotId`, `GroundStockpileId`, each `IComparable<TSelf>` over their wrapped `long`);
-  a generic `Registry<TId, TItem>` (`Charters.Sim.Core`) backed by one `SortedDictionary<TId, TItem>`
-  — typed-ID lookup, `Add`/`Remove`, and ascending-ID iteration; it does not generate
-  IDs itself; that stays with whatever spawner constructs the item, matching `UnitFactory`'s existing
-  `_idCounter`. The four Charter/Facility/Depot/GroundStockpile registries are grouped under
-  `Simulation.Registries` (`SimulationRegistries`), currently holding only identity-only placeholder
-  objects — Packages 5–7 give them real fields and populate them; the existing ECS facility prototype
-  is untouched. `UnitFactory` now owns the `UnitId` → Arch entity index as one operation with
-  `Spawn`/`Destroy`. A generic `FactJournal<TFact>` buffered-append primitive exists
-  (`Charters.Sim.Core`) but isn't wired to a concrete fact type yet. Read-only value-projection
-  services are grouped under `Simulation.Services` (`SimulationServices`) — currently `Units`
-  (`UnitViewService`), which threads a caller `ref TState` through allocation-free unit iteration
-  instead of allocating a closure or a buffer. `WorldMap` is public again but only its read-only
-  surface is (`Count`, `AddressOf`, `HexAt` returning `HexView`, etc.); its mutable grid and
-  ref-returning indexer are internal, and `Simulation.Entities` (raw Arch `World`) stays internal.
-  Godot and headless read units through `simulation.Services.Units` and hexes through `simulation.Map`
-  directly, with no `Arch.Core` or raw Arch state reachable from either host. The iteration spec and
-  TDD's public-boundary section were updated to match — both previously named this surface a single
-  `Simulation.Read` façade, which this implementation replaced with `Simulation.Services` +
-  `Simulation.Map` instead.
+This session completed:
 
-79 tests pass; `scripts/check.ps1` is green.
+- **Package 6 — Facilities, staffing, and production:** the prototype facility ECS entity and
+  stockpile component are gone. `Facility` (`Charters.Sim.Facilities.Models`) is a plain
+  registry-owned object holding its type, owner, location, embedded `Stockpile`, and production state
+  (current recipe, progress, batch phase, last status, this tick's claimed-spot count) directly —
+  there is no separate production sub-object. Each production tick runs two systems in order:
+  `FacilityWorkerSystem` resets claimed-spot counts, then runs one inline ECS query over worker units
+  (owner + position + `FacilityAssignment`) that claims a spot and applies one hardcoded work unit
+  directly on the matching facility, in place, per worker; `FacilityProductionSystem` then walks the
+  facility registry in order to hand off completed batches, flag `Unstaffed`/`MissingInputs`, consume
+  inputs, and begin new batches. Because work is applied during the worker sweep, before that same
+  tick's input consumption, a facility staffed from empty spends its first tick only beginning the
+  batch — work starts accruing next tick. Staffing is recomputed from scratch every tick rather than
+  held as a released-on-move/death reservation, which is only correct because no A1 unit can currently
+  move away from or die at its assigned facility (flagged in code and in the spec for revisit once
+  either becomes possible). Facts (`FacilityInputsConsumedFact`/`FacilityOutputsProducedFact`) are
+  appended from each facility's tick outcome, not read from the stockpile by the system. The iteration
+  spec's [Production execution](specs/iteration-1a-owned-production.md#production-execution) section
+  was rewritten to match this shape.
+
+159 tests pass; `scripts/check.ps1` is green.
 
 ## Next
 
-- Continue [Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md) by first
-  reconciling Package 1 definitions, data, and tests with the fixed-inventory equipment decision:
-  remove field packs and `slot-expansion`, make rifles and grenades equippable, and author infantry
-  `main-weapon` and `grenade` slots. Then close **Package 3 — Storage, inventory, and transfer
-  behavior** with item-ID-keyed `Stockpile`, the shared `IItemContainer` contract, fixed-capacity
-  `Inventory`, uniquely named `Equipment` slots, and atomic container transfer without universal
-  custody addresses or facts.
+- Continue [Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md) with
+  **Package 7 — Ownership changes and ground-stockpile lifecycle**: ground-stockpile creation with
+  stable IDs, capped multi-pile overflow splitting and expiry, the living-facility-transfer eviction
+  bridge, and the full Charter-death sequence (in-place Commons transfer, registry-order depot
+  redistribution, overflow piles, compartment removal).

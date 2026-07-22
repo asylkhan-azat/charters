@@ -1,4 +1,4 @@
-namespace Charters.Sim.Facilities;
+namespace Charters.Sim.Facilities.Models;
 
 public readonly record struct FacilityId(long Value) : IComparable<FacilityId>
 {

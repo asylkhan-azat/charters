@@ -19,10 +19,17 @@ internal static class SimulationBootstrapper
         var random = simulation.Random.Get(RandomStreamType.WorldGen);
         var unitDefs = definitions.Units.ToList();
 
+        var commonsId = default(Charters.Sim.Charters.CharterId);
+        foreach (var charter in simulation.Registries.Charters)
+        {
+            commonsId = charter.Id;
+            break;
+        }
+
         for (var i = 0; i < 10; i++)
         {
             var hex = simulation.Map.HexAt(random.NextInt(simulation.Map.Count)).Address;
-            simulation.UnitFactory.Spawn(hex, unitDefs[random.NextInt(unitDefs.Count)]);
+            simulation.UnitFactory.Spawn(hex, unitDefs[random.NextInt(unitDefs.Count)], commonsId);
         }
 
         return simulation;

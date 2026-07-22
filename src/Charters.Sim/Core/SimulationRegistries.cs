@@ -1,6 +1,7 @@
 using Charters.Sim.Charters;
 using Charters.Sim.Depots;
 using Charters.Sim.Facilities;
+using Charters.Sim.Facilities.Models;
 using Charters.Sim.GroundStockpiles;
 
 namespace Charters.Sim.Core;

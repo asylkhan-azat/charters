@@ -30,15 +30,12 @@ public sealed class Simulation
         Map = WorldGenerator.Generate(Definitions, Random, options.MapTemplate);
         Entities = World.Create();
         UnitFactory = new UnitFactory(this);
-        Events = new SimulationEvents();
-        FacilityStatistics = new FacilityStatistics();
         Registries = new SimulationRegistries();
+        Facts = new SimulationFacts();
         CharterFactory = new CharterFactory(this);
         DepotFactory = new DepotFactory(this);
+        FacilityFactory = new FacilityFactory(this);
         Services = new SimulationServices(this);
-
-        Events.FacilityProducedItems += FacilityStatistics.OnProduced;
-        Events.FacilityConsumedItems += FacilityStatistics.OnConsumed;
 
         foreach (var nation in Map.Nations)
         {
@@ -52,11 +49,11 @@ public sealed class Simulation
     public WorldMap Map { get; }
     internal World Entities { get; }
     public UnitFactory UnitFactory { get; }
-    public SimulationEvents Events { get; }
-    public FacilityStatistics FacilityStatistics { get; }
     public SimulationRegistries Registries { get; }
+    public SimulationFacts Facts { get; }
     public CharterFactory CharterFactory { get; }
     public DepotFactory DepotFactory { get; }
+    public FacilityFactory FacilityFactory { get; }
     public SimulationServices Services { get; }
 
     public void Advance(int ticks)

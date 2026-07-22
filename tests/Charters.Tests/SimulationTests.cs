@@ -1,3 +1,4 @@
+using Charters.Sim.Charters;
 using Charters.Sim.Core;
 using Charters.Sim.Hexes;
 using Charters.Sim.Map;
@@ -21,7 +22,8 @@ public sealed class SimulationTests
         var simulation = CreateSimulation();
         simulation.UnitFactory.Spawn(
             simulation.Map.HexAt(0).Address,
-            simulation.Definitions.Units["infantry"]);
+            simulation.Definitions.Units["infantry"],
+            FirstCharterId(simulation));
 
         simulation.Advance(100);
 
@@ -35,7 +37,7 @@ public sealed class SimulationTests
         var address = simulation.Map.HexAt(0).Address;
         var definition = simulation.Definitions.Units["infantry"];
 
-        var id = simulation.UnitFactory.Spawn(address, definition);
+        var id = simulation.UnitFactory.Spawn(address, definition, FirstCharterId(simulation));
 
         List<UnitView> units = [];
         simulation.Services.Units.ForEachUnit(static (UnitView view, ref List<UnitView> state) => state.Add(view), ref units);
@@ -51,10 +53,11 @@ public sealed class SimulationTests
     {
         var simulation = CreateSimulation();
         var definition = simulation.Definitions.Units["infantry"];
+        var owner = FirstCharterId(simulation);
         HashSet<UnitId> spawned = [];
         for (var i = 0; i < 50; i++)
         {
-            spawned.Add(simulation.UnitFactory.Spawn(simulation.Map.HexAt(0).Address, definition));
+            spawned.Add(simulation.UnitFactory.Spawn(simulation.Map.HexAt(0).Address, definition, owner));
         }
 
         List<UnitId> visited = [];
@@ -70,7 +73,8 @@ public sealed class SimulationTests
         var simulation = CreateSimulation();
         var id = simulation.UnitFactory.Spawn(
             simulation.Map.HexAt(0).Address,
-            simulation.Definitions.Units["infantry"]);
+            simulation.Definitions.Units["infantry"],
+            FirstCharterId(simulation));
 
         simulation.UnitFactory.Destroy(id);
 
@@ -91,7 +95,7 @@ public sealed class SimulationTests
     {
         var simulation = CreateSimulation();
         var address = simulation.Map.HexAt(0).Address;
-        simulation.UnitFactory.Spawn(address, simulation.Definitions.Units["infantry"]);
+        simulation.UnitFactory.Spawn(address, simulation.Definitions.Units["infantry"], FirstCharterId(simulation));
 
         var captured = default(UnitView);
         simulation.Services.Units.ForEachUnit(static (UnitView view, ref UnitView state) => state = view, ref captured);
@@ -118,5 +122,15 @@ public sealed class SimulationTests
             42,
             definitions,
             TestData.LoadMap(definitions)));
+    }
+
+    private static CharterId FirstCharterId(Simulation simulation)
+    {
+        foreach (var charter in simulation.Registries.Charters)
+        {
+            return charter.Id;
+        }
+
+        throw new InvalidOperationException("No Charter registered.");
     }
 }
