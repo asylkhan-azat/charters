@@ -53,7 +53,8 @@ deadlocking, oscillating, or hiding the cause of shortages?
 - Add static, pre-authored Charters plus one non-political Commons Charter per nation as the durable
   owner identity used by units, facilities, and goods. Politics and player actions remain dormant.
 - Implement the MVP item, recipe, facility, worker-staffing, inventory, and equipment-slot schemas
-  from [GDD §14](GDD.md#in-mvp).
+  from [GDD §14](GDD.md#in-mvp): inventory capacity is fixed by unit type, while equipment occupies
+  separate typed slots at one item per slot.
 - Add national depots with one anonymous compartment per Charter, identified decaying ground
   stockpiles, and explicit Charter spawn/death storage lifecycle behavior.
 - Place authored deposits, roads, facilities, depots, workers, trucks, and initial stocks in a small
@@ -125,15 +126,16 @@ supply, terrain, and autonomous decisions?
 
 - Replace primitive movement with occupancy-aware movement, terrain costs, class cooldowns, and
   routing behavior.
-- Implement infantry health, range/frontage, target choice, per-volley resolution, carried equipment,
-  ammunition use, morale, retreat, rout, and casualties.
+- Implement infantry health, range/frontage, target choice, per-volley resolution, fixed-slot
+  equipment, ammunition use from the firing unit's carried inventory, morale, retreat, rout, and
+  casualties.
 - Resolve the volley-application design checkpoint before locking combat constants.
 - Add battle, retreat, shortage, and casualty events plus focused combat inspection.
 
 ### Iteration 3B — The supplied front
 
-- Connect infantry food, rifles, grenades/ammunition, field packs, and local demand generation to the
-  economy and Request Board.
+- Connect infantry food, equipped rifles and grenades, carried ammunition, and local demand
+  generation to the economy and Request Board.
 - Add capture of hexes, facilities, and stock; apply land claims and liberation rules to the result.
 - Run one enemy Charter through the same physical production, transport, and combat systems, driven
   by a single authored offensive goal.

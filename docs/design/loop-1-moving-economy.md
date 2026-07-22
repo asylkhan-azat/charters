@@ -28,8 +28,9 @@ the pain map, event feed, and decision traces explain.
 - Implement explicit Charter/depot spawn synchronization and Charter-death cleanup: ownership
   changes in place outside depots, while depot overflow fills Commons, then other Charters, then
   capped Commons ground piles.
-- Load the nine MVP items, recipes, facility definitions, inventory capacity, and equipment-slot
-  schema from data. Group-targeted requests remain schema-only.
+- Load the eight MVP items, recipes, facility definitions, fixed unit inventory capacity, and typed
+  equipment-slot schema from data. An equipped item occupies one compatible slot at quantity one and
+  never changes inventory capacity. Group-targeted requests remain schema-only.
 - Author the Loop 1 logistics scenario from region-relative generation data, resolving deposits to
   absolute map hexes and every runtime position to an absolute world address before simulation
   starts. Include roads, facilities, depots, workers, trucks, initial stocks, and explicit

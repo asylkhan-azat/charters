@@ -14,7 +14,7 @@ state, and Charter lifecycle foundation that Iteration 1B will transport.
 
 The iteration is accepted when the dedicated scenario:
 
-- loads three named Charters plus the player nation's automatic Commons Charter, nine items and
+- loads three named Charters plus the player nation's automatic Commons Charter, eight items and
   recipes, absolute map deposits, roads, facilities, national depots, assigned workers, bundled
   truck-logists, equipment, and initial goods from authored generation data;
 - runs every recipe and attributes every non-producing tick to staffing, inputs, or output capacity;
@@ -28,9 +28,10 @@ The iteration is accepted when the dedicated scenario:
 ## Scope boundaries
 
 A1 includes static named Charters, automatic Commons identity, physical ownership, hosted storage,
-bounded carried and stationary storage, equipment capacity, staffed production, Charter/depot spawn
-synchronization, Charter-death cleanup, identified decaying ground storage, the authored proof
-scenario, conservation diagnostics, headless metrics, and the minimal view needed to inspect it.
+bounded carried and stationary storage, fixed typed equipment slots, staffed production,
+Charter/depot spawn synchronization, Charter-death cleanup, identified decaying ground storage, the
+authored proof scenario, conservation diagnostics, headless metrics, and the minimal view needed to
+inspect it.
 
 A1 does not include dynamic gameplay triggers for Charter creation or death, Manager production
 selection, physical needs, the Request Board, hauling, pickup or delivery, route choice, runtime
@@ -70,6 +71,7 @@ These are review blockers, not implementation suggestions:
 | Position | Generation may be region-relative; every runtime position is an absolute world `HexAddress`. |
 | Ownership | Every item and unit has a Charter owner. “Charterless” means owned by the nation's Commons Charter. |
 | Storage | `Stockpile` and carried `Inventory` share the narrow `IItemContainer` behavior; hosted stock remains anonymous and only a ground stockpile has independent identity. |
+| Equipment | Every equipped item occupies exactly one compatible typed slot at quantity one. Equipment is physical unit storage but never changes inventory capacity. |
 | Depot role | A depot is ownerless national infrastructure, never a facility or Charter property. Its compartments are Charter-owned. |
 | Recipe purity | Beyond definition identity, a recipe contains only inputs, outputs, and required work. Facility-to-deposit compatibility is deferred until a construction system exists. |
 | Mutation boundary | Arch, registries, and mutable map state stay inside `Charters.Sim`; hosts consume read-only projections through `Simulation.Services` and `Simulation.Map`. |
@@ -171,7 +173,6 @@ The definition aggregate gains the following validated records:
 |---|---|
 | Item | `id`, `display`, `tags`, `stackLimit`, `stockpileLimit`, `features` |
 | Item feature: equippable | `type: "equippable"`, `equipmentSlot` |
-| Item feature: slot expansion | `type: "slot-expansion"`, `additionalSlots` |
 | Recipe | `id`, `inputs`, `outputs`, `workRequired` |
 | Facility type | `id`, `name`, `workerSlots`, `allowedRecipes` |
 | Unit type additions | Polymorphic `features` list |
@@ -190,24 +191,35 @@ optional capabilities author `features: []`. Conversion resolves features into i
 objects, and unit spawning materializes hot capabilities once rather than scanning definitions each
 tick.
 
-The field pack is both equippable and a slot expansion. `slot-expansion` requires one compatible
-`equippable` feature so its capacity has a wear state that owns it. The A1 shape is:
+Rifles and grenades prove the equipment schema with capability-bearing and consumable equipment.
+Both are installed one item per compatible slot regardless of their stored stack limits. Their A1
+shapes include:
 
 ```json
 {
-  "id": "field-pack",
-  "display": "Field Pack",
-  "tags": ["field-equipment"],
+  "id": "rifle",
+  "display": "Rifle",
+  "tags": ["small-arms-weapons"],
   "stackLimit": 1,
   "stockpileLimit": 20,
   "features": [
-    { "type": "equippable", "equipmentSlot": "back" },
-    { "type": "slot-expansion", "additionalSlots": 2 }
+    { "type": "equippable", "equipmentSlot": "main-weapon" }
+  ]
+},
+{
+  "id": "grenades",
+  "display": "Grenades",
+  "tags": ["assault-explosives"],
+  "stackLimit": 4,
+  "stockpileLimit": 80,
+  "features": [
+    { "type": "equippable", "equipmentSlot": "grenade" }
   ]
 }
 ```
 
-Infantry expresses its carried and worn capacity through unit features:
+Infantry expresses its fixed carried capacity and equipment loadout through independent unit
+features:
 
 ```json
 {
@@ -215,7 +227,7 @@ Infantry expresses its carried and worn capacity through unit features:
   "name": "Infantry",
   "features": [
     { "type": "inventory", "slots": 2 },
-    { "type": "equipment-slots", "slots": { "back": 1 } }
+    { "type": "equipment-slots", "slots": { "main-weapon": 1, "grenade": 1 } }
   ]
 }
 ```
@@ -224,8 +236,8 @@ Recipe identity is definition plumbing. Mechanically, a recipe describes only in
 output quantities, and required work. It contains no deposit, facility, owner, location, capacity,
 staffing, or retooling data.
 
-Quantities, work, slot counts, and capacities cannot be negative. Item quantities, recipe work,
-item capacities, and equipment capacity bonuses must be positive when present. IDs and references
+Quantities, work, slot counts, and capacities cannot be negative. Item quantities, recipe work, and
+item capacities must be positive when present. IDs and references
 must be unique and resolvable. A recipe must have at least one output. A facility's selected recipe
 must belong to its type's allowed set.
 
@@ -241,24 +253,27 @@ a matching deposit or that a recipe change stays compatible with one.
 
 Item tags are schema-only in A1: each item authors a flat set of kebab-case tags with no separate
 tag registry to resolve against. Ship the degenerate MVP tags `small-arms-weapons`,
-`small-arms-ammunition`, `assault-explosives`, and `field-equipment` on rifles, ammunition,
-grenades, and field packs respectively. No A1 behavior selects by tag.
+`small-arms-ammunition`, and `assault-explosives` on rifles, ammunition, and grenades respectively.
+No A1 behavior selects by tag.
 
 ### Carried inventory and equipment
 
-`Inventory` is the carried item container and contains a fixed number of ordered slots. Each non-empty
+`Inventory` is the carried item container and contains a unit-type-authored, fixed number of ordered
+slots that equipment can never change. Each non-empty
 slot holds one item type up to that item's `stackLimit`. Inserts fill existing partial stacks in slot
 order, then empty slots in slot order. Removal drains matching slots in slot order. Both operations are
 atomic: if the entire requested quantity cannot be inserted or removed, state does not change.
 
-Equipped items occupy wear slots rather than inventory slots and remain physical counted items. An
-equipped field pack occupies one `back` slot and adds two inventory slots while worn. A1 scenarios
-may author an item already equipped, but no simulation operation equips or removes it.
+Equipped items occupy typed equipment slots rather than inventory slots and remain physical counted
+items. Every equipped item occupies exactly one compatible slot at quantity one, including grenades
+whose stored stack limit is greater than one. A1 scenarios may author items already equipped, but no
+simulation operation equips, removes, or consumes them. Those explicit operations arrive with combat;
+they never resize the inventory.
 
-| Unit type | Base inventory slots | Wear slots |
+| Unit type | Fixed inventory slots | Equipment slots |
 |---|---:|---|
-| Infantry | 2 | `back`: 1 |
-| Worker | 1 | `back`: 1 |
+| Infantry | 2 | `main-weapon`: 1, `grenade`: 1 |
+| Worker | 1 | none |
 | Truck-logist | 12 | none |
 
 ### Stationary stockpile object
@@ -337,10 +352,9 @@ These values are data-authored starting points and must not appear as code const
 | Rifle | 2 materials | 1 | 16 | 1 | 20 |
 | Grenades | 1 material + 1 refined sulfur | 4 | 16 | 4 | 80 |
 | Ammunition | 1 material + 1 refined sulfur | 20 | 16 | 20 | 400 |
-| Field pack | 2 materials | 1 | 16 | 1 | 20 |
 
 The item IDs are `ore`, `sulfur`, `food`, `materials`, `refined-sulfur`, `rifle`, `grenades`,
-`ammunition`, and `field-pack`. The recipe IDs are the item ID prefixed by `produce-`.
+and `ammunition`. The recipe IDs are the item ID prefixed by `produce-`.
 
 ### Facility types
 
@@ -349,7 +363,7 @@ The item IDs are `ore`, `sulfur`, `food`, `materials`, `refined-sulfur`, `rifle`
 | Mine | 2 | Ore, sulfur |
 | Farm | 2 | Food |
 | Refinery | 4 | Materials, refined sulfur |
-| Factory | 4 | Rifle, grenades, ammunition, field pack |
+| Factory | 4 | Rifle, grenades, ammunition |
 
 Depots are not facility types and never carry facility type, production, recipe, staffing, or
 Charter-owner state.
@@ -364,14 +378,14 @@ Create a dedicated radius-4 map with one player nation and three contiguous regi
 
 | Region | Region-grid coordinate | Purpose |
 |---|---|---|
-| Ironfields | `(0, 0)` | Ore, materials, rifles, field packs |
+| Ironfields | `(0, 0)` | Ore, materials, rifles |
 | Sulfur Flats | `(1, 0)` | Sulfur, refined sulfur, grenades, ammunition |
 | Central Works | `(0, 1)` | Food and the shared national road/depot junction |
 
 The player nation supplies its Commons color. Simulation initialization creates `player-commons`,
 then the scenario declares three neutral-policy named Charters:
 
-- `ironworks`: owns the Ironfields facilities and workers;
+- `ironworks`: owns the Ironfields facilities, workers, and one infantry unit;
 - `brimstone`: owns the Sulfur Flats facilities and workers; and
 - `greyline`: owns the Central Works farm and two truck-logists.
 
@@ -384,22 +398,25 @@ exist in A1:
 | Ore | none | 2 |
 | Materials | 40 ore | 2 |
 | Rifle | 20 materials | 2 |
-| Field pack | 20 materials | 1 |
 | Sulfur | none | 1 |
 | Refined sulfur | 32 sulfur | 1 |
 | Grenades | 8 materials, 8 refined sulfur | 1 |
 | Ammunition | 6 materials, 6 refined sulfur | 1 |
 | Food | none | 1 |
 
-Place each mine at generated local offset `(-2, 0)`, each refinery at `(0, 0)`, each regional depot
-at `(0, 1)`, and the two factories at `(2, -1)` and `(1, 1)` in their owning region. Place the farm
-at `(-1, 0)` and the Central Works depot at `(0, 0)`. Workers start on and are assigned to their
-facilities. The two empty Greyline truck-logists start at the Central Works depot. Every depot begins
-with empty compartments for Commons, Ironworks, Brimstone, and Greyline.
+Place each mine at generated local offset `(-2, 0)`, each refinery at `(0, 0)`, and each regional
+depot at `(0, 1)`. Place the rifle factory at `(2, -1)` in Ironfields and the grenade and ammunition
+factories at `(2, -1)` and `(1, 1)` in Sulfur Flats. Place the farm at `(-1, 0)` and the Central Works
+depot at `(0, 0)`. Workers start on and are assigned to their facilities. The two empty Greyline
+truck-logists start at the Central Works depot. One Ironworks infantry unit starts at the Ironfields
+depot with one rifle in its `main-weapon` slot, one grenade in its `grenade` slot, 20 ammunition in
+its first inventory slot, and 10 food in its second; this proves fixed inventory and physical
+equipment in the authored scenario without adding combat. Every depot begins with empty compartments
+for Commons, Ironworks, Brimstone, and Greyline.
 
 Author road segments from each mine to its regional depot, each productive facility to its regional
 depot, and both industrial depots to the Central Works depot. The lower staffing and smaller input
-stock on the sulfur side are the intentional A1 bottleneck. A 120-tick run must exercise all nine
+stock on the sulfur side are the intentional A1 bottleneck. A 120-tick run must exercise all eight
 recipes and reach at least one missing-input idle period without requiring transport.
 
 ## Production execution
@@ -616,13 +633,13 @@ continues so it cannot be misattributed to the iteration.
 
 **Outcome:** all A1 definition files load into immutable, fully resolved runtime definitions.
 
-- Add item tags, polymorphic item/unit features, pure recipes, facility types, inventory, and
-  wear-slot additions described in [Authored data contracts](#authored-data-contracts).
-- Author the nine item/recipe rows and four facility types exactly as specified; values live in data,
+- Add item tags, polymorphic item/unit features, pure recipes, facility types, fixed inventory, and
+  typed equipment-slot additions described in [Authored data contracts](#authored-data-contracts).
+- Author the eight item/recipe rows and four facility types exactly as specified; values live in data,
   not code constants.
 - Resolve definition references once during conversion, including recipe inputs/outputs, allowed
-  recipes, and equipment wear slots.
-- Validate feature discriminators, case-specific fields, duplicates, and cross-feature requirements;
+  recipes, and equipment slots.
+- Validate feature discriminators, case-specific fields, duplicates, and equipment compatibility;
   keep universal item limits flat and feature order semantically irrelevant.
 - Aggregate independent definition errors in one load failure. Do not stop at the first malformed
   record or let DTO nullability leak into runtime code.
@@ -658,15 +675,17 @@ code moves goods.
   per-item caps and all-or-nothing multi-item operations.
 - Implement the shared `IItemContainer` contract on `Stockpile` and `Inventory`, keeping ownership,
   addresses, transaction meaning, and journal access in the coordinating operation.
-- Add reusable unit carried `Inventory` and equipment state with ordered homogeneous slots, authored
-  wear slots, and field-pack capacity. Allocate at load/spawn and reuse during ticks.
+- Add reusable unit carried `Inventory` and `Equipment` state with ordered homogeneous inventory
+  slots and typed equipment slots. Both have unit-type-authored fixed sizes, installation accepts
+  exactly one compatible item per equipment slot, and neither object is resized during the unit's
+  lifetime. Allocate both at load/spawn and reuse during ticks.
 - Add the immutable item-transaction vocabulary and append surface, without allowing a stockpile to
   invent transfer, ownership, or destruction meaning on its own. The coordinating operation records
   that meaning.
 
-**Gate:** focused tests prove slot ordering, equipment capacity, stationary caps, atomic failure,
-generic transfer between both container kinds, storage-address identity, and direct dense item iteration
-without routine tick allocations.
+**Gate:** focused tests prove inventory slot ordering, fixed capacity, one-item equipment
+compatibility, stationary caps, atomic failure, generic transfer between both container kinds,
+storage-address identity, and direct dense item iteration without routine tick allocations.
 
 ### Package 4 — Scenario loading and absolute world state
 
@@ -705,7 +724,7 @@ duplicate, missing, foreign-nation, or owner-bearing depot state fails explicitl
 
 ### Package 6 — Facilities, staffing, and production
 
-**Outcome:** all nine recipes run through plain facility objects with attributable idle states.
+**Outcome:** all eight recipes run through plain facility objects with attributable idle states.
 
 - Replace the prototype facility ECS entity and stockpile component with registry-owned facilities
   containing production state and one embedded stockpile.
@@ -779,7 +798,7 @@ report-boundary conservation audits run even when the regular ten-tick cadence h
 **Outcome:** the same authored scenario proves A1 headlessly and visibly.
 
 - Author the radius-4 map, three regions, three named Charters, automatic Commons, facilities,
-  depots, roads, workers, truck-logists, equipment, and initial goods from
+  depots, roads, workers, truck-logists, one equipped infantry unit, and initial goods from
   [Proof map and scenario](#proof-map-and-scenario).
 - Preserve the intentional sulfur-side staffing/input bottleneck and seed transformation facilities
   exactly as specified so all recipes run before transport exists.
@@ -818,8 +837,7 @@ or focused lifecycle test, and no deferred 1B behavior was introduced to make A1
 - Aggregate missing-file, duplicate-ID, malformed-ID, invalid quantity/capacity, and unresolved
   reference errors in one load failure.
 - Verify known item and unit feature discriminators select the intended derived DTOs. Reject unknown
-  discriminators, fields from another feature case, duplicate A1 feature types, and slot expansion
-  without compatible equippable state.
+  discriminators, fields from another feature case, and duplicate A1 feature types.
 - Verify feature order does not change the resolved definition and that hot unit capabilities are
   materialized at spawn rather than discovered by per-tick polymorphic scans.
 - Assert that recipe definitions expose only inputs, outputs, and work beyond definition identity.
@@ -831,8 +849,9 @@ or focused lifecycle test, and no deferred 1B behavior was introduced to make A1
 
 ### Storage and production
 
-- Verify ordered slot packing and draining, atomic failure, field-pack capacity, stationary
-  dense item indexing, per-item caps, and inclusion of equipment in conservation.
+- Verify ordered inventory packing and draining, fixed inventory capacity, exactly-one equipment
+  quantities, slot compatibility, stationary dense item indexing, per-item caps, atomic failure, and
+  inclusion of equipment in conservation.
 - Verify the same transfer coordinator handles stockpile-to-stockpile, stockpile-to-inventory,
   inventory-to-stockpile, and inventory-to-inventory movement; insufficient source or destination
   capacity leaves both sides and the transaction journal unchanged.
@@ -889,7 +908,7 @@ or focused lifecycle test, and no deferred 1B behavior was introduced to make A1
 
 ## Completion gate
 
-A1 is complete only when the authored scenario, not test-only construction, proves the nine-item
+A1 is complete only when the authored scenario, not test-only construction, proves the eight-item
 production slice; runtime positions are absolute; recipes contain only inputs, outputs, and work;
 Commons owns charterless state; depots are national infrastructure with complete Charter
 compartments; facility and depot stockpiles have no independent identity; ground stockpiles alone are

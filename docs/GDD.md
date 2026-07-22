@@ -446,13 +446,24 @@ Tech progression without a player-clicked tree — **the tech tree is the societ
 Units fight on the hex map with **positions, facing/frontage, ranges, ammunition, and morale** — no statistical black box.
 
 - Per tick, engaged units maneuver between hexes (per the movement cap and cooldowns, §4.3), choose targets, and exchange fire resolved statistically per shot-volley (a "volley" summarizes the tick's exchange of fire). Visuals interpolate between tick states so battles read as continuous motion.
-- **Ammunition is consumed per ordinary rifle volley from the unit's carried stock.** Grenades are
-  optional consumables that strengthen close-range assaults; they are neither required for ordinary
-  fire nor interchangeable with ammunition. A unit out of ammunition is out of the rifle fight — the
-  logistics pillar cashes out here, visibly.
+- **Ammunition is consumed per ordinary rifle volley from the unit's carried stock.** Infantry must
+  have a rifle installed in its `main-weapon` equipment slot to fire, and each volley consumes
+  compatible ammunition from that unit's fixed-capacity carried inventory. A grenade occupies one
+  `grenade` slot at quantity one; using it empties the slot, after which the unit may equip one
+  replacement from carried stock. Grenades strengthen close-range assaults but are neither required
+  for ordinary fire nor interchangeable with ammunition. A unit missing either its weapon or
+  ammunition is out of the rifle fight — the logistics pillar cashes out here, visibly.
 - Terrain (cover, elevation, chokepoints), fortifications (trenches, bunkers — Builder products), morale (breaks cause retreats/routs), and crew quality (§5.2) all modify combat.
 - Combined arms is emergent from the unit taxonomy: infantry holds, artillery suppresses at range (with spotting limits), armor breaks lines, air (late-game) strikes deep — each arm with its own supply appetite.
 - **The player never issues a tactical command.** Battles are fought by charter AI according to leader doctrine. The player's contribution to a battle happened days earlier: who holds this land, and whether the shells arrived.
+
+Equipment is a physical fixed-slot loadout shared by personnel and machines. A unit type defines
+typed slots; every equipped item occupies exactly one compatible slot at quantity one and grants a
+capability or modifies that unit's statistics. Equipment never adds inventory or cargo capacity.
+Machine equipment is presented as modules or upgrades — guns, armor, engines, optics, radios — but
+uses the same compatibility, installation, ownership, capture, and conservation rules. Installation
+constraints such as workshop access and refit time may differ from infantry equipping. Permanent
+chassis changes and technology unlocks are not equipment.
 
 **Post-MVP combat layers:**
 
@@ -525,14 +536,15 @@ At campaign end — any ending — every charter receives a **fate card** genera
 - **Map:** 1 shared front, ~7 regions/side, ~630 hexes per nation. Both nations tiny. The exact
   region radius and resulting campaign total remain balance targets for the final MVP tuning loop.
 - **Units:** General Infantry, Truck Logist, Worker — plus Recruits from the manpower tap. (No Crews, Builders, Researchers, or machines beyond trucks — infantry with rifles/grenades is the whole army.)
-- **Production:** tiers 1–3, 9 items: ore, sulfur, food → materials, refined sulfur → rifles, grenades,
-  ammo, field packs. Carried inventories use homogeneous item slots with per-item stack limits;
-  stationary stockpiles use per-item limits. The field pack is the one MVP equipment item: it occupies
-  a wear slot and adds carried inventory slots. The slot/wear-slot schema ships in MVP so later
-  equipment such as medical-slot-only kits remains pure data. **No fuel in MVP** — trucks pre-exist,
-  aren't produced, and run free until the first content patch. Facilities are pre-placed (no
-  construction).
-- **Logistics:** stockpile ownership model with all three request kinds (demand, request-to-own, point-to-point transfer) and the hosting grace timer (§10.3). Group-targeted requests are schema-reserved only — near-degenerate at 9 items.
+- **Production:** tiers 1–3, 8 items: ore, sulfur, food → materials, refined sulfur → rifles, grenades,
+  ammo. Carried inventories use a unit-type-authored, fixed number of homogeneous item slots with
+  per-item stack limits; stationary stockpiles use per-item limits. Rifles and grenades are physical
+  equipment installed one item per compatible infantry slot, while ammunition and food remain in
+  carried inventory. Equipment never changes inventory capacity. The typed equipment-slot schema
+  ships in MVP and later supports armor, helmets, secondary weapons, utility items, and machine
+  modules without a second loadout mechanic. **No fuel in MVP** — trucks pre-exist, aren't produced,
+  and run free until the first content patch. Facilities are pre-placed (no construction).
+- **Logistics:** stockpile ownership model with all three request kinds (demand, request-to-own, point-to-point transfer) and the hosting grace timer (§10.3). Group-targeted requests are schema-reserved only — near-degenerate at 8 items.
 - **Charters:** petition-event formation only (pre-rolled compositions); 3–5 charters/side; leaders with loyalty + 2–3 doctrine/personality traits; simple friend/feud pairs affecting the request board.
 - **Manpower:** simplified tap (§5.6) — towns trickle recruits, auto-routed to pre-placed generic training camps; training costs time only.
 - **Campaign open:** the Phony War phase (§12) as the diegetic tutorial.

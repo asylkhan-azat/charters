@@ -84,7 +84,7 @@ use; architectural symmetry is not a justification.
 | Depots | Plain sealed objects in a typed registry | Few nation-wide infrastructure objects with Charter compartments. |
 | Ground stockpiles | Plain sealed objects in a typed registry | Identified but expected to remain low-count and transient. |
 | Hosted stationary stock | Host-owned `Stockpile` implementing `IItemContainer` | Storage has no lifecycle or identity apart from its facility, depot/Charter pair, or ground host. |
-| Unit inventory and paths | Reusable `Inventory` and `NavPath` references reached from ECS components | Variable-sized state needs reference semantics but must not allocate during ordinary ticks. `Inventory` implements `IItemContainer`. |
+| Unit inventory, equipment, and paths | Reusable `Inventory`, `Equipment`, and `NavPath` references reached from ECS components | Variable-sized state needs reference semantics but must not allocate during ordinary ticks. `Inventory` implements `IItemContainer`; equipment is a separate fixed-slot loadout. |
 | Map and hex state | Dense indexed arrays plus address lookup | Topology is dense, stable, and accessed by integer index in hot algorithms. |
 | Definitions | Immutable registries | Loaded once, validated once, and shared by reference. |
 | Goals, needs, requests, operations, and relationships | Plain domain objects and registries | Low-count, long-lived workflows linked by stable domain identity. |
@@ -102,9 +102,10 @@ The index is never exposed, serialized, or used as observable ordering.
 
 Use structs for small, self-contained ECS components with genuine value semantics. A struct must not
 hide shared mutable collections or depend on accidental copying behavior. Variable-sized state uses
-sealed owned containers such as `NavPath` and `Inventory`, allocated during loading or spawn and
-reused thereafter. A container may retain grown capacity after an explicit cold-path resize; routine
-tick logic does not replace it or allocate backing storage.
+sealed owned containers such as `NavPath`, `Inventory`, and `Equipment`, allocated during loading or
+spawn and reused thereafter. A navigation path may retain grown capacity after an explicit cold-path
+resize. Inventory and equipment slot counts are fixed by the unit type at construction; routine tick
+logic does not replace these containers or allocate backing storage.
 
 This is not a prohibition on objects. A one-time allocation is cheaper than a pool, handle table, or
 unsafe buffer whose complexity has not been earned.
@@ -144,6 +145,8 @@ precheck before mutating so operations are atomic.
 - A ground-stockpile object owns one stockpile and supplies its independent identity, owner,
   absolute address, and expiry.
 - A unit owns a slot-based `Inventory`; it does not reuse stationary stockpile rules.
+- A unit separately owns fixed typed `Equipment` slots; installed items do not change its inventory
+  slot count.
 
 An owned mutable container is never copied to imply a transfer and is never shared between hosts.
 Item movement changes quantities through domain operations and records the corresponding fact.
@@ -185,6 +188,28 @@ This interface guarantees one-`ItemQuantity` preflight. A multi-item recipe or l
 must preflight the entire batch against the concrete destination state before applying any mutation,
 because independently acceptable item quantities may compete for the same inventory slots.
 
+### Equipment and machine modules
+
+`Equipment` is not an `IItemContainer`. It is a fixed set of typed slots authored by the unit type.
+Every installed item occupies exactly one compatible slot at quantity one, even when the same item
+may stack while stored in an inventory or stockpile. Equipment contributes physical goods to the
+unit's `UnitStorage(UnitId)` conservation audit but never contributes inventory slots or cargo
+capacity.
+
+Equip and unequip are explicit coordinating operations. Equipping preflights and removes exactly one
+item from its source before installing it in one empty compatible slot. Unequipping preflights its
+destination before removing the installed item, so insufficient inventory or stockpile capacity
+leaves both states unchanged. Consumption may empty an installed consumable slot, such as a grenade,
+and records the same physical item-consumption fact as consumption from another storage state.
+
+Gameplay systems read installed definitions for capabilities and modifiers. A weapon action requires
+the appropriate installed weapon and consumes compatible ammunition from that unit's own fixed
+inventory; equipment does not own a hidden ammunition reserve. The same runtime structure represents
+machine modules such as weapons, armor, engines, optics, and radios. Presentation may call them
+upgrades, and installation may later require a workshop or refit time, but compatibility, physical
+custody, capture, and conservation remain shared. Permanent chassis changes and technology unlocks
+use separate mechanics.
+
 ## 5. Runtime positions and loading
 
 Every runtime location is an absolute world `HexAddress`:
@@ -203,10 +228,10 @@ the offset is explicitly presentation-only data.
 Definition JSON keeps universal data as ordinary fields and represents optional, composable
 capabilities as a polymorphic `features` list using `System.Text.Json`'s `JsonPolymorphic` and
 `JsonDerivedType` support. Item stack and stockpile limits, for example, are universal item fields;
-being equippable or expanding carried slots are features.
+being equippable is a feature.
 
-Authored discriminator values are stable kebab-case data tokens such as `equippable` and
-`slot-expansion`, not serialized C# type names. Unknown discriminators, properties belonging to a
+Authored discriminator values are stable kebab-case data tokens such as `equippable`, not serialized
+C# type names. Unknown discriminators, properties belonging to a
 different feature case, duplicate single-instance features, and invalid feature combinations are
 aggregated validation errors. Feature order has no gameplay meaning. A feature that intentionally
 permits multiple instances must say so in its owning definition contract; otherwise its type may

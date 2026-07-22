@@ -28,11 +28,13 @@ Iteration 1A work packages complete so far:
   points identified; the facility/stockpile ECS slice, synchronous `SimulationEvents`, and random
   Godot spawning confirmed as migration targets rather than prior art.
 - **Package 1 — Definitions and authored production data:** item, recipe, and facility-type
-  definitions added with polymorphic item/unit features (equippable, slot-expansion, inventory,
-  equipment-slots); the nine items/recipes and four facility types authored in `data/defs/`
-  matching the spec's tables; loader validation covers every family (identity, capacity, feature
-  cross-rules, recipe/facility cross-references). Items carry a flat `tags` set rather than a
-  separate request-group registry — the spec was updated to match.
+  definitions added with polymorphic item/unit features; loader validation covers every family
+  (identity, capacity, feature rules, recipe/facility cross-references). Items carry a flat `tags`
+  set rather than a separate request-group registry. The implementation and authored data still
+  contain the now-superseded `slot-expansion` feature and ninth field-pack recipe: the approved model
+  now keeps inventory capacity fixed by unit type, equips rifles and grenades one item per typed
+  equipment slot, and reuses the same equipment core for later machine modules. Package 1 must be
+  reconciled with the owning docs before Package 3 closes.
 - **Package 2 — Runtime ownership and host boundary:** typed stable IDs (`UnitId`, `CharterId`,
   `FacilityId`, `DepotId`, `GroundStockpileId`, each `IComparable<TSelf>` over their wrapped `long`);
   a generic `Registry<TId, TItem>` (`Charters.Sim.Core`) backed by one `SortedDictionary<TId, TItem>`
@@ -60,8 +62,10 @@ Iteration 1A work packages complete so far:
 
 ## Next
 
-- Continue [Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md) with
-  **Package 3 — Storage, inventory, and transaction vocabulary**: closed `StorageAddress` variants,
-  dense item-indexed `Stockpile` (replacing the current dictionary-backed one), the shared
-  `IItemContainer` contract implemented by `Stockpile` and a new `Inventory`, and the immutable
-  item-transaction vocabulary appended through the Package 2 fact journal.
+- Continue [Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md) by first
+  reconciling Package 1 definitions, data, and tests with the fixed-inventory equipment decision:
+  remove field packs and `slot-expansion`, make rifles and grenades equippable, and author infantry
+  `main-weapon` and `grenade` slots. Then close **Package 3 — Storage, inventory, and transaction
+  vocabulary** with closed `StorageAddress` variants, dense item-indexed `Stockpile`, the shared
+  `IItemContainer` contract, fixed-capacity `Inventory`, `Equipment` installation restricted to one
+  compatible item per slot, and the item-transaction journal vocabulary.
