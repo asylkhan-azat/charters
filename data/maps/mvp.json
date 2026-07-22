@@ -1,7 +1,10 @@
 {
   "regionRadius": 6,
   "terrainSeedsPerRegion": 11,
-  "nations": [{ "id": "player" }, { "id": "enemy" }],
+  "nations": [
+    { "id": "player", "commonsColor": "#8a8a8a" },
+    { "id": "enemy", "commonsColor": "#5a2d2d" }
+  ],
   "regions": [
     {
       "id": "heartland", "name": "Heartland", "nation": "player", "gridCoordinate": { "q": 0, "r": 0 },

@@ -42,7 +42,7 @@ internal static class MapTopologyGenerator
         var nationInfos = new NationInfo[nations.Count];
         for (var i = 0; i < nations.Count; i++)
         {
-            nationInfos[i] = new NationInfo(nations[i].Id);
+            nationInfos[i] = new NationInfo(nations[i].Id, nations[i].CommonsColor);
         }
 
         return [.. nationInfos];

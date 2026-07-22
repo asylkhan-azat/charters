@@ -1,6 +1,8 @@
 using Arch.Core;
 using Charters.Sim.AI;
+using Charters.Sim.Charters;
 using Charters.Sim.Core.Definitions;
+using Charters.Sim.Depots;
 using Charters.Sim.Facilities;
 using Charters.Sim.Items;
 using Charters.Sim.Map;
@@ -31,10 +33,17 @@ public sealed class Simulation
         Events = new SimulationEvents();
         FacilityStatistics = new FacilityStatistics();
         Registries = new SimulationRegistries();
+        CharterFactory = new CharterFactory(this);
+        DepotFactory = new DepotFactory(this);
         Services = new SimulationServices(this);
 
         Events.FacilityProducedItems += FacilityStatistics.OnProduced;
         Events.FacilityConsumedItems += FacilityStatistics.OnConsumed;
+
+        foreach (var nation in Map.Nations)
+        {
+            CharterFactory.RegisterCommons(nation.Id, nation.CommonsColor);
+        }
     }
 
     public long Tick { get; private set; }
@@ -46,6 +55,8 @@ public sealed class Simulation
     public SimulationEvents Events { get; }
     public FacilityStatistics FacilityStatistics { get; }
     public SimulationRegistries Registries { get; }
+    public CharterFactory CharterFactory { get; }
+    public DepotFactory DepotFactory { get; }
     public SimulationServices Services { get; }
 
     public void Advance(int ticks)

@@ -5,12 +5,17 @@ namespace Charters.Tests;
 
 public sealed class RegistryTests
 {
+    private static Charter TestCharter(long id)
+    {
+        return new Charter(new CharterId(id), "player", "Test", "#ffffff", isCommons: false);
+    }
+
     [Fact]
     public void AddedItemsAreLookupableByTypedId()
     {
         Registry<CharterId, Charter> registry = new();
-        var first = new Charter(new CharterId(1));
-        var second = new Charter(new CharterId(2));
+        var first = TestCharter(1);
+        var second = TestCharter(2);
 
         registry.Add(first);
         registry.Add(second);
@@ -35,17 +40,17 @@ public sealed class RegistryTests
     public void DuplicateIdIsRejectedAsInvariantFailure()
     {
         Registry<CharterId, Charter> registry = new();
-        registry.Add(new Charter(new CharterId(1)));
+        registry.Add(TestCharter(1));
 
-        Assert.Throws<SimulationInvariantException>(() => registry.Add(new Charter(new CharterId(1))));
+        Assert.Throws<SimulationInvariantException>(() => registry.Add(TestCharter(1)));
     }
 
     [Fact]
     public void CountReflectsAddedItems()
     {
         Registry<CharterId, Charter> registry = new();
-        registry.Add(new Charter(new CharterId(1)));
-        registry.Add(new Charter(new CharterId(2)));
+        registry.Add(TestCharter(1));
+        registry.Add(TestCharter(2));
 
         Assert.Equal(2, registry.Count);
     }
@@ -54,9 +59,9 @@ public sealed class RegistryTests
     public void RemoveDropsItemWithoutDisturbingOthers()
     {
         Registry<CharterId, Charter> registry = new();
-        var first = new Charter(new CharterId(1));
-        var second = new Charter(new CharterId(2));
-        var third = new Charter(new CharterId(3));
+        var first = TestCharter(1);
+        var second = TestCharter(2);
+        var third = TestCharter(3);
         registry.Add(first);
         registry.Add(second);
         registry.Add(third);
@@ -81,11 +86,11 @@ public sealed class RegistryTests
     public void ReaddingAfterRemovalGetsTheNewItem()
     {
         Registry<CharterId, Charter> registry = new();
-        var original = new Charter(new CharterId(1));
+        var original = TestCharter(1);
         registry.Add(original);
         registry.Remove(new CharterId(1));
 
-        var replacement = new Charter(new CharterId(1));
+        var replacement = TestCharter(1);
         registry.Add(replacement);
 
         Assert.Same(replacement, registry[new CharterId(1)]);
@@ -95,9 +100,9 @@ public sealed class RegistryTests
     public void IterationIsOrderedByAscendingId()
     {
         Registry<CharterId, Charter> registry = new();
-        var third = new Charter(new CharterId(3));
-        var first = new Charter(new CharterId(1));
-        var second = new Charter(new CharterId(2));
+        var third = TestCharter(3);
+        var first = TestCharter(1);
+        var second = TestCharter(2);
         registry.Add(third);
         registry.Add(first);
         registry.Add(second);
