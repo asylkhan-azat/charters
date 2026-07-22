@@ -1,5 +1,5 @@
 using Charters.Sim.Facilities.Definitions;
-using Charters.Sim.Items;
+using Charters.Sim.Items.Definitions;
 using Charters.Sim.Map.Definitions;
 using Charters.Sim.Units.Definitions;
 

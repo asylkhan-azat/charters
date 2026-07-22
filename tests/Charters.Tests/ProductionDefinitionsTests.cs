@@ -1,7 +1,7 @@
 using Charters.Sim.Core.Definitions;
 using Charters.Sim.Core.Infrastructure.Serialization;
 using Charters.Sim.Facilities.Definitions;
-using Charters.Sim.Items;
+using Charters.Sim.Items.Definitions;
 
 namespace Charters.Tests;
 

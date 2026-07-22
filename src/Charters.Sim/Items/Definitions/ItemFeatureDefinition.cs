@@ -1,3 +1,3 @@
-namespace Charters.Sim.Items;
+namespace Charters.Sim.Items.Definitions;
 
 public abstract record ItemFeatureDefinition;

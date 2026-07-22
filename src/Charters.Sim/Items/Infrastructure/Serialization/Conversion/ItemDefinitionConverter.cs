@@ -1,3 +1,4 @@
+using Charters.Sim.Items.Definitions;
 using Charters.Sim.Items.Infrastructure.Serialization.Dto;
 
 namespace Charters.Sim.Items.Infrastructure.Serialization.Conversion;

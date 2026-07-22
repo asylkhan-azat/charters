@@ -1,4 +1,4 @@
-﻿using Charters.Sim.Items;
+﻿using Charters.Sim.Items.Models;
 
 namespace Charters.Sim.Facilities.Events;
 

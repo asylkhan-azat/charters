@@ -1,6 +1,6 @@
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using Charters.Sim.Core.Definitions;
-using Charters.Sim.Items;
+using Charters.Sim.Items.Models;
 
 namespace Charters.Sim.Facilities.Definitions;
 

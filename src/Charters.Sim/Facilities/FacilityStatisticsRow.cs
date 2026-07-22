@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
-using Charters.Sim.Items;
+using Charters.Sim.Items.Definitions;
+using Charters.Sim.Items.Models;
 
 namespace Charters.Sim.Facilities;
 

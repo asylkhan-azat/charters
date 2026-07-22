@@ -286,11 +286,12 @@ branches in the tick loop.
 Arch and mutable domain registries remain internal to `Charters.Sim`. `Simulation` must not expose a
 public mutable `World`, collection, component reference, domain object, or map cell reference.
 
-The public `Simulation.Read` façade exposes domain-specific value projections for units, facilities,
-depots, ground stockpiles, map state, and diagnostics. Bulk reads fill caller-owned reusable buffers
-or use allocation-free visitors; they do not return mutable simulation objects. Godot can therefore
-reuse render buffers each frame, while headless reporting can sort or hash copied values without
-gaining mutation authority.
+`Simulation.Services` groups the public, domain-specific value-projection services (such as
+`Services.Units`); `Simulation.Map` exposes its own read-only projection members (such as `HexAt`)
+directly rather than through a separate service. Bulk reads fill caller-owned reusable buffers or
+thread a caller `ref` state through allocation-free iteration; they do not return mutable simulation
+objects. Godot can therefore reuse render buffers each frame, while headless reporting can sort or
+hash copied values without gaining mutation authority.
 
 Future player actions use immutable typed commands submitted through `Simulation.Enqueue`. Commands
 are validated against a tick-boundary snapshot and applied in a documented command phase. A host may
@@ -314,6 +315,16 @@ Optimize the code that runs often at representative scale. A normal simulation-t
 Prefer indexed loops, spans, Arch inline queries, dense arrays, pre-sized collections, and reused
 scratch buffers. Pass narrow context into a hot query and keep rules readable; allocation ceremony
 must not obscure the behavior being implemented.
+
+Arch queries take two equally correct shapes here, chosen by what the state needs to be, not by
+preference. Default to `InlineQuery<TState, ...>` with a struct implementing `IForEach<...>`, as in
+`Movement`/`AI`: the state struct holds ordinary fields and the JIT specializes the dispatch. When a
+caller must thread a live `ref` parameter through the visit — state that has to remain a reference
+into the caller's own frame rather than a copy — a struct-based `IForEach` state cannot hold that
+`ref`, so a hand-written loop over `Query(QueryDescription)` reading component spans and indexing
+with `Unsafe.Add` is the correct alternative, not a fallback (see `Units/UnitViewService.cs`). This is
+a structural requirement of the `ref`-threaded shape, not the profiling-gated use of unsafe code
+below; both shapes compile to allocation-free per-entity iteration.
 
 Loading, validation, generation, tooling, tests, exceptional diagnostics, report construction, and
 view setup are cold paths. They may use LINQ and ordinary allocations when that is clearer. A host's

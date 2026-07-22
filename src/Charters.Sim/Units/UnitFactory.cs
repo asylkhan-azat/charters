@@ -1,4 +1,5 @@
-﻿using Charters.Sim.AI.Components;
+using Arch.Core;
+using Charters.Sim.AI.Components;
 using Charters.Sim.Core;
 using Charters.Sim.Hexes;
 using Charters.Sim.Movement.Components;
@@ -11,7 +12,8 @@ namespace Charters.Sim.Units;
 public class UnitFactory
 {
     private readonly Simulation _simulation;
-    
+    private readonly Dictionary<UnitId, Entity> _entitiesByUnitId = [];
+
     private long _idCounter;
 
     public UnitFactory(Simulation simulation)
@@ -19,14 +21,33 @@ public class UnitFactory
         _simulation = simulation;
     }
 
-    public void Spawn(
+    public UnitId Spawn(
         HexAddress address,
         UnitDefinition type)
     {
-        _simulation.Entities.Create(
-            new UnitIdentity(_idCounter++, type),
+        var id = new UnitId(_idCounter++);
+        var entity = _simulation.Entities.Create(
+            new UnitIdentity(id, type),
             new Position { Address = address },
             new Navigation { Path = new NavPath() },
             new Wandering());
+
+        _entitiesByUnitId.Add(id, entity);
+        return id;
+    }
+
+    public void Destroy(UnitId id)
+    {
+        if (!_entitiesByUnitId.Remove(id, out var entity))
+        {
+            throw new SimulationInvariantException($"Unknown unit id '{id}'.");
+        }
+
+        _simulation.Entities.Destroy(entity);
+    }
+
+    internal bool TryGetEntity(UnitId id, out Entity entity)
+    {
+        return _entitiesByUnitId.TryGetValue(id, out entity);
     }
 }

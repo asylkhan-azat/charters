@@ -1,8 +1,6 @@
-using Arch.Core;
 using Charters.Game.Worlds;
 using Charters.Sim.Core;
-using Charters.Sim.Movement.Components;
-using Charters.Sim.Units.Components;
+using Charters.Sim.Units;
 using Godot;
 
 namespace Charters.Game.Visuals;
@@ -16,42 +14,42 @@ public sealed partial class UnitRenderer : MultiMeshInstance3D
     [Export]
     public Shared.ColorPalette? UnitPalette { get; set; }
 
-    private static readonly QueryDescription UnitQuery = new QueryDescription().WithAll<UnitIdentity, Position>();
-
     public void Render(Simulation simulation)
     {
-        var unitCount = simulation.Entities.CountEntities(in UnitQuery);
+        var unitCount = simulation.Services.Units.UnitCount;
+
         if (Multimesh is null || Multimesh.InstanceCount != unitCount)
         {
             Multimesh = CreateMarkerMultiMesh(unitCount);
         }
 
-        var multiMesh = Multimesh;
-        var instanceIndex = 0;
-        simulation.Entities.Query(
-            in UnitQuery,
-            (ref UnitIdentity identity, ref Position position) =>
-            {
-                multiMesh.SetInstanceTransform(
-                    instanceIndex,
-                    new Transform3D(
-                        Basis.Identity,
-                        HexLayout.CenterOf(position.Address) + Vector3.Up * MarkerHeight));
-                multiMesh.SetInstanceColor(instanceIndex, UnitPalette?.ColorOf(identity.Type.Id) ?? Colors.Magenta);
-                instanceIndex++;
-            });
+        var state = new UnitDrawState
+        {
+            Index = 0,
+            ColorPalette = UnitPalette,
+            Mesh = Multimesh
+        };
+        
+        simulation.Services.Units.ForEachUnit(OnUnitDraw, ref state);
     }
 
-    private static MultiMesh CreateMarkerMultiMesh(int instanceCount)
+    private static void OnUnitDraw(UnitView unit, ref UnitDrawState state)
     {
-        MultiMesh multiMesh = new()
-        {
-            TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
-            UseColors = true,
-            Mesh = BuildMarkerMesh()
-        };
-        multiMesh.InstanceCount = instanceCount;
-        return multiMesh;
+        var transform = new Transform3D(
+            Basis.Identity,
+            HexLayout.CenterOf(unit.Position) + Vector3.Up * MarkerHeight);
+        state.Mesh.SetInstanceTransform(state.Index, transform);
+
+        var color = state.ColorPalette?.ColorOf(unit.Definition.Id) ?? Colors.Magenta;
+        state.Mesh.SetInstanceColor(state.Index, color);
+        state.Index++;
+    }
+
+    private struct UnitDrawState
+    {
+        public int Index;
+        public MultiMesh Mesh;
+        public Shared.ColorPalette? ColorPalette;
     }
 
     private static Mesh BuildMarkerMesh()
@@ -77,5 +75,17 @@ public sealed partial class UnitRenderer : MultiMeshInstance3D
                 CullMode = BaseMaterial3D.CullModeEnum.Disabled
             });
         return mesh;
+    }
+
+    private static MultiMesh CreateMarkerMultiMesh(int instanceCount)
+    {
+        MultiMesh multiMesh = new()
+        {
+            TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+            UseColors = true,
+            Mesh = BuildMarkerMesh()
+        };
+        multiMesh.InstanceCount = instanceCount;
+        return multiMesh;
     }
 }

@@ -29,9 +29,9 @@ internal static class HexLayout
     {
         Vector3 minimum = new(float.MaxValue, 0f, float.MaxValue);
         Vector3 maximum = new(float.MinValue, 0f, float.MinValue);
-        for (var hexIndex = 0; hexIndex < map.Count; hexIndex++)
+        for (var i = 0; i < map.Count; i++)
         {
-            var center = CenterOf(map.AddressOf(hexIndex));
+            var center = CenterOf(map.HexAt(i).Address);
             minimum = new Vector3(Mathf.Min(minimum.X, center.X), 0f, Mathf.Min(minimum.Z, center.Z));
             maximum = new Vector3(Mathf.Max(maximum.X, center.X), 0f, Mathf.Max(maximum.Z, center.Z));
         }

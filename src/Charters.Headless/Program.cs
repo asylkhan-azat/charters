@@ -109,7 +109,7 @@ namespace Charters.Headless
         {
             for (var i = 0; i < simulation.Map.Count; i++)
             {
-                var hex = simulation.Map[i];
+                var hex = simulation.Map.HexAt(i);
                 Add(hash, $"hex|{i}|{hex.Region.Id}|{hex.Terrain.Id}");
             }
         }

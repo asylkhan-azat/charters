@@ -30,6 +30,8 @@ public sealed class Simulation
         UnitFactory = new UnitFactory(this);
         Events = new SimulationEvents();
         FacilityStatistics = new FacilityStatistics();
+        Registries = new SimulationRegistries();
+        Services = new SimulationServices(this);
 
         Events.FacilityProducedItems += FacilityStatistics.OnProduced;
         Events.FacilityConsumedItems += FacilityStatistics.OnConsumed;
@@ -39,10 +41,12 @@ public sealed class Simulation
     public DefinitionSet Definitions { get; }
     public RandomSet Random { get; }
     public WorldMap Map { get; }
-    public World Entities { get; }
+    internal World Entities { get; }
     public UnitFactory UnitFactory { get; }
     public SimulationEvents Events { get; }
     public FacilityStatistics FacilityStatistics { get; }
+    public SimulationRegistries Registries { get; }
+    public SimulationServices Services { get; }
 
     public void Advance(int ticks)
     {

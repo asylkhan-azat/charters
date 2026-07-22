@@ -1,3 +1,4 @@
+using Charters.Sim.Core;
 using Charters.Sim.Map;
 using Godot;
 
@@ -13,23 +14,24 @@ public sealed partial class HexMapRenderer : MultiMeshInstance3D
 
     private static readonly Color MissingPaletteColor = new(1f, 0f, 1f);
 
-    public void Render(WorldMap map)
+    public void Render(Simulation simulation)
     {
-        Multimesh = BuildTileMultiMesh(map);
+        Multimesh = BuildTileMultiMesh(simulation.Map);
     }
 
     private MultiMesh BuildTileMultiMesh(WorldMap map)
     {
         var multiMesh = CreateTileMultiMesh(map.Count);
         var tileBasis = Basis.Identity.Scaled(new Vector3(TileScale, 1f, TileScale));
-        for (var hexIndex = 0; hexIndex < map.Count; hexIndex++)
+        for (var i = 0; i < map.Count; i++)
         {
+            var hex = map.HexAt(i);
             multiMesh.SetInstanceTransform(
-                hexIndex,
-                new Transform3D(tileBasis, HexLayout.CenterOf(map.AddressOf(hexIndex))));
+                i,
+                new Transform3D(tileBasis, HexLayout.CenterOf(hex.Address)));
             multiMesh.SetInstanceColor(
-                hexIndex,
-                TerrainPalette?.ColorOf(map[hexIndex].Terrain.Id) ?? MissingPaletteColor);
+                i,
+                TerrainPalette?.ColorOf(hex.Terrain.Id) ?? MissingPaletteColor);
         }
 
         return multiMesh;

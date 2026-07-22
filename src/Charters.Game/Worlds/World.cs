@@ -24,7 +24,7 @@ public sealed partial class World : Node3D
             return;
         }
 
-        GetNode<HexMapRenderer>("Map").Render(_simulation.Map);
+        GetNode<HexMapRenderer>("Map").Render(_simulation);
         _units = GetNode<UnitRenderer>("Units");
         _units.Render(_simulation);
         var (center, extent) = HexLayout.BoundsOf(_simulation.Map);

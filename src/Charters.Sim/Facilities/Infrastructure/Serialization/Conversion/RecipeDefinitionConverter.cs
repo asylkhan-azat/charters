@@ -1,7 +1,8 @@
 using System.Collections.Immutable;
 using Charters.Sim.Facilities.Definitions;
 using Charters.Sim.Facilities.Infrastructure.Serialization.Dto;
-using Charters.Sim.Items;
+using Charters.Sim.Items.Definitions;
+using Charters.Sim.Items.Models;
 
 namespace Charters.Sim.Facilities.Infrastructure.Serialization.Conversion;
 

@@ -33,12 +33,35 @@ Iteration 1A work packages complete so far:
   matching the spec's tables; loader validation covers every family (identity, capacity, feature
   cross-rules, recipe/facility cross-references). Items carry a flat `tags` set rather than a
   separate request-group registry — the spec was updated to match.
+- **Package 2 — Runtime ownership and host boundary:** typed stable IDs (`UnitId`, `CharterId`,
+  `FacilityId`, `DepotId`, `GroundStockpileId`, each `IComparable<TSelf>` over their wrapped `long`);
+  a generic `Registry<TId, TItem>` (`Charters.Sim.Core`) backed by one `SortedDictionary<TId, TItem>`
+  — typed-ID lookup, `Add`/`Remove` (removing one item cannot disturb any other item's stored
+  position, unlike a dense-array-plus-index design), and ascending-ID iteration; it does not generate
+  IDs itself; that stays with whatever spawner constructs the item, matching `UnitFactory`'s existing
+  `_idCounter`. The four Charter/Facility/Depot/GroundStockpile registries are grouped under
+  `Simulation.Registries` (`SimulationRegistries`), currently holding only identity-only placeholder
+  objects — Packages 5–7 give them real fields and populate them; the existing ECS facility prototype
+  is untouched. `UnitFactory` now owns the `UnitId` → Arch entity index as one operation with
+  `Spawn`/`Destroy`. A generic `FactJournal<TFact>` buffered-append primitive exists
+  (`Charters.Sim.Core`) but isn't wired to a concrete fact type yet. Read-only value-projection
+  services are grouped under `Simulation.Services` (`SimulationServices`) — currently `Units`
+  (`UnitViewService`), which threads a caller `ref TState` through allocation-free unit iteration
+  instead of allocating a closure or a buffer. `WorldMap` is public again but only its read-only
+  surface is (`Count`, `AddressOf`, `HexAt` returning `HexView`, etc.); its mutable grid and
+  ref-returning indexer are internal, and `Simulation.Entities` (raw Arch `World`) stays internal.
+  Godot and headless read units through `simulation.Services.Units` and hexes through `simulation.Map`
+  directly, with no `Arch.Core` or raw Arch state reachable from either host. The iteration spec and
+  TDD's public-boundary section were updated to match — both previously named this surface a single
+  `Simulation.Read` façade, which this implementation replaced with `Simulation.Services` +
+  `Simulation.Map` instead.
 
-63 tests pass; `scripts/check.ps1` is green.
+79 tests pass; `scripts/check.ps1` is green.
 
 ## Next
 
 - Continue [Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md) with
-  **Package 2 — Runtime ownership and host boundary**: typed stable IDs and in-place registries for
-  Charters, facilities, depots, and ground stockpiles, plus the buffered fact-journal boundary and
-  `Simulation.Read` façade.
+  **Package 3 — Storage, inventory, and transaction vocabulary**: closed `StorageAddress` variants,
+  dense item-indexed `Stockpile` (replacing the current dictionary-backed one), the shared
+  `IItemContainer` contract implemented by `Stockpile` and a new `Inventory`, and the immutable
+  item-transaction vocabulary appended through the Package 2 fact journal.

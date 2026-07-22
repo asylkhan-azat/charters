@@ -18,10 +18,10 @@ internal static class SimulationBootstrapper
 
         var random = simulation.Random.Get(RandomStreamType.WorldGen);
         var unitDefs = definitions.Units.ToList();
-        
+
         for (var i = 0; i < 10; i++)
         {
-            var hex = simulation.Map.AddressOf(random.NextInt(simulation.Map.Hexes.Count));
+            var hex = simulation.Map.HexAt(random.NextInt(simulation.Map.Count)).Address;
             simulation.UnitFactory.Spawn(hex, unitDefs[random.NextInt(unitDefs.Count)]);
         }
 

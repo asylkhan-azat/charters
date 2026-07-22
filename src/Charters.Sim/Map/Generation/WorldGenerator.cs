@@ -7,7 +7,7 @@ namespace Charters.Sim.Map.Generation;
 /// Builds the world from exactly the collaborators it needs — never from a
 /// half-constructed simulation aggregate.
 /// </summary>
-public static class WorldGenerator
+internal static class WorldGenerator
 {
     public static WorldMap Generate(
         DefinitionSet definitions,

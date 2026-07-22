@@ -1,6 +1,6 @@
 using Charters.Sim.Core.Definitions;
 
-namespace Charters.Sim.Items;
+namespace Charters.Sim.Items.Definitions;
 
 public sealed record ItemDefinition(
     string Id,

@@ -72,7 +72,7 @@ These are review blockers, not implementation suggestions:
 | Storage | `Stockpile` and carried `Inventory` share the narrow `IItemContainer` behavior; hosted stock remains anonymous and only a ground stockpile has independent identity. |
 | Depot role | A depot is ownerless national infrastructure, never a facility or Charter property. Its compartments are Charter-owned. |
 | Recipe purity | Beyond definition identity, a recipe contains only inputs, outputs, and required work. Facility-to-deposit compatibility is deferred until a construction system exists. |
-| Mutation boundary | Arch, registries, and mutable map state stay inside `Charters.Sim`; hosts consume `Simulation.Read`. |
+| Mutation boundary | Arch, registries, and mutable map state stay inside `Charters.Sim`; hosts consume read-only projections through `Simulation.Services` and `Simulation.Map`. |
 | Ordering | Independent work iterates native storage in place. Contested outcomes use their mechanic's explicit rule, while reports and hashes canonicalize only on their cold output boundary. |
 | Conservation | Every quantity change is represented by an item transaction and is auditable by item, owner, storage address, and location. |
 
@@ -88,7 +88,7 @@ authored definitions + map + scenario
         → explicit resolution only where actors contend for limited state
     → buffered immutable facts
     → conservation + metrics + presentation history
-    → Simulation.Read projections
+    → Simulation.Services / Simulation.Map projections
     → headless and Godot hosts
 ```
 
@@ -537,11 +537,13 @@ mismatch throws `SimulationInvariantException` identifying one concrete discrepa
 ## Diagnostics and public surfaces
 
 Arch and mutable registries are internal to `Charters.Sim`. Replace public `Simulation.Entities`
-access with `Simulation.Read`, a read-only façade that fills caller-owned reusable buffers with value
-projections for units, facilities, depots, ground piles, map state, and diagnostics. These projections
-expose stable IDs and absolute addresses but no mutable component, object, collection, or map-cell
-reference. A1 adds no player commands; the façade leaves mutation authority inside the simulation and
-prepares the separate validated command boundary required by later council iterations.
+access with read-only projections reached through `Simulation.Services` — per-domain projection
+services such as `Services.Units`, filling caller-owned reusable buffers or threading a caller `ref`
+state through allocation-free iteration — and through `Simulation.Map`'s own read-only members (such
+as `HexAt`) for map state and diagnostics. These projections expose stable IDs and absolute addresses
+but no mutable component, object, collection, or map-cell reference. A1 adds no player commands; they
+leave mutation authority inside the simulation and prepare the separate validated command boundary
+required by later council iterations.
 
 ### Headless
 
@@ -564,13 +566,14 @@ The JSON object contains:
 
 Extend the digest with ordered Commons and named Charter state, roads, absolute deposits, facilities,
 embedded stock, depots and compartments, recipe progress, assignments, equipment, unit inventories,
-ground piles, and decay deadlines. Headless obtains this state through `Simulation.Read`. Metrics
-collection consumes the buffered fact journal and must not be read back by gameplay systems.
+ground piles, and decay deadlines. Headless obtains this state through `Simulation.Services` and
+`Simulation.Map`. Metrics collection consumes the buffered fact journal and must not be read back by
+gameplay systems.
 
 ### Godot
 
-Godot and headless boot through the same scenario loader and consume `Simulation.Read`; neither host
-references Arch. Remove random bootstrap spawning. Render:
+Godot and headless boot through the same scenario loader and consume `Simulation.Services`/
+`Simulation.Map`; neither host references Arch. Remove random bootstrap spawning. Render:
 
 - shared roads as neutral gray map infrastructure;
 - facilities with type-distinct markers tinted by owning Charter;
@@ -636,8 +639,9 @@ build on it.
   ground stockpiles.
 - Keep units in the internal Arch world and maintain the internal `UnitId` → Arch entity index as one
   operation with unit creation and destruction.
-- Introduce the buffered fact-journal boundary and the `Simulation.Read` façade. Move existing map and
-  unit consumers to read-only projections before removing public mutable Arch/map access.
+- Introduce the buffered fact-journal boundary and read-only projections reached through
+  `Simulation.Services` (per-domain projection services) and `Simulation.Map`. Move existing map and
+  unit consumers to those read-only projections before removing public mutable Arch/map access.
 - Ensure registry objects, component references, Arch handles, and mutable map cells cannot cross into
   Godot or headless. Do not expose an internal collection temporarily as the de facto public API.
 
@@ -760,7 +764,7 @@ state access.
 
 - Add `--scenario` and `--metrics` with the output behavior defined in [Headless](#headless); preserve
   the existing digest-only default and optional map override.
-- Produce every row through `Simulation.Read`, sorting copied rows into the specified output order
+- Produce every row through `Simulation.Services`/`Simulation.Map` projections, sorting copied rows into the specified output order
   and absolute locations. Do not query Arch or registries directly from the host.
 - Extend the complete digest to all A1 authoritative state, including Commons, ownership, hosted
   stock, production progress, compartments, equipment, assignments, ground expiry, and random state.
@@ -781,7 +785,7 @@ report-boundary conservation audits run even when the regular ten-tick cadence h
   exactly as specified so all recipes run before transport exists.
 - Replace Godot's random unit bootstrap with shared scenario loading and render the required Charter
   colors, facility types, neutral depots, roads, units, and ground-pile markers through
-  `Simulation.Read`.
+  `Simulation.Services` and `Simulation.Map`.
 - Do not add A1-excluded overlays, interactive production controls, or placeholder 1B transport.
 
 **Gate:** the 120-tick acceptance run exercises all recipes, records the intended missing-input state
@@ -890,6 +894,6 @@ production slice; runtime positions are absolute; recipes contain only inputs, o
 Commons owns charterless state; depots are national infrastructure with complete Charter
 compartments; facility and depot stockpiles have no independent identity; ground stockpiles alone are
 identified and decay explicitly; only units use ECS; independent work runs in place without canonical
-sorting; contested behavior has an explicit rule; mutable Arch and domain state stay behind
-`Simulation.Read`; lifecycle cleanup conserves every item; idle production is attributable; and the
+sorting; contested behavior has an explicit rule; mutable Arch and domain state stay behind the
+`Simulation.Services`/`Simulation.Map` read-only surface; lifecycle cleanup conserves every item; idle production is attributable; and the
 Godot view exposes the scenario's physical and ownership structure.
