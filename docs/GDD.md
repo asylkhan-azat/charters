@@ -68,7 +68,7 @@ The observer phase is content (Pillar 4) and the attribution problem is the game
 - **Embed mode.** A camera command: follow a chosen squad or convoy cinematically until the next council. Near-zero cost (a camera over the existing sim); converts dead observer minutes into the game's best moments and screenshots.
 - **The three-day recap.** Every War Council opens with a ~10-second time-lapse of the map since the last council — fronts moving, convoys flowing, battles flaring. The player *sees* causality before reading a single report.
 - **Biography of a bullet.** A trace tool: pick goods at the front and see their provenance — mined at Krej, refined at Dallow, hauled by the Greyline Charter, 41 hours in transit. Provenance is logged for *sampled* items only (memory budget). The logistics pillar, made tangible.
-- **The pain map.** A map overlay heat-mapping *unfulfilled requests* — where demand for goods goes unanswered, and for how long. One glance answers "where is my logistics failing?" before it becomes "why did the front fall?" The request board already holds the data; this is the game's single best diagnostic tool and ships in the MVP.
+- **The pain map.** A map overlay heat-mapping *unmet physical demand* — where goods are needed, how severely, and for how long. Public Request Board entries show their exact public quantities and fulfillment; unpublished internal needs show only location, item category, severity, and age, preserving the information rules in §9. One glance answers "where is my logistics failing?" before it becomes "why did the front fall?" This is the game's single best diagnostic tool and ships in the MVP.
 - **The War Diary.** An auto-generated chronicle of the campaign: battles named after places ("Second Karsk Bridge"), records ("longest convoy run of the war"), betrayals, decorations, charter foundings and deaths. Doubles as the endgame recap and as the memory that makes emergent charters feel historic. Mostly string templates over events the sim already emits. At campaign end it **exports as a shareable text/HTML war history** — emergent-story games live on players posting their sagas.
 
 ---
@@ -310,7 +310,7 @@ Two rules keep it from being generic mana:
 
 **Territory is objective; numbers are testimony.**
 
-- **Always live and accurate:** the map — territory control, front lines, visible battles, terrain, infrastructure — plus the **hard facts about units**: their existence, positions, casualties, and carried inventory (weapons, ammo). Nobody can hide a dead squad or invent a phantom one. **Request Board traffic is also inherently public** — requests are broadcast for logists to act on, so the pain map (§3.3) reads true demand, not testimony.
+- **Always live and accurate:** the map — territory control, front lines, visible battles, terrain, infrastructure — plus the **hard facts about units**: their existence, positions, casualties, and carried inventory (weapons, ammo). Nobody can hide a dead squad or invent a phantom one. **Request Board traffic is also inherently public** — requests are broadcast for logists to act on, so their quantities and fulfillment are truth, not testimony. The pain map (§3.3) also exposes the location, category, severity, and age of unpublished internal needs, but not their exact quantities, stock state, diagnosis, or internal plan.
 - **Reported (fuzzy):** the *soft* numbers — **storage stockpiles above all** (the primary lie surface), production output, and units' internal state (experience, morale, readiness). These arrive as charter reports at each War Council, and their **accuracy scales with the leader's loyalty**:
   - Loyal leaders report honestly and promptly.
   - Disgruntled leaders pad stockpiles, understate strength (to demand more), or report late.
@@ -359,19 +359,28 @@ Consequences: specialization is sticky, quota demands have visible costs, the Sh
 
 - Logists move goods with vehicles: trucks (roads, flexible), trains (rail, huge capacity, fixed lines), barges (rivers/coast, cheap and slow). Vehicles are themselves tier-3 products that consume fuel — **logistics consumes logistics**.
 - **Stockpiles are ownership.** Goods everywhere — depots, truck beds, factory buffers, a squad's packs — sit in per-charter stockpiles, Foxhole-style. **Moving goods never changes whose they are; only politics does:** a consented hand-over (request-to-own, below), the hosting grace timer, capture, or a charter's death. A charter may keep stockpiles in another charter's facilities while relations allow; when hosting ends — land revoked, lease lapsed, a feud closing the doors (§6.5 rung 3), the host's death — a **grace timer** starts: haul it out in time or it transfers to the host. The eviction rule (§7) is the land-transfer case of this one rule.
-- **The Request Board** (§6.5) is the demand signal. The player never routes a truck — they shape the network by land grants, quota demands, and infrastructure priorities. Three request kinds ride the board:
+- **Physical needs and the Request Board.** Facilities, storages, and units generate scoped needs from real local deficits. A Charter's manager resolves what it can on-site; any unmet need requiring title consent or hauling becomes a public Request Board record (§6.5). The original need remains the causal record, including while unpublished, and feeds the pain map (§3.3). The player never routes a truck — they shape the network by land grants, quota demands, and infrastructure priorities. Three request kinds ride the board:
   - **Demand** — "we need 400 shells at Hill 12, critical." Fulfillment takes two consents, each relationship-weighted: a *donor* willing to give (a visible, recorded act of aid — friends send convoys, feuding neighbors let you starve) and a *hauler* willing to carry. Ownership passes to the requester at pickup.
-  - **Request-to-own** — asking another charter to sign over goods where they sit, no movement involved. Refusals are legible snubs that can escalate into council petitions ("make the Shell Baron share").
+  - **Request-to-own** — asking another charter to sign over goods where they sit, no movement involved. Ownership changes when the requester accepts the donor's title consent. Refusals are legible snubs that can escalate into council petitions ("make the Shell Baron share").
   - **Transfer** — "haul *my* goods from depot A to depot B." No ownership change. Charters with no logists of their own can still run logistics through the board — and purely logistical charters become the nation's haulers-for-hire, supporting several factions at once.
-- **One board record, two consent slots.** The three kinds are modes of one request record rather
-  than separate systems. A pledge is title consent and a delivery is carriage consent: demand needs
-  both, request-to-own needs only the pledge, and transfer has implicit title consent because the
-  requester already owns the goods.
+- **One board record, two consent types.** The three kinds are modes of one request record rather
+  than separate systems. A pledge is title consent and a delivery claim is carriage consent: demand
+  needs both, request-to-own needs only title consent, and transfer has implicit title consent because
+  the requester already owns the goods. One request may be split across several donors and haulers;
+  their child allocations retain individual quantities, progress, and responsibility while delivered
+  history and the unmet remainder stay on the original record.
+- **Commitments reserve physical capacity.** A pledge or delivery claim makes a light political
+  commitment and hard-reserves its goods or hauling capacity. Ordinary replanning cannot take that
+  capacity; only an immediate survival crisis or Direct Order may preempt it, producing an attributed
+  failure. Each child allocation expires after a tunable period without measurable physical progress
+  — reservation, pickup, forward route progress, or delivery — so stuck work releases its capacity
+  without making active work oscillate.
 - **Political accounting follows physical custody.** A title hand-over is an offer the receiver
   accepts, never a unilateral dump. Aid credit accrues only when goods physically reach the
-  receiver's custody, loss reports identify both title-holder and host, and charters whose pledges
-  repeatedly evaporate before pickup lose pledge reliability. Signing over a doomed remote
-  stockpile therefore earns nothing unless the recipient actually extracts it.
+  receiver's custody, loss reports identify both title-holder and host, and charters whose pledges or
+  carriage claims repeatedly evaporate lose reliability. Pre-pickup withdrawal has a light consequence;
+  an avoidable carriage failure after pickup has a stronger one. Signing over a doomed remote stockpile
+  therefore earns nothing unless the recipient actually extracts it.
 - **Group requests.** A request can target an item *group* instead of an exact type — a desperate charter asks for "anything that shoots 7.62" and takes bolt rifles when assault rifles won't come. Breadth is a desperation signal the player can read on the board — and the *donor* chooses what to send: friends part with their best; a cold neighbor technically complies with the junk from the back of the depot.
 - **Spot and standing.** Any request can be one-off ("400 shells to Hill 12, critical") or a **standing contract** ("500 shells to Hill 12, weekly"). Logists on standing contracts run stable routes — which feeds relationship formation (regular partners bond), route infrastructure investment, and named roads (§17).
 - **Cry-wolf credibility (post-MVP):** requesters self-declare priority, so what stops inflation? Charters whose "critical" requests are repeatedly found overblown (delivered, then the stock sat unused) get their priorities discounted by other charters' logists. Self-regulating, zero UI — and it produces the emergent character of *the charter nobody believes anymore*.
@@ -411,7 +420,7 @@ Units fight on the hex map with **positions, facing/frontage, ranges, ammunition
 - **Front fatigue & self-managed rotation:** units accumulate fatigue in combat zones. Charter AI rotates its own units to rest — *if it has somewhere to rest them*: backline land, or at least the rear hexes of a front region. Land grants gain a new purpose (rest space is a thing leaders value), and a charter with nowhere to rotate **petitions for rest land** before its units start breaking. No rotation micromanagement — the player's lever is, as always, land.
 - **Night rules:** the flavor clock already has days and nights — use them. At night visibility drops, convoys are safer from interdiction but slower, and attacks are riskier except for veterans (surprise bonus). Logistics gains a daily rhythm — the night convoy run — and doctrine gains an axis (the leader who loves night assaults).
 
-**Engineering note (top project risk #1):** charter combat AI *is* the product. Budget accordingly (§14). Combat resolves per ordinary tick — 2-second ticks under the movement cap (§4.3) are already finer than the sub-stepped resolution once planned, so no sub-tick machinery exists. Volley application discipline and starting constants are chosen during Phase 6's fresh combat design checkpoint.
+**Engineering note (top project risk #1):** charter combat AI *is* the product. Budget accordingly (§14). Combat resolves per ordinary tick — 2-second ticks under the movement cap (§4.3) are already finer than the sub-stepped resolution once planned, so no sub-tick machinery exists. Volley application discipline and starting constants are chosen during Roadmap Loop 3's fresh combat design checkpoint.
 
 ---
 
@@ -474,7 +483,7 @@ At campaign end — any ending — every charter receives a **fate card** genera
 - **Map:** 1 shared front, ~7 regions/side, ~630 hexes each. Both nations tiny.
 - **Units:** General Infantry, Truck Logist, Worker — plus Recruits from the manpower tap. (No Crews, Builders, Researchers, or machines beyond trucks — infantry with rifles/grenades is the whole army.)
 - **Production:** tiers 1–3, 9 items: ore, sulfur, food → materials, refined sulfur → rifles, grenades, ammo, field packs. Unit inventory capacity comes from carried **equipment** (slot-based; the field pack is the one MVP equipment item — the slot/wear-slot schema ships in MVP and later equipment like medic kits with medical-exclusive slots is pure data). **No fuel in MVP** — trucks pre-exist, aren't produced, and run free until the first content patch. Facilities pre-placed (no construction).
-- **Logistics:** stockpile ownership model with all three request kinds (demand, request-to-own, point-to-point transfer) and the hosting grace timer (§10.3). Group-targeted requests are schema-reserved only — near-degenerate at 8 items.
+- **Logistics:** stockpile ownership model with all three request kinds (demand, request-to-own, point-to-point transfer) and the hosting grace timer (§10.3). Group-targeted requests are schema-reserved only — near-degenerate at 9 items.
 - **Charters:** petition-event formation only (pre-rolled compositions); 3–5 charters/side; leaders with loyalty + 2–3 doctrine/personality traits; simple friend/feud pairs affecting the request board.
 - **Manpower:** simplified tap (§5.6) — towns trickle recruits, auto-routed to pre-placed generic training camps; training costs time only.
 - **Campaign open:** the Phony War phase (§12) as the diegetic tutorial.
@@ -521,8 +530,10 @@ At campaign end — any ending — every charter receives a **fate card** genera
 
 ## 15. Open Design Questions
 
-1. **Combat volley application discipline.** Whether per-tick volleys need simultaneous two-phase application (all fire computed from the same start-of-tick state, then applied together) or whether sequential per-unit resolution is unbiased enough at per-tick volley sizes. Resolve during Phase 6's design checkpoint together with starting combat constants.
+1. **Combat volley application discipline.** Whether per-tick volleys need simultaneous two-phase application (all fire computed from the same start-of-tick state, then applied together) or whether sequential per-unit resolution is unbiased enough at per-tick volley sizes. Resolve during Roadmap Loop 3's design checkpoint together with starting combat constants.
 2. **Tuning-value bucket (to be discovered during MVP):** minimum grant blob size, per-hex stacking limits (the ×4 hex density makes fronts sparser — a cap of 1 may now be right), movement cooldowns (§4.3 — a cross-country truck run should span several council cycles), manpower rates (recruit trickle vs expected casualty rates — the "leaky bucket" balance of §5.6), and the eviction grace window (§7).
+3. **MVP map scale.** In §14, clarify whether “~630 hexes each” means per nation or per region, then reconcile the region radius and total campaign size with that target before balance work begins.
+4. **Grenades versus ammunition.** Define their distinct inventory and combat roles: what action consumes each item, whether grenades are optional or required, and how field-pack capacity changes the carried mix.
 
 
 ---

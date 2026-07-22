@@ -1,8 +1,8 @@
 # Management — Where We Are
 
 *The single source of truth for current project state. [ROADMAP.md](ROADMAP.md) owns loop goals and
-scope; [design/greenfield-redesign-plan.md](design/greenfield-redesign-plan.md) owns execution
-mechanics. This doc only tracks position and progress.*
+scope; the active loop's document under [design/](design/) owns execution mechanics. This doc only
+tracks position and progress.*
 
 ## Rules
 
@@ -14,6 +14,11 @@ mechanics. This doc only tracks position and progress.*
 
 ## Current position
 
-We're just starting.
+The implementation foundation and MVP roadmap are in place. Charter AI boundaries are captured in
+the [architecture](design/charter-ai-architecture.md), and
+[Loop 1 — The Moving Economy](design/loop-1-moving-economy.md) is the active execution design.
 
 ## Next
+
+- Resolve the nine-item schema questions needed by the production slice.
+- Build Iteration 1A: owned production and its tuning metrics.

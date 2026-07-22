@@ -2,9 +2,8 @@
 
 *How the game is built, described from the code as it stands. Companion to [GDD.md](GDD.md)
 (what the game is), [ROADMAP.md](ROADMAP.md) (what lands when), and
-[coding-guidelines.md](coding-guidelines.md) (how code should read). Wiring gaps scheduled for
-fixing are tracked in [design/greenfield-redesign-plan.md](design/greenfield-redesign-plan.md),
-not restated here.*
+[coding-guidelines.md](coding-guidelines.md) (how code should read). Planned execution mechanics are
+linked from [management.md](management.md), not restated here.*
 
 ## 1. Projects
 
