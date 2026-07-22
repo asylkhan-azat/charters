@@ -155,7 +155,13 @@ Medical scarcity thus converts directly into permanent casualties — another pl
 
 ### 5.4 Charterless units
 
-At game start, **most units belong to no Charter**. Charterless units keep their type categories and do their type's job with simple, self-directed logic — e.g., a worker asks *"is there a free facility near me? If yes, work it; if not, do something doable even if it's inefficient."* What they lack is coordination and affection: **no request-board sympathy, no charter-mate priority, no leader issuing goals.** They are the nation's "raw human material":
+Each nation has an immortal, non-political **Commons Charter** that owns everything presented to the
+player as charterless. Commons has no Leader, land grants, petitions, relationships, or strategic
+Manager; its units keep their type categories and use simple local heuristics — e.g., a worker asks
+*"is there a free facility near me? If yes, work it; if not, do something doable even if it's
+inefficient."* They have **no request-board sympathy, no charter-mate priority, and no leader issuing
+goals.** Commons is an ownership identity for the nation's "raw human material," not one of its 3–5
+political Charters:
 
 - Charters **recruit** from charterless units in and near their territory (rate modified by charter reputation, supply level, and recent victories).
 - Charterless units left unsupplied or near defeats desert or scatter.
@@ -205,7 +211,10 @@ Three sources:
 - **Growth:** recruitment, land grants, captured equipment, reputation from victories.
 - **Capacity cap:** each charter has a maximum size, determined by the *lowest* of: leader charisma, charter reputation, a player-imposed cap (set via Direct Order), and a global hard cap. Growth is not unbounded — a mediocre leader simply cannot hold a large host together.
 - **Split:** internal tension (leader trait conflicts, over-size, a lieutenant's ambition) can fork a charter into two — the splinter petitions for its own land.
-- **Death:** military annihilation, or dissolution when loyalty/supply collapses — units go charterless, land reverts to ungranted.
+- **Death:** military annihilation, or dissolution when loyalty/supply collapses — units, facilities,
+  and their in-place goods pass to the nation's Commons Charter, while land reverts to ungranted.
+  Depot goods fill Commons storage first, then surviving Charters in stable order; any remainder
+  becomes Commons-owned, decaying ground stock.
 - **Merge:** allied charters with compatible leaders may merge (rare; leader egos usually prevent it).
 
 ### 6.4 Leaders
@@ -231,7 +240,9 @@ Leaders hold opinions of each other (friendship ↔ feud), seeded on creation an
 
 1. **Cold courtesy** — the rival's requests sink to the bottom of the queue.
 2. **Refusals** — no deliveries claimed, no escorts offered, joint operations declined.
-3. **Closed doors** — goodwill passage over their land is withdrawn (only player-granted transit rights still guarantee it, §7), and use of their *own* depots and facilities is denied. National roads and rail (§10.3) can never be blocked.
+3. **Closed doors** — goodwill passage over their land is withdrawn (only player-granted transit
+   rights still guarantee it, §7), and use of their facilities is denied. National depots, roads,
+   and rail (§10.3) can never be blocked.
 4. **Petition warfare** — constant demands that you punish the rival: strip their land, deny their renewals, "them or us" ultimatums.
 
 Each rung is an intervention point for the player's mediation tools — because a feud on your supply line is a military problem even when nobody fires a shot.
@@ -258,7 +269,14 @@ Setup also offers **scenario seeds** (post-MVP): distinct geographies — river 
 - **Land quality is a negotiation currency — and it's subjective.** A hex with a rail line, an ore deposit, or a factory is objectively worth ten of farmland, but leaders value land through their own doctrine: a farming-minded leader shrugs at a mining hex; the Shell Baron would trade three villages for it. The same grant can be an insult to one leader and a coronation to another — reading what a leader *wants* is part of the game.
 - **Borders and enclaves create relationships — friction or symbiosis.** Splitting a rail line between feuding charters, or planting an enclave in a rival's heartland, creates predictable trouble (sometimes the player wants that: divide and rule). But complementary neighbors bond: a warrior charter beside an ammo-producing worker charter has nothing to argue about and everything to trade — proximity plus mutual dependence breeds friendship. Even two warrior charters can become fast friends by saving each other in battle. **Adjacency is a relationship engine, and the player is its architect.**
 - **Revocation is expensive.** Taking land away tanks loyalty with the loser and *worries every other leader* ("are we next?"). Revoking from the disloyal to reward the loyal is a legitimate — and dangerous — play.
-- **The eviction rule.** On revocation (or lease lapse), movable stock on the land remains claimable by the previous owner for a **grace window** — their logists must physically haul it out in time. Whatever isn't moved when the window closes changes owners with the land. Static facilities always transfer. An eviction becomes a *logistics event*: a visible convoy exodus, and a real question of whether the evicted charter's logists can clear the depots in time. *(Grace window length: tuning value.)* When a charter dies, its stock goes unowned where it sits. *(Eviction is the land-transfer case of the general stockpile-hosting rule — §10.3.)*
+- **The eviction rule.** On revocation (or lease lapse), movable stock on the land remains claimable
+  by the previous owner for a **grace window** — their logists must physically haul it out in time.
+  Static facilities transfer immediately, but their former owner's embedded stock is ejected into
+  identified ground stockpiles at the facility before its new owner receives an empty buffer.
+  Whatever remains when the window closes changes owners with the land. An eviction becomes a
+  *logistics event*: a visible convoy exodus, and a real question of whether the evicted Charter's
+  logists can clear the ground stock in time. *(Grace window length: tuning value.)* Charter death is
+  different: the facility and its contents pass together to Commons (§10.3).
 - **Homeland attachment.** Land held long enough becomes a charter's **homeland**: defending it grants a morale bonus, grants adjacent to it are valued extra, and revoking it is a category-worse insult than revoking ordinary land. One counter per charter-region, and land gains *memory* — late-game maps aren't zones, they're places somebody is from. It also creates the game's hardest decision: the only defensible line runs through someone's homeland.
 - **The liberation rule.** **Grants survive occupation** — enemy-captured land stays on its charter's books, and retaking their homeland is their war. But when a *different* charter liberates it, the liberator gains a moral claim and may petition for the land — forcing exactly the ruling this game is about: reward the charter that bled for it, or restore the dispossessed. Without this rule, every counteroffensive is undefined behavior.
 - **Grants can be refused.** A leader may decline a grant — rare, loyalty-dependent, and mildly embarrassing for the player ("the Ironclads want no swamp"). This gives subjective land value behavioral teeth: pushing bad land on proud people teaches the player something, publicly.
@@ -343,7 +361,13 @@ Key properties, by design:
 
 ### 10.2 Facilities
 
-Mines/wells/farms (tier 1) → refineries (tier 2) → factories (tier 3) → assembly plants (tier 4), plus **storage depots**, **workshops** (machine repair — §11), **training facilities** (§5.6), and **transport infrastructure** (roads, rail, bridges, ports). Facilities occupy hexes, are built by Builders from materials, are operated by Workers (throughput scales with staffing and worker specialization), and are owned by whoever holds the land grant — capturing land captures industry. (**Towns** (§5.6) are static structures too, but pre-existing — Builders cannot build population.)
+Mines/wells/farms (tier 1) → refineries (tier 2) → factories (tier 3) → assembly plants (tier 4), plus
+**workshops** (machine repair — §11) and **training facilities** (§5.6). Facilities occupy hexes, are
+built by Builders from materials, are operated by Workers (throughput scales with staffing and worker
+specialization), and are owned by whoever holds the land grant — capturing land captures industry.
+Each facility has one embedded stockpile owned with the facility. **Depots are not facilities:** they
+are nation-wide infrastructure buildings with separate storage for every Charter. (**Towns** (§5.6)
+are static structures too, but pre-existing — Builders cannot build population.)
 
 **Denial warfare:** Builders can also *demolish* — any destructible structure: bridges, rail, factories, depots, workshops. Scorched earth in front of an enemy advance denies them your industry, but it wounds your own network, and dynamiting structures in a charter's homeland is a loyalty event, not a free action. Leaders with roots there may refuse the request. *(Needs a guardrail so AI charters and the enemy director can't scorched-earth the map into a slog.)*
 
@@ -358,7 +382,14 @@ Consequences: specialization is sticky, quota demands have visible costs, the Sh
 ### 10.3 Transport
 
 - Logists move goods with vehicles: trucks (roads, flexible), trains (rail, huge capacity, fixed lines), barges (rivers/coast, cheap and slow). Vehicles are themselves tier-3 products that consume fuel — **logistics consumes logistics**.
-- **Stockpiles are ownership.** Goods everywhere — depots, truck beds, factory buffers, a squad's packs — sit in per-charter stockpiles, Foxhole-style. **Moving goods never changes whose they are; only politics does:** a consented hand-over (request-to-own, below), the hosting grace timer, capture, or a charter's death. A charter may keep stockpiles in another charter's facilities while relations allow; when hosting ends — land revoked, lease lapsed, a feud closing the doors (§6.5 rung 3), the host's death — a **grace timer** starts: haul it out in time or it transfers to the host. The eviction rule (§7) is the land-transfer case of this one rule.
+- **Stockpiles are ownership.** Goods everywhere — depot compartments, truck beds, facility buffers,
+  ground piles, a squad's packs — belong to one Charter. Facility buffers and carried inventories are
+  part of their host; every national depot holds a separate anonymous compartment for each Charter;
+  only decaying ground stockpiles have their own durable identity. **Moving goods never changes whose
+  they are; only politics does:** a consented hand-over, capture, eviction, or Charter death. Commons
+  owns charterless goods and absorbs dead-Charter property in place. At each depot, death overflow
+  passes to other same-nation Charters before capped Commons ground piles are created. Ground piles
+  remain physical, located goods and decay if nobody recovers them.
 - **Physical needs and the Request Board.** Facilities, storages, and units generate scoped needs from real local deficits. A Charter's manager resolves what it can on-site; any unmet need requiring title consent or hauling becomes a public Request Board record (§6.5). The original need remains the causal record, including while unpublished, and feeds the pain map (§3.3). The player never routes a truck — they shape the network by land grants, quota demands, and infrastructure priorities. Three request kinds ride the board:
   - **Demand** — "we need 400 shells at Hill 12, critical." Fulfillment takes two consents, each relationship-weighted: a *donor* willing to give (a visible, recorded act of aid — friends send convoys, feuding neighbors let you starve) and a *hauler* willing to carry. Ownership passes to the requester at pickup.
   - **Request-to-own** — asking another charter to sign over goods where they sit, no movement involved. Ownership changes when the requester accepts the donor's title consent. Refusals are legible snubs that can escalate into council petitions ("make the Shell Baron share").
@@ -386,9 +417,17 @@ Consequences: specialization is sticky, quota demands have visible costs, the Sh
 - **Cry-wolf credibility (post-MVP):** requesters self-declare priority, so what stops inflation? Charters whose "critical" requests are repeatedly found overblown (delivered, then the stock sat unused) get their priorities discounted by other charters' logists. Self-regulating, zero UI — and it produces the emergent character of *the charter nobody believes anymore*.
 - **Escort requests** ride the same board: convoys through dangerous territory post them, and *fighting* charters can claim them. Combat charters get an economy role between offensives, escort duty forges warrior–logist friendships (§7 symbiosis), and declining to escort a feuding charter's convoy is a legible snub with physical consequences.
 - **Recovery hauling:** damaged machines (§11) are cargo too — logists haul them back to workshops. Trucks run loaded in both directions, and retreats force triage: abandon the hulls, or risk the trucks saving them.
-- **Infrastructure ownership:** roads and rail are **shared national infrastructure** — usable by any charter and never blockable (transit rights govern *armed* movement only, §7). Any charter can *build* rail and roads, but building on another charter's territory requires submitting a **proposal** to that charter — accepted, negotiated, or refused per relations and doctrine. An industrial charter petitioning a frontline charter for a rail corridor through its land is exactly the kind of internal politics the player ends up mediating.
+- **Infrastructure ownership:** depots, roads, and rail are **shared national infrastructure** — usable
+  by any Charter and never blockable (transit rights govern *armed* movement only, §7). Any Charter
+  can *build* rail and roads, but building on another Charter's territory requires submitting a
+  **proposal** to that Charter — accepted, negotiated, or refused per relations and doctrine. An
+  industrial Charter petitioning a frontline Charter for a rail corridor through its land is exactly
+  the kind of internal politics the player ends up mediating.
 - **Interdiction:** convoys can be attacked. Raiding the enemy's rear (post-MVP: partisans, air interdiction) is a legitimate strategy — and a threat.
-- **Skimming (post-MVP):** disloyal logist charters "lose" a percentage of goods in transit — the physical mechanism behind padded stockpile reports (§9), and the thing audits actually catch. The goods went somewhere (the charter's own depots), so a council confrontation can demand restitution. Corruption with a body.
+- **Skimming (post-MVP):** disloyal logist Charters "lose" a percentage of goods in transit — the
+  physical mechanism behind padded stockpile reports (§9), and the thing audits actually catch. The
+  goods went somewhere (the Charter's own national-depot compartments), so a council confrontation
+  can demand restitution. Corruption with a body.
 
 ### 10.4 Research & Technology
 

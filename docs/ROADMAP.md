@@ -50,10 +50,12 @@ deadlocking, oscillating, or hiding the cause of shortages?
 
 *Implementation specification: [Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md).*
 
-- Add static, pre-authored Charters as the durable owner identity used by units, facilities, and
-  stockpiles. Politics and player actions remain dormant.
+- Add static, pre-authored Charters plus one non-political Commons Charter per nation as the durable
+  owner identity used by units, facilities, and goods. Politics and player actions remain dormant.
 - Implement the MVP item, recipe, facility, worker-staffing, inventory, and equipment-slot schemas
   from [GDD §14](GDD.md#in-mvp).
+- Add national depots with one anonymous compartment per Charter, identified decaying ground
+  stockpiles, and deterministic Charter spawn/death storage lifecycle behavior.
 - Place authored deposits, roads, facilities, depots, workers, trucks, and initial stocks in a small
   logistics test scenario.
 - Enforce item conservation and expose production, consumption, idle time, and stock by location in

@@ -2,8 +2,7 @@
 
 *Authoritative design for Charter decision-making across MVP loops. [GDD.md](../GDD.md) owns
 player-facing rules, [ROADMAP.md](../ROADMAP.md) owns delivery order, and [TDD.md](../TDD.md) describes
-only code that exists. The consolidated [AI discussion](charters_ai_complete_design.md) is research
-input, not a specification.*
+only code that exists. Earlier consolidated AI discussion was research input, not a specification.*
 
 ## Purpose
 
@@ -21,8 +20,8 @@ Charter Leader
     ↓ policies, goals, commitments, acceptable sacrifices
 Charter Manager
     ↓ plans, reservations, operations, escalations
-Unit systems
-    ↓ physical movement, production, hauling, and combat
+Physical execution systems
+    ↓ facility production, unit movement, hauling, and combat
 World state
 ```
 
@@ -73,8 +72,10 @@ Units execute assigned operations and make immediate local decisions: path follo
 loading, unloading, target selection, cover, retreat, and emergency reactions. They do not choose
 Charter strategy or discard commitments because another goal has a slightly higher score.
 
-Charterless units use the same physical systems with simple local heuristics. They lack coordinated
-forecasts, protected reserves, relationships, and multi-step plans.
+The simulation represents charterless units and goods through each nation's immortal Commons system
+Charter. Commons is an ownership identity, not a political actor: it has no Leader, relationships,
+grants, petitions, or strategic Manager. Its units use the same physical systems with simple local
+heuristics and lack coordinated forecasts, protected reserves, and multi-step plans.
 
 ## Work model
 
@@ -122,12 +123,15 @@ Long-lived Charter state uses stable domain identifiers. Leaders, policies, goal
 requests, allocations, reservations, relationships, and decision history belong to the simulation
 domain rather than transient ECS entity handles.
 
-Frequently updated physical state remains in ECS: units, facilities, cargo, positions, inventories,
-production progress, movement, and combat. An operation links the two layers through a stable
-operation identifier; assignment logic resolves that operation to current entities.
+Only abundant, frequently updated unit state belongs in ECS: position, carried inventory, operation
+assignment, movement, combat, needs, and other unit capabilities. Charters, facilities, depots,
+hosted stock, ground stockpiles, requests, and operations remain plain simulation-domain objects in
+typed registries. Unit components link to that domain state through stable Charter, facility, and
+operation IDs; domain state links back through stable unit IDs rather than Arch entity handles.
 
-This boundary protects determinism, save/load stability, tests, and entity destruction. It does not
-preclude moving hot state into ECS later if profiling justifies it.
+This boundary protects determinism, save/load stability, tests, and lifecycle handling. Physical
+presence alone does not justify ECS representation; [TDD.md](../TDD.md#3-ecs-is-opt-in) owns the
+admission rule for moving measured hot state into ECS later.
 
 ## Stability rules
 
@@ -174,4 +178,3 @@ The following remain deferred until a proven behavior requires them:
 - capability-time optimization, scarcity prices, marginal-utility packages, and dependency graphs;
 - separate Manager submodules with independent mutable state;
 - construction, research adoption, and equipment-modernization planning.
-

@@ -5,6 +5,9 @@ exemplars, not a rulebook: what is being guarded against is incoherence and need
 not rule violations. A design that satisfies every pattern here but reads poorly is wrong, and a
 design that departs from a pattern to read better is right.
 
+[TDD.md](TDD.md) owns architecture, state placement, determinism, and the hot-path performance
+contract. This document owns how code expresses those decisions.
+
 ## Exemplars
 
 The taste reference is code, not prose. When shaping a new slice, read these first and match
@@ -14,9 +17,11 @@ their feel; depart with reason.
   shape, inline queries carrying narrow dependencies, rules living on components
   (`Navigation.CanMove`), and game-blind infrastructure (`Pathfinder` searches whatever the
   caller's cost function says).
-- **Facilities** — `src/Charters.Sim/Facilities/` and `Items/`: a component-owned state machine
-  (`FacilityProduction`), data-with-behavior (`Stockpile`), typed events feeding a view that the
-  sim never reads back.
+- **Map and definitions** — `src/Charters.Sim/Hexes/`, `Map/`, and `Core/Definitions/`: dense indexed
+  data, resolved immutable definitions, and small infrastructure whose callers supply game rules.
+
+The existing facility ECS slice and synchronous events are foundation prototypes being replaced by
+[Iteration 1A](specs/iteration-1a-owned-production.md); they are not taste references for new work.
 
 ## Judging complexity
 
@@ -34,19 +39,21 @@ the slice is reshaped, not appended to. Systems must never become the sum of the
 
 ## Judgment calls, and how to make them
 
-- **Behavior lives with the data it belongs to.** A rule that fits one component lives on it. A
-  rule spanning several components, or belonging to none, can be a named helper — what matters is
-  that each behavior has one obvious home, not that helpers are forbidden.
-- **A stored entity reference is a design decision**, because every consumer inherits its liveness
-  and validation burden. Prefer one-way references and aggregate counts over rosters and
-  back-references.
+- **Behavior lives with the data it belongs to.** A local invariant belongs on its component or
+  domain object. A rule spanning several components, objects, or registries belongs in a coordinating
+  system. What matters is one obvious home, not whether the home is called a helper or aggregate.
+- **A stored reference is a design decision**, because every consumer inherits its liveness and
+  validation burden. Cross-domain links use stable typed IDs, never Arch entity handles. Prefer
+  one-way references and aggregate counts over rosters and back-references.
 - **Common infrastructure doesn't know game rules.** Terrain knowledge stays with the caller of
   the pathfinder, not inside it; the same razor applies to any shared utility.
-- **Structs by default** for components; a class where reference semantics or reused
-  variable-size storage earn it (`NavPath`).
-- **Allocation discipline in hot paths** — inline queries instead of delegate quries for ECS, spans, reused scratch — but keep the
-  mechanics an implementation detail; don't let allocation ceremony obscure the rule being run.
+- **Structs for small ECS values with real value semantics.** Use an owned class where identity,
+  reference semantics, or reusable variable-size storage earns it (`NavPath`, `UnitInventory`). A
+  struct must not conceal a shared mutable collection.
+- **Allocation discipline in hot paths** — inline ECS queries, indexed loops, spans, and reused
+  scratch — but keep mechanics subordinate to the rule being run. The TDD defines where the hot-path
+  boundary ends; loading and tooling do not need simulation-loop ceremony.
 - **Resolve authored string ids at the loading boundary**; runtime state stores typed definition
   references.
 - **Vocabulary.** Clear domain names (`Position`, `FacilitySystem`); sub-phases are verbs
-  (`ApplyMovement`, `ProduceItems`);
+  (`ApplyMovement`, `ProduceItems`).

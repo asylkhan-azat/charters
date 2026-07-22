@@ -19,14 +19,21 @@ the pain map, event feed, and decision traces explain.
 
 *Implementation specification: [Iteration 1A — Owned Production](../specs/iteration-1a-owned-production.md).*
 
-- Add static, authored Charter identities. Leaders, relationships, land rulings, and politics are
-  dormant; each Charter runs the same neutral Manager policy.
-- Give units, facilities, and every located stockpile a stable owner. A facility's host and a
-  stockpile's owner remain distinct so later hosting and eviction rules do not require a rewrite.
+- Add static, authored Charter identities plus the immortal Commons system Charter that owns
+  charterless units and goods. Leaders, relationships, land rulings, and politics are dormant; named
+  Charters run the same neutral Manager policy while Commons retains charterless local heuristics.
+- Give units and facilities stable owners. Facility buffers are embedded and owned with their
+  facility; national depots embed one anonymous compartment per Charter; only decaying ground
+  stockpiles have independent identities.
+- Implement deterministic Charter/depot spawn synchronization and Charter-death cleanup: ownership
+  changes in place outside depots, while depot overflow fills Commons, then other Charters, then
+  capped Commons ground piles.
 - Load the nine MVP items, recipes, facility definitions, inventory capacity, and equipment-slot
   schema from data. Group-targeted requests remain schema-only.
-- Author the Loop 1 logistics scenario with deposits, roads, facilities, depots, workers, trucks,
-  initial stocks, and explicit expected bottlenecks.
+- Author the Loop 1 logistics scenario from region-relative generation data, resolving deposits to
+  absolute map hexes and every runtime position to an absolute world address before simulation
+  starts. Include roads, facilities, depots, workers, trucks, initial stocks, and explicit
+  bottlenecks.
 - Record item creation, consumption, transfer, and destruction so conservation can be asserted by
   item, owner, and location.
 
