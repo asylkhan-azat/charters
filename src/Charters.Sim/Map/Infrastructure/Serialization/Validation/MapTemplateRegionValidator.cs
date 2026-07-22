@@ -21,7 +21,7 @@ internal static class MapTemplateRegionValidator
             return;
         }
 
-        HashSet<string> regionIds = new(StringComparer.Ordinal);
+        HashSet<string> regionIds = new();
         HashSet<HexAddress> coordinates = [];
         for (var regionIndex = 0; regionIndex < regions.Count; regionIndex++)
         {

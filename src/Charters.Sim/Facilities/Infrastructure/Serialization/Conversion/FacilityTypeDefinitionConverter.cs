@@ -10,7 +10,7 @@ internal static class FacilityTypeDefinitionConverter
         IReadOnlyList<FacilityTypeDto> facilityTypes,
         IReadOnlyList<RecipeDefinition> recipes)
     {
-        Dictionary<string, RecipeDefinition> recipesById = new(StringComparer.Ordinal);
+        Dictionary<string, RecipeDefinition> recipesById = new();
         foreach (var recipe in recipes)
         {
             recipesById.Add(recipe.Id, recipe);

@@ -13,7 +13,7 @@ internal static class FacilityTypeDefinitionValidator
         IReadOnlyList<RecipeDto> recipes,
         ValidationCollector errors)
     {
-        Dictionary<string, RecipeDto> recipesById = new(StringComparer.Ordinal);
+        Dictionary<string, RecipeDto> recipesById = new();
         foreach (var recipe in recipes)
         {
             if (recipe.Id is not null)
@@ -22,7 +22,7 @@ internal static class FacilityTypeDefinitionValidator
             }
         }
 
-        HashSet<string> seenIds = new(StringComparer.Ordinal);
+        HashSet<string> seenIds = new();
         foreach (var facilityType in facilityTypes)
         {
             DefinitionValidationRules.ValidateIdentity(
@@ -56,7 +56,7 @@ internal static class FacilityTypeDefinitionValidator
             return;
         }
 
-        HashSet<string> seen = new(StringComparer.Ordinal);
+        HashSet<string> seen = new();
         foreach (var recipeId in facilityType.AllowedRecipes)
         {
             if (!seen.Add(recipeId))

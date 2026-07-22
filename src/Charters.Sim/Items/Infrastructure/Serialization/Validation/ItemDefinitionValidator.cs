@@ -10,7 +10,7 @@ internal static class ItemDefinitionValidator
 
     public static void Validate(IReadOnlyList<ItemDto> items, ValidationCollector errors)
     {
-        HashSet<string> seenIds = new(StringComparer.Ordinal);
+        HashSet<string> seenIds = new();
         foreach (var item in items)
         {
             DefinitionValidationRules.ValidateIdentity(
@@ -35,7 +35,7 @@ internal static class ItemDefinitionValidator
             return;
         }
 
-        HashSet<string> seen = new(StringComparer.Ordinal);
+        HashSet<string> seen = new();
         foreach (var tag in item.Tags)
         {
             DefinitionValidationRules.ValidateKebabCase(

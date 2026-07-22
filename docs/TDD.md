@@ -126,7 +126,7 @@ Each plain-state registry:
 - hides its mutable collection and objects from external consumers; and
 - updates lookup indexes as part of the same mutation that changes its storage.
 
-Registry order may be insertion or dense storage order; it is not required to be sorted by ID and is
+Registry order is an internal implementation detail; it is not required to be sorted by ID and is
 not a serialized gameplay promise. Systems iterate it directly when their operations are independent.
 Runtime-created objects still receive monotonic stable IDs for identity and external references, not
 to force a canonical processing order. If scale invalidates these choices, measure it before
@@ -135,10 +135,11 @@ replacing the registry or moving the state into ECS.
 ### Storage ownership
 
 `Stockpile` is a mutable owned object, not an entity and not a generally shared service. Stationary
-storage keeps quantities in a dense array indexed by resolved item-definition index. This provides
-stable iteration, fixed lookup cost, and no dictionary allocation during item operations. Capacity,
-insert, removal, and multi-item transaction checks are methods on the stockpile and use a complete
-precheck before mutating so operations are atomic.
+storage keeps only present goods in a collection keyed by immutable item ID. It does not depend on a
+definition registry's count or expose collection position as item identity. Iteration uses ordinal
+item-ID order when a stable order is needed. Capacity, insert, removal, and multi-item batch
+checks are methods on the stockpile and use a complete precheck before mutating so operations are
+atomic.
 
 - A facility owns exactly one stockpile.
 - A depot owns one compartment per same-nation Charter; each compartment owns one stockpile.
@@ -149,7 +150,7 @@ precheck before mutating so operations are atomic.
   slot count.
 
 An owned mutable container is never copied to imply a transfer and is never shared between hosts.
-Item movement changes quantities through domain operations and records the corresponding fact.
+Item movement changes quantities through a domain operation owned by the participating hosts.
 
 ### Shared item-container contract
 
@@ -160,6 +161,8 @@ public interface IItemContainer
 {
     int QuantityOf(ItemDefinition item);
 
+    bool Has(ItemQuantity itemQuantity);
+
     bool CanAccept(ItemQuantity itemQuantity);
 
     void Put(ItemQuantity itemQuantity);
@@ -168,21 +171,22 @@ public interface IItemContainer
 }
 ```
 
-`CanAccept` means the complete positive quantity can be accepted, not that some portion fits. A
-caller guards `Put` with `CanAccept` and guards `Take` by comparing `QuantityOf` with the requested
-quantity. Implementations still reject a violated precondition as an invariant failure rather than
+`Has` means the complete positive quantity is present, and `CanAccept` means the complete positive
+quantity can be accepted, not that some portion fits. Callers guard `Take` and `Put` with those domain
+questions. Implementations still reject a violated precondition as an invariant failure rather than
 overflowing, underflowing, or partially mutating.
 
-The contract abstracts quantity and capacity behavior only. It contains no storage identity, owner,
-position, transaction kind, or journal dependency. A transfer coordinator resolves the source and
-destination containers from their hosts, preflights both sides, performs `Take` then `Put`, and only
-after success appends the item transaction with the separate storage addresses, owners, and absolute
-positions.
+The contract abstracts quantity and capacity behavior only. It contains no identity, ownership,
+position, or journal dependency. A concrete domain operation resolves containers through their owning
+facility, depot compartment, ground stockpile, or unit, then uses the transfer coordinator to
+preflight both sides and perform `Take` followed by `Put`. The coordinator emits no fact: production,
+hauling, ownership, lifecycle, and equipment operations each emit their own facts with the aggregate
+IDs and context meaningful to that operation.
 
-`Inventory` implements `CanAccept`, `Put`, and `Take` through its slot/stack rules. Stack merging,
-compaction, and canonical slot cleanup remain private implementation details. Equipped items are
-audited under the unit's storage address but are not counted or removed through `Inventory`; a later
-explicit equip/unequip operation owns movement between carried and worn state.
+`Inventory` implements `Has`, `CanAccept`, `Put`, and `Take` through its slot/stack rules. Stack merging,
+compaction, and canonical slot cleanup remain private implementation details. Equipped items are not
+counted or removed through `Inventory`; a later explicit equip/unequip operation owns movement between
+carried and worn state.
 
 This interface guarantees one-`ItemQuantity` preflight. A multi-item recipe or later batch operation
 must preflight the entire batch against the concrete destination state before applying any mutation,
@@ -190,11 +194,11 @@ because independently acceptable item quantities may compete for the same invent
 
 ### Equipment and machine modules
 
-`Equipment` is not an `IItemContainer`. It is a fixed set of typed slots authored by the unit type.
-Every installed item occupies exactly one compatible slot at quantity one, even when the same item
-may stack while stored in an inventory or stockpile. Equipment contributes physical goods to the
-unit's `UnitStorage(UnitId)` conservation audit but never contributes inventory slots or cargo
-capacity.
+`Equipment` is not an `IItemContainer`. It is a fixed dictionary of unique typed slot IDs authored by
+the unit type. Callers address a slot by that ID; collection positions and expanded slot-count arrays
+are not part of the domain API. Every installed item occupies its compatible slot at quantity one,
+even when the same item may stack while stored in an inventory or stockpile. Equipment contributes
+physical goods to the conservation audit but never contributes inventory slots or cargo capacity.
 
 Equip and unequip are explicit coordinating operations. Equipping preflights and removes exactly one
 item from its source before installing it in one empty compatible slot. Unequipping preflights its
@@ -337,8 +341,11 @@ Optimize the code that runs often at representative scale. A normal simulation-t
 - rebuilding or sorting collections solely to canonicalize independent tick processing; and
 - exceptions for expected conditions.
 
-Prefer indexed loops, spans, Arch inline queries, dense arrays, pre-sized collections, and reused
-scratch buffers. Pass narrow context into a hot query and keep rules readable; allocation ceremony
+Use indexed loops and dense arrays where position is part of the domain, such as map topology and
+fixed ordered inventory slots. Normal domain objects use their domain keys; do not add synthetic
+indexes or registry-sized arrays merely to avoid a keyed collection. Prefer spans, Arch inline
+queries, pre-sized collections, and reused scratch buffers where profiling or representative scale
+justifies them. Pass narrow context into a hot query and keep rules readable; allocation ceremony
 must not obscure the behavior being implemented.
 
 Arch queries take two equally correct shapes here, chosen by what the state needs to be, not by

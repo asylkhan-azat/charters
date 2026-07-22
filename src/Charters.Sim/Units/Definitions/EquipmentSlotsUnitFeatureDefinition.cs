@@ -1,3 +1,3 @@
 namespace Charters.Sim.Units.Definitions;
 
-public sealed record EquipmentSlotsUnitFeatureDefinition(IReadOnlyDictionary<string, int> Slots) : UnitFeatureDefinition;
+public sealed record EquipmentSlotsUnitFeatureDefinition(IReadOnlySet<string> Slots) : UnitFeatureDefinition;

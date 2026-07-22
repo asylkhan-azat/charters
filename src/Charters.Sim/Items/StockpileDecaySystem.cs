@@ -1,7 +1,8 @@
-﻿using Arch.Buffer;
+using Arch.Buffer;
 using Arch.Core;
 using Charters.Sim.Core;
 using Charters.Sim.Items.Components;
+using LegacyStockpile = Charters.Sim.Items.Components.Stockpile;
 
 namespace Charters.Sim.Items;
 
@@ -9,10 +10,10 @@ namespace Charters.Sim.Items;
 public static class StockpileDecaySystem
 {
     // Sub-phase
-    public struct DecayStockpiles : IForEachWithEntity<Stockpile, Decaying>
+    public struct DecayStockpiles : IForEachWithEntity<LegacyStockpile, Decaying>
     {
         private static readonly QueryDescription Query = new QueryDescription()
-            .WithAll<Stockpile, Decaying>();
+            .WithAll<LegacyStockpile, Decaying>();
 
         public static void Execute(Simulation simulation)
         {
@@ -24,7 +25,7 @@ public static class StockpileDecaySystem
                 CurrentTick = simulation.Tick
             };
 
-            simulation.Entities.InlineEntityQuery<DecayStockpiles, Stockpile, Decaying>(in Query, ref state);
+            simulation.Entities.InlineEntityQuery<DecayStockpiles, LegacyStockpile, Decaying>(in Query, ref state);
         }
 
         public required CommandBuffer Commands;
@@ -32,7 +33,7 @@ public static class StockpileDecaySystem
 
         public void Update(
             Entity entity,
-            ref Stockpile stockpile,
+            ref LegacyStockpile stockpile,
             ref Decaying decaying)
         {
             if (stockpile.IsEmpty || CurrentTick >= decaying.DecayTick)

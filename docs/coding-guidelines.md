@@ -18,7 +18,8 @@ their feel; depart with reason.
   (`Navigation.CanMove`), and game-blind infrastructure (`Pathfinder` searches whatever the
   caller's cost function says).
 - **Map and definitions** — `src/Charters.Sim/Hexes/`, `Map/`, and `Core/Definitions/`: dense indexed
-  data, resolved immutable definitions, and small infrastructure whose callers supply game rules.
+  topology where position is intrinsic, domain-keyed immutable definitions, and small infrastructure
+  whose callers supply game rules.
 
 The existing facility ECS slice and synchronous events are foundation prototypes being replaced by
 [Iteration 1A](specs/iteration-1a-owned-production.md); they are not taste references for new work.
@@ -50,6 +51,16 @@ the slice is reshaped, not appended to. Systems must never become the sum of the
 - **Structs for small ECS values with real value semantics.** Use an owned class where identity,
   reference semantics, or reusable variable-size storage earns it (`NavPath`, `Inventory`). A
   struct must not conceal a shared mutable collection.
+- **Trust static contracts.** Inside typed runtime code, trust nullable analysis and established
+  construction invariants; do not add runtime null checks for non-nullable values or guards against
+  states the types cannot represent. Validate untrusted data at its loading or host boundary. When
+  control flow hides a valid contract, make it visible to the compiler and analyzers with attributes
+  such as `MemberNotNull`, `MemberNotNullWhen`, `NotNullWhen`, `DoesNotReturn`, and `Pure` instead of
+  duplicating it as defensive branching. Add a runtime guard only when failure can enter from outside
+  the static contract or must be reported as a domain error.
+- **String equality uses the default contract.** Use ordinary equality and default string-keyed
+  dictionaries and sets; do not specify a comparer for equality. Use `StringComparer.Ordinal` only
+  when an operation is explicitly sorting strings into a deterministic ordinal order.
 - **Allocation discipline in hot paths** — inline ECS queries, indexed loops, spans, and reused
   scratch — but keep mechanics subordinate to the rule being run. The TDD defines where the hot-path
   boundary ends; loading and tooling do not need simulation-loop ceremony.

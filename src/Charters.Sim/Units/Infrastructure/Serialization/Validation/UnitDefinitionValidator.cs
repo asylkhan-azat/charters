@@ -10,7 +10,7 @@ internal static class UnitDefinitionValidator
 
     public static void Validate(IReadOnlyList<UnitDto> units, ValidationCollector errors)
     {
-        HashSet<string> seenIds = new(StringComparer.Ordinal);
+        HashSet<string> seenIds = new();
         foreach (var unit in units)
         {
             DefinitionValidationRules.ValidateIdentity(
@@ -70,7 +70,8 @@ internal static class UnitDefinitionValidator
             return;
         }
 
-        foreach (var (slotId, count) in feature.Slots)
+        HashSet<string> seenSlotIds = new();
+        foreach (var slotId in feature.Slots)
         {
             DefinitionValidationRules.ValidateKebabCase(
                 FileName,
@@ -78,10 +79,10 @@ internal static class UnitDefinitionValidator
                 slotId,
                 errors);
 
-            if (count < 0)
+            if (!seenSlotIds.Add(slotId))
             {
                 errors.Add(
-                    $"{FileName}: unit '{DefinitionValidationRules.DisplayId(unit.Id)}' has a negative equipment slot count for '{slotId}'");
+                    $"{FileName}: unit '{DefinitionValidationRules.DisplayId(unit.Id)}' has duplicate equipment slot '{slotId}'");
             }
         }
     }

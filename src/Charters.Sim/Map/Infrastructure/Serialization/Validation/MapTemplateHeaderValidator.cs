@@ -57,7 +57,7 @@ internal static class MapTemplateHeaderValidator
 
     private static HashSet<string> CollectNationIds(IReadOnlyList<NationDto>? nations)
     {
-        HashSet<string> nationIds = new(StringComparer.Ordinal);
+        HashSet<string> nationIds = new();
         if (nations is null)
         {
             return nationIds;

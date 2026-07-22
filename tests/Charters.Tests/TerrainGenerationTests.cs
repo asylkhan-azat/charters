@@ -56,7 +56,7 @@ public sealed class TerrainGenerationTests
     {
         var definitions = TestData.LoadDefinitions();
         var template = TestData.LoadMap(definitions);
-        var regionsById = template.Regions.ToDictionary(static region => region.Id, StringComparer.Ordinal);
+        var regionsById = template.Regions.ToDictionary(static region => region.Id);
 
         Simulation simulation = new(new SimulationOptions(42, definitions, template));
 

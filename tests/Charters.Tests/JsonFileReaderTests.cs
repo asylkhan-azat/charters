@@ -71,7 +71,7 @@ public sealed class JsonFileReaderTests
         var exception = Assert.Throws<DefinitionValidationException>(errors.ThrowIfAny);
 
         Assert.Contains("ridge", exception.Message);
-        Assert.True(exception.Message.Contains("required", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains("required", exception.Message);
     }
 
     [JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]

@@ -8,7 +8,7 @@ internal static class MapTopologyGenerator
     public static MapTopology Generate(MapTemplate template)
     {
         var nations = BuildNations(template.Nations);
-        var nationsById = nations.ToDictionary(static nation => nation.Id, StringComparer.Ordinal);
+        var nationsById = nations.ToDictionary(static nation => nation.Id);
 
         List<HexAddress> addresses = [];
         var regions = new RegionInfo[template.Regions.Count];

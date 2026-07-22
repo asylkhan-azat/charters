@@ -10,7 +10,7 @@ internal static class TerrainDefinitionValidator
 
     public static void Validate(IReadOnlyList<TerrainDto> terrains, ValidationCollector errors)
     {
-        HashSet<string> seenIds = new(StringComparer.Ordinal);
+        HashSet<string> seenIds = new();
         for (var i = 0; i < terrains.Count; i++)
         {
             var terrain = terrains[i];

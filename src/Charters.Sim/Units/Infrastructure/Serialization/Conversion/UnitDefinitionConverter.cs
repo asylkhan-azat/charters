@@ -29,7 +29,7 @@ internal static class UnitDefinitionConverter
             {
                 InventoryUnitFeatureDto inventory => new InventoryUnitFeatureDefinition(inventory.Slots!.Value),
                 EquipmentSlotsUnitFeatureDto equipmentSlots => new EquipmentSlotsUnitFeatureDefinition(
-                    new Dictionary<string, int>(equipmentSlots.Slots!, StringComparer.Ordinal)),
+                    new HashSet<string>(equipmentSlots.Slots!)),
                 _ => throw new NotSupportedException($"Unhandled unit feature DTO type '{features[i].GetType()}'.")
             };
         }

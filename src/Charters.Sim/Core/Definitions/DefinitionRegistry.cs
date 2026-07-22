@@ -15,14 +15,14 @@ public sealed class DefinitionRegistry<TDefinition> : IReadOnlyCollection<TDefin
     {
         _kind = kind;
         _definitions = (TDefinition[])definitions.Clone();
-        Dictionary<string, TDefinition> definitionsById = new(_definitions.Length, StringComparer.Ordinal);
+        Dictionary<string, TDefinition> definitionsById = new(_definitions.Length);
 
         foreach (var definition in _definitions)
         {
             definitionsById.Add(definition.Id, definition);
         }
 
-        _definitionsById = definitionsById.ToFrozenDictionary(StringComparer.Ordinal);
+        _definitionsById = definitionsById.ToFrozenDictionary();
     }
 
     public int Count => _definitions.Length;

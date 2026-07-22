@@ -14,7 +14,7 @@ internal static class ItemDefinitionConverter
             result[i] = new ItemDefinition(
                 item.Id!,
                 item.Display!,
-                new HashSet<string>(item.Tags!, StringComparer.Ordinal),
+                new HashSet<string>(item.Tags!),
                 item.StackLimit!.Value,
                 item.StockpileLimit!.Value,
                 ConvertFeatures(item.Features!));

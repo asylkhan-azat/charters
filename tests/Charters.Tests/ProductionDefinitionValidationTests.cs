@@ -127,6 +127,29 @@ public sealed class ProductionDefinitionValidationTests
     }
 
     [Fact]
+    public void DuplicateEquipmentSlotIdsAreRejected()
+    {
+        using TestDefinitionsDirectory directory = new();
+        directory.Write(
+            "unit-types.json",
+            """
+            [
+              {
+                "id": "infantry",
+                "name": "Infantry",
+                "features": [
+                  { "type": "equipment-slots", "slots": ["main-weapon", "main-weapon"] }
+                ]
+              }
+            ]
+            """);
+
+        var exception = Assert.Throws<DefinitionValidationException>(() => DefinitionLoader.LoadFromDirectory(directory.Path));
+
+        Assert.Contains("unit 'infantry' has duplicate equipment slot 'main-weapon'", exception.Message);
+    }
+
+    [Fact]
     public void ItemFeaturePropertyFromAnotherCaseIsRejected()
     {
         using TestDefinitionsDirectory directory = new();

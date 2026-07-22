@@ -10,7 +10,7 @@ internal static class RecipeDefinitionConverter
 {
     public static RecipeDefinition[] Convert(IReadOnlyList<RecipeDto> recipes, IReadOnlyList<ItemDefinition> items)
     {
-        Dictionary<string, ItemDefinition> itemsById = new(StringComparer.Ordinal);
+        Dictionary<string, ItemDefinition> itemsById = new();
         foreach (var item in items)
         {
             itemsById.Add(item.Id, item);

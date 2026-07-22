@@ -76,7 +76,7 @@ These are review blockers, not implementation suggestions:
 | Recipe purity | Beyond definition identity, a recipe contains only inputs, outputs, and required work. Facility-to-deposit compatibility is deferred until a construction system exists. |
 | Mutation boundary | Arch, registries, and mutable map state stay inside `Charters.Sim`; hosts consume read-only projections through `Simulation.Services` and `Simulation.Map`. |
 | Ordering | Independent work iterates native storage in place. Contested outcomes use their mechanic's explicit rule, while reports and hashes canonicalize only on their cold output boundary. |
-| Conservation | Every quantity change is represented by an item transaction and is auditable by item, owner, storage address, and location. |
+| Conservation | Physical totals are auditable by item. Creation and removal are recorded by the concrete operations that cause them; movement and ownership changes conserve totals atomically. |
 
 ### A1 state and fact flow
 
@@ -148,17 +148,19 @@ scenario Charters or depots are spawned.
 - Commons owns charterless goods and is the first recipient of a dead Charter's property.
 - Commons does not count toward the MVP's 3–5 political Charters per nation.
 
-### Storage addresses
+### Hosted item state
 
-Systems, transactions, metrics, and diagnostics identify storage through a closed `StorageAddress`
-value rather than a universal stockpile ID:
+There is no universal storage or custody address. Item state is reached through the aggregate that
+owns it: a facility owns its anonymous stockpile, a depot owns Charter compartments and their
+stockpiles, a ground-stockpile object has its own stable ID and owns its stockpile, and a unit owns its
+inventory and equipment. Inventory and equipment are unit state, not globally addressable storage
+entities.
 
-| Address | Storage and ownership |
-|---|---|
-| `FacilityStorage(FacilityId)` | One anonymous stockpile embedded in the facility and owned with it |
-| `DepotStorage(DepotId, CharterId)` | One anonymous Charter compartment embedded in a national depot |
-| `UnitStorage(UnitId)` | The unit's carried inventory and equipped items, owned with the unit |
-| `GroundStorage(GroundStockpileId)` | An independently identified stockpile with explicit owner and position |
+Concrete operations resolve the typed IDs of their participating aggregates and derive ownership and
+position from those hosts. They do not accept a caller-supplied pairing of a container with claimed
+custody. If request-driven logistics later needs one durable reference spanning several deliverable
+host kinds, Iteration 1B introduces a logistics-specific endpoint containing only those host kinds;
+equipment is never such an endpoint.
 
 A facility cannot host foreign-owned goods. Shared static storage belongs in national depot
 compartments. Multiple ground stockpiles may occupy the same hex.
@@ -177,7 +179,7 @@ The definition aggregate gains the following validated records:
 | Facility type | `id`, `name`, `workerSlots`, `allowedRecipes` |
 | Unit type additions | Polymorphic `features` list |
 | Unit feature: inventory | `type: "inventory"`, `slots` |
-| Unit feature: equipment slots | `type: "equipment-slots"`, `slots` keyed by slot ID and count |
+| Unit feature: equipment slots | `type: "equipment-slots"`, `slots` as unique slot IDs |
 
 Item and unit DTO feature bases use `JsonPolymorphic` with `type` as the discriminator and one
 `JsonDerivedType` per supported feature. Discriminator values are stable kebab-case authored tokens,
@@ -227,7 +229,7 @@ features:
   "name": "Infantry",
   "features": [
     { "type": "inventory", "slots": 2 },
-    { "type": "equipment-slots", "slots": { "main-weapon": 1, "grenade": 1 } }
+    { "type": "equipment-slots", "slots": ["main-weapon", "grenade"] }
   ]
 }
 ```
@@ -264,11 +266,12 @@ slot holds one item type up to that item's `stackLimit`. Inserts fill existing p
 order, then empty slots in slot order. Removal drains matching slots in slot order. Both operations are
 atomic: if the entire requested quantity cannot be inserted or removed, state does not change.
 
-Equipped items occupy typed equipment slots rather than inventory slots and remain physical counted
-items. Every equipped item occupies exactly one compatible slot at quantity one, including grenades
-whose stored stack limit is greater than one. A1 scenarios may author items already equipped, but no
-simulation operation equips, removes, or consumes them. Those explicit operations arrive with combat;
-they never resize the inventory.
+Equipped items occupy uniquely named typed equipment slots rather than inventory slots and remain
+physical counted items. Code addresses each slot by its authored ID; the definition's `equipmentSlot`
+names that exact compatible slot. Every equipped item occupies its slot at quantity one, including
+grenades whose stored stack limit is greater than one. A1 scenarios may author items already
+equipped, but no simulation operation equips, removes, or consumes them. Those explicit operations
+arrive with combat; they never resize the inventory.
 
 | Unit type | Fixed inventory slots | Equipment slots |
 |---|---:|---|
@@ -279,10 +282,11 @@ they never resize the inventory.
 ### Stationary stockpile object
 
 Facilities, depot compartments, and ground-stockpile objects reuse one sealed, host-owned stockpile
-type. It stores quantities without carried slots in a dense array indexed by resolved item-definition
-index. Each item is independently limited by its definition's `stockpileLimit`; one item never
-consumes another item's capacity. Insert and removal operations perform a complete precheck, are
-atomic, and reject overflow, underflow, zero quantities, and negative quantities.
+type. It stores only present goods, keyed by item ID, without carried slots or a dependency on the
+definition registry's size or ordering. Each item is independently limited by its definition's
+`stockpileLimit`; one item never consumes another item's capacity. Insert and removal operations
+perform a complete precheck, are atomic, and reject overflow, underflow, zero quantities, and
+negative quantities. Stock iteration is ordinal by item ID and never emits synthetic zero entries.
 
 The object is owned and identified only through its host; it is never shared or reassigned between
 hosts. Ground storage gains identity from `GroundStockpileId`, not from the stockpile object.
@@ -296,20 +300,20 @@ uses slots or stationary per-item caps.
 
 For one `ItemQuantity`, the coordinating operation:
 
-1. verifies that the source `QuantityOf` is sufficient;
+1. asks whether the source `Has` the complete quantity;
 2. verifies that the destination `CanAccept` the entire quantity;
-3. calls `Take` on the source and `Put` on the destination; and
-4. appends the appropriate transaction using owner, `StorageAddress`, and absolute-position context
-   held outside the containers.
+3. calls `Take` on the source and `Put` on the destination.
 
-A failed preflight changes neither container and records no successful transfer. `Put` and `Take`
-remain guarded operations but must still reject misuse as an invariant failure. Inventory stack
-merging, compaction, and canonical cleanup are invisible to the coordinator.
+A failed preflight changes neither container. The generic coordinator emits no fact and knows no
+owner, position, or host identity; the concrete domain operation that resolved both containers owns
+that context and emits any fact meaningful to its behavior. `Put` and `Take` remain guarded operations
+but must still reject misuse as an invariant failure. Inventory stack merging, compaction, and
+canonical cleanup are invisible to the coordinator.
 
-`Inventory.QuantityOf` counts carried slots only. Equipped items remain physical goods audited at the
-same `UnitStorage(UnitId)` address, but cannot be taken through `Inventory`; A1 has no runtime
-equip/unequip operation. The one-item interface also does not replace whole-batch preflight: any
-multi-item operation must prove the entire mutation fits before changing either container.
+`Inventory.QuantityOf` counts carried slots only. Equipped items remain physical goods but cannot be
+taken through `Inventory`; A1 has no runtime equip/unequip operation. The one-item interface also does
+not replace whole-batch preflight: any multi-item operation must prove the entire mutation fits before
+changing either container.
 
 ### Scenario generation
 
@@ -426,9 +430,9 @@ space, and the most recent reportable status. It is state owned by the plain fac
 that facility's embedded stockpile. A worker unit carries a one-way `FacilityAssignment` by stable
 facility ID and an absolute ECS `Position`.
 
-At the start of each production tick, clear a reusable eligible-worker count indexed by facility
-registry position. Run one inline ECS query over worker units with owner, absolute position, and
-facility assignment. Resolve each assignment through the facility registry and increment its count
+At the start of each production tick, clear reusable eligible-worker counts keyed by `FacilityId`.
+Run one inline ECS query over worker units with owner, absolute position, and facility assignment.
+Resolve each assignment through the facility registry and increment its count
 only when owner and absolute address match, capped at the facility type's `workerSlots`. Addition is
 commutative, so ECS iteration order cannot affect the result and no per-facility unit query or sort is
 needed.
@@ -479,8 +483,8 @@ objects inside a step use their native in-place iteration:
    place; append ownership changes for its goods. Do not eject or empty the facility.
 4. Iterate the ground-stockpile registry and change each owned pile to Commons in place. Preserve its
    ID, absolute position, contents, and original expiry tick.
-5. Process same-nation depots in registry order. For every item in the dead Charter's compartment, in
-   dense item-definition order:
+5. Process same-nation depots in registry order. For every present item in the dead Charter's
+   compartment, in ordinal item-ID order:
    - insert as much as fits into the Commons compartment;
    - then insert as much as fits into each active, non-Common, non-dying Charter compartment in
      Charter registry order; and
@@ -497,13 +501,13 @@ changes, not physical transfers.
 
 Ground stockpiles use normal per-item stockpile caps. When an overflow contains more than one pile
 can hold, calculate the required pile count from all remaining items, allocate stable ground IDs, and
-fill each item in dense definition order across those piles in creation order. A pile may hold every
+fill each item in ordinal item-ID order across those piles in creation order. A pile may hold every
 item up to each item's independent cap.
 
 New piles are Commons-owned and expire at `currentTick + 180`. Existing piles do not renew their
 expiry when ownership changes. Removing the last item destroys an empty pile immediately. At expiry,
-append explicit `Destroyed` transactions for every remaining item in dense definition order before
-removing the object from the ground-stockpile registry.
+emit a `GroundStockpileExpired` fact containing the remaining goods before removing the object from
+the ground-stockpile registry.
 
 ### Living facility ownership change
 
@@ -515,41 +519,33 @@ the eviction bridge:
 2. preserve the former owner on those piles and assign the authored 180-tick A1 ground lifetime;
 3. clear the embedded stockpile, change the facility owner, and leave the new owner an empty embedded
    stockpile; and
-4. record same-location storage changes without recording physical transfer.
+4. emit the facility-ownership fact with the facility ID, former owner, new owner, and ejected goods.
 
 The land loop may replace the 180-tick default with its authored eviction grace duration when it
 implements revocation.
 
-## Item transactions and conservation
+## Domain facts and conservation
 
-All physical quantity or custody changes append one immutable `ItemTransaction` containing tick, kind,
-item, quantity, before/after owner, before/after `StorageAddress`, and before/after absolute location
-as applicable.
+Facts belong to the operation that happened; there is no universal item-transaction record or enum.
+Production facts identify the facility and its consumed and produced goods. Ground expiry identifies
+the ground pile and destroyed goods. Charter dissolution and facility ownership facts carry the
+aggregate IDs and ownership context meaningful to those lifecycle operations. The generic container
+transfer primitive emits nothing.
 
-| Kind | Meaning |
-|---|---|
-| `Created` | Production introduced an item into physical storage |
-| `Consumed` | A recipe or later consumer removed an item |
-| `Transferred` | The item moved to a different absolute hex without changing title by implication |
-| `OwnershipChanged` | Title changed; storage may also change at the same location |
-| `Rehosted` | Owner and absolute location stayed the same but the storage address changed |
-| `Destroyed` | Existing goods explicitly ceased to exist |
-
-Facility eviction uses `Rehosted`; Charter-death reassignment uses `OwnershipChanged`; hauling in 1B
-uses `Transferred`. A storage-address change alone never implies movement or title change.
-
-Transactions and other simulation facts append to pre-sized, reusable buffers. Appending does
+Simulation facts append to pre-sized, reusable buffers. Appending does
 not invoke synchronous subscribers. At defined post-phase boundaries, conservation, metrics, digest,
 and presentation-feed consumers process new values in place and retain derived state, not references
 into the reusable journal. Consumer aggregation must not depend on fact order. The presentation feed
 may retain occurrence order for narration, but that order is not gameplay state. Production and
 lifecycle rules never read metrics or the presentation feed back as control flow.
 
-The conservation ledger snapshots all initial facility buffers, depot compartments, carried
-inventories, equipped items, and ground piles. It applies transactions to obtain expected current
-custody. Every tenth tick, and whenever a metrics report is requested, an audit scans all physical
-storage and compares it with the ledger by item, owner, storage address, and absolute location. Any
-mismatch throws `SimulationInvariantException` identifying one concrete discrepancy.
+The conservation ledger snapshots initial physical totals by item across facility stockpiles, depot
+compartments, carried inventories, equipment, and ground piles. It applies production, consumption,
+and destruction facts to obtain expected totals. Transfers, rehosting, and ownership changes do not
+alter those totals. Every tenth tick, and whenever a metrics report is requested, an audit scans all
+physical item state and compares actual totals by item with the ledger. Any mismatch throws
+`SimulationInvariantException` identifying one concrete discrepancy. Ownership, location, and host
+invariants remain the responsibility of the concrete operation and aggregate that owns them.
 
 ## Diagnostics and public surfaces
 
@@ -578,8 +574,8 @@ The JSON object contains:
 - one row per unit ordered by unit ID: owner, absolute location, inventory, equipment, and slot use;
 - one row per ground pile ordered by ground ID: owner, absolute location, expiry tick, current items,
   and per-item capacity; and
-- conservation rows ordered by item, owner, storage address, and location: initial, created, consumed,
-  transferred, ownership changes, rehosting, destroyed, expected, actual, and discrepancy.
+- conservation rows ordered by item: initial, produced, consumed, destroyed, expected, actual, and
+  discrepancy.
 
 Extend the digest with ordered Commons and named Charter state, roads, absolute deposits, facilities,
 embedded stock, depots and compartments, recipe progress, assignments, equipment, unit inventories,
@@ -665,27 +661,24 @@ build on it.
 **Gate:** stable-ID lookup and direct registry iteration tests pass; copied projections cannot mutate
 authoritative state; Godot and headless no longer use `Arch.Core` or `Simulation.Entities`.
 
-### Package 3 — Storage, inventory, and transaction vocabulary
+### Package 3 — Storage, inventory, and transfer behavior
 
 **Outcome:** every A1 storage host has bounded, atomic item behavior before production or lifecycle
 code moves goods.
 
-- Implement the closed storage-address variants from [Storage addresses](#storage-addresses).
-- Replace dictionary-backed stationary storage with dense, item-indexed, host-owned stockpiles using
-  per-item caps and all-or-nothing multi-item operations.
-- Implement the shared `IItemContainer` contract on `Stockpile` and `Inventory`, keeping ownership,
-  addresses, transaction meaning, and journal access in the coordinating operation.
+- Replace the prototype storage with domain-keyed, host-owned stockpiles containing only present
+  goods, using per-item caps and all-or-nothing multi-item operations.
+- Implement the shared `IItemContainer` contract on `Stockpile` and `Inventory`. The generic transfer
+  coordinator owns only atomic quantity movement; host resolution, ownership, position, and facts stay
+  with concrete domain operations.
 - Add reusable unit carried `Inventory` and `Equipment` state with ordered homogeneous inventory
-  slots and typed equipment slots. Both have unit-type-authored fixed sizes, installation accepts
-  exactly one compatible item per equipment slot, and neither object is resized during the unit's
-  lifetime. Allocate both at load/spawn and reuse during ticks.
-- Add the immutable item-transaction vocabulary and append surface, without allowing a stockpile to
-  invent transfer, ownership, or destruction meaning on its own. The coordinating operation records
-  that meaning.
+  slots and unique domain-keyed equipment slots. Both have unit-type-authored fixed sizes;
+  installation names the target slot and accepts exactly one compatible item, and neither object is
+  resized during the unit's lifetime. Allocate both at load/spawn and reuse during ticks.
 
-**Gate:** focused tests prove inventory slot ordering, fixed capacity, one-item equipment
+**Gate:** focused tests prove inventory slot ordering, fixed capacity, domain-keyed one-item equipment
 compatibility, stationary caps, atomic failure, generic transfer between both container kinds,
-storage-address identity, and direct dense item iteration without routine tick allocations.
+and present-item iteration in ordinal item-ID order.
 
 ### Package 4 — Scenario loading and absolute world state
 
@@ -734,8 +727,8 @@ duplicate, missing, foreign-nation, or owner-bearing depot state fails explicitl
 - Implement batch input consumption, linear worker contribution, same-tick completion, retained
   blocked output, between-batch recipe switching, and exactly one status classification per facility
   per production tick.
-- Append item and production facts through the journal; do not invoke diagnostic consumers from the
-  facility transition.
+- Append production facts carrying the facility ID plus consumed and produced goods; do not invoke
+  diagnostic consumers from the facility transition.
 
 **Gate:** production tests cover every staffing and state transition, every shipped recipe, expected
 facts independent of their append order, and the absence of facility or stationary-stock ECS
@@ -747,7 +740,7 @@ components.
 overflow where required.
 
 - Implement ground-stockpile creation, stable identity allocation, capped multi-pile splitting,
-  immediate empty removal, and expiry with explicit destruction transactions.
+  immediate empty removal, and expiry with a concrete fact carrying the ground ID and destroyed goods.
 - Implement living facility ownership changes through the eviction bridge, preserving the former
   owner on ejected ground goods and giving the new owner an empty embedded stockpile.
 - Implement the full Charter-death sequence in [Charter death](#charter-death): in-place Commons
@@ -758,23 +751,24 @@ overflow where required.
 
 **Gate:** lifecycle tests force recipient capacity limits and multiple overflow piles, verify the
 ordered lifecycle steps and registry-order redistribution, and reconcile quantities exactly without
-requiring an order for independent transactions.
+requiring an order for independent facts.
 
 ### Package 8 — Conservation and derived diagnostics
 
 **Outcome:** facts become order-independent diagnostics without feeding back into gameplay.
 
-- Snapshot initial custody across every storage host and apply journaled item transactions to the
-  expected ledger state.
-- Audit actual storage every ten ticks and at every report boundary, reporting the first discrepancy
-  encountered with its item, owner, storage, and location context.
+- Snapshot initial physical totals by item and apply concrete production, consumption, and destruction
+  facts to the expected ledger state.
+- Audit actual item totals every ten ticks and at every report boundary, reporting the first
+  discrepancy by item.
 - Consume production and lifecycle facts after their producing phase to maintain facility status
-  totals, throughput, transaction counts, and bounded presentation history.
+  totals, throughput, lifecycle counts, and bounded presentation history.
 - Keep consumers cursor-based over reusable journal buffers and retain derived values rather than
   references to journal storage.
 
-**Gate:** all transaction kinds reconcile regardless of fact order; an injected untracked mutation
-fails at tick 10 and at an earlier report boundary; consumers cannot run reentrantly.
+**Gate:** production, consumption, and destruction facts reconcile regardless of fact order; an
+injected untracked mutation fails at tick 10 and at an earlier report boundary; consumers cannot run
+reentrantly.
 
 ### Package 9 — Headless reporting and complete state digest
 
@@ -850,11 +844,11 @@ or focused lifecycle test, and no deferred 1B behavior was introduced to make A1
 ### Storage and production
 
 - Verify ordered inventory packing and draining, fixed inventory capacity, exactly-one equipment
-  quantities, slot compatibility, stationary dense item indexing, per-item caps, atomic failure, and
-  inclusion of equipment in conservation.
+  quantities, slot-ID compatibility, domain-keyed stationary storage, per-item caps, atomic failure,
+  and inclusion of equipment in conservation.
 - Verify the same transfer coordinator handles stockpile-to-stockpile, stockpile-to-inventory,
   inventory-to-stockpile, and inventory-to-inventory movement; insufficient source or destination
-  capacity leaves both sides and the transaction journal unchanged.
+  capacity leaves both sides unchanged.
 - Verify equipped goods contribute to conservation but not `Inventory.QuantityOf` and cannot be
   transferred without a future explicit unequip operation.
 - Verify that a facility's anonymous embedded stock follows its owner; depot compartments remain
@@ -893,7 +887,8 @@ or focused lifecycle test, and no deferred 1B behavior was introduced to make A1
 
 ### Conservation, metrics, and reproducibility
 
-- Reconcile creation, consumption, physical transfer, ownership change, rehosting, and destruction.
+- Reconcile initial, produced, consumed, and destroyed quantities into expected physical totals by
+  item; verify transfer, ownership change, and rehosting preserve those totals.
 - Inject an untracked mutation and verify detection at tick 10 and at an earlier explicit report
   boundary.
 - Run the A1 scenario for 120 ticks and assert that all recipes complete, the sulfur branch trails the

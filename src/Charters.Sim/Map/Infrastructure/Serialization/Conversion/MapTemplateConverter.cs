@@ -25,7 +25,6 @@ internal static class MapTemplateConverter
             new HexAddress(region.GridCoordinate!.Q!.Value, region.GridCoordinate.R!.Value),
             region.TerrainWeights!.ToFrozenDictionary(
                 static pair => pair.Key,
-                static pair => pair.Value!.Value,
-                StringComparer.Ordinal));
+                static pair => pair.Value!.Value));
     }
 }

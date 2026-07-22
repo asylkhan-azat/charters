@@ -14,7 +14,7 @@ internal static class RecipeDefinitionValidator
         IReadOnlyList<ItemDto> items,
         ValidationCollector errors)
     {
-        HashSet<string> itemIds = new(StringComparer.Ordinal);
+        HashSet<string> itemIds = new();
         foreach (var item in items)
         {
             if (item.Id is not null)
@@ -23,7 +23,7 @@ internal static class RecipeDefinitionValidator
             }
         }
 
-        HashSet<string> seenIds = new(StringComparer.Ordinal);
+        HashSet<string> seenIds = new();
         foreach (var recipe in recipes)
         {
             DefinitionValidationRules.ValidateKebabCase(FileName, "recipe id", recipe.Id, errors);

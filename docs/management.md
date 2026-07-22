@@ -38,8 +38,7 @@ Iteration 1A work packages complete so far:
 - **Package 2 — Runtime ownership and host boundary:** typed stable IDs (`UnitId`, `CharterId`,
   `FacilityId`, `DepotId`, `GroundStockpileId`, each `IComparable<TSelf>` over their wrapped `long`);
   a generic `Registry<TId, TItem>` (`Charters.Sim.Core`) backed by one `SortedDictionary<TId, TItem>`
-  — typed-ID lookup, `Add`/`Remove` (removing one item cannot disturb any other item's stored
-  position, unlike a dense-array-plus-index design), and ascending-ID iteration; it does not generate
+  — typed-ID lookup, `Add`/`Remove`, and ascending-ID iteration; it does not generate
   IDs itself; that stays with whatever spawner constructs the item, matching `UnitFactory`'s existing
   `_idCounter`. The four Charter/Facility/Depot/GroundStockpile registries are grouped under
   `Simulation.Registries` (`SimulationRegistries`), currently holding only identity-only placeholder
@@ -65,7 +64,7 @@ Iteration 1A work packages complete so far:
 - Continue [Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md) by first
   reconciling Package 1 definitions, data, and tests with the fixed-inventory equipment decision:
   remove field packs and `slot-expansion`, make rifles and grenades equippable, and author infantry
-  `main-weapon` and `grenade` slots. Then close **Package 3 — Storage, inventory, and transaction
-  vocabulary** with closed `StorageAddress` variants, dense item-indexed `Stockpile`, the shared
-  `IItemContainer` contract, fixed-capacity `Inventory`, `Equipment` installation restricted to one
-  compatible item per slot, and the item-transaction journal vocabulary.
+  `main-weapon` and `grenade` slots. Then close **Package 3 — Storage, inventory, and transfer
+  behavior** with item-ID-keyed `Stockpile`, the shared `IItemContainer` contract, fixed-capacity
+  `Inventory`, uniquely named `Equipment` slots, and atomic container transfer without universal
+  custody addresses or facts.

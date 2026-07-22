@@ -20,7 +20,7 @@ internal sealed class TestDefinitionsDirectory : IDisposable
                 "name": "Infantry",
                 "features": [
                   { "type": "inventory", "slots": 2 },
-                  { "type": "equipment-slots", "slots": { "back": 1 } }
+                  { "type": "equipment-slots", "slots": ["back"] }
                 ]
               }
             ]
