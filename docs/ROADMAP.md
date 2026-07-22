@@ -48,6 +48,8 @@ deadlocking, oscillating, or hiding the cause of shortages?
 
 ### Iteration 1A — Owned production
 
+*Implementation specification: [Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md).*
+
 - Add static, pre-authored Charters as the durable owner identity used by units, facilities, and
   stockpiles. Politics and player actions remain dormant.
 - Implement the MVP item, recipe, facility, worker-staffing, inventory, and equipment-slot schemas
@@ -226,7 +228,8 @@ changed without code edits?
 
 ### Iteration 6B — Scale and balance
 
-- Resolve the MVP map-size ambiguity, then tune the authored campaign at the chosen scale.
+- Reconcile the region radius and total campaign size with the target of roughly 630 hexes per
+  nation, then tune the authored campaign at the chosen scale.
 - Add batch seed runs and export a compact tuning report: production utilization, request latency and
   fill rate, convoy distance/loss, shortage duration, front movement, casualties, morale breaks,
   Charter loyalty, Influence flow, Will flow, and ending cause.
@@ -257,10 +260,9 @@ record the decision there rather than here.
 
 | Checkpoint | Needed by |
 |---|---|
-| Whether “~630 hexes each” means per nation or per region, and whether the current radius-6 template is intentional | Loop 1 scenario sizing; final lock in Loop 6 |
-| The distinct combat/inventory roles of grenades versus generic ammunition | Loop 1 schema; final behavior in Loop 3 |
 | Simultaneous two-phase versus sequential volley application | Loop 3 |
 | Initial values for stacking, movement, grant size, manpower, and eviction grace | First owning loop; final lock in Loop 6 |
+| Final region radius and campaign total around the resolved target of ~630 hexes per nation | Loop 6 |
 
 ## Scope gate
 

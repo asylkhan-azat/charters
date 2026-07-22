@@ -20,5 +20,5 @@ the [architecture](design/charter-ai-architecture.md), and
 
 ## Next
 
-- Resolve the nine-item schema questions needed by the production slice.
-- Build Iteration 1A: owned production and its tuning metrics.
+- Implement [Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md) and its tuning
+  metrics.

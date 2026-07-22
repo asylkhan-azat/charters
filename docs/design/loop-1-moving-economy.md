@@ -17,6 +17,8 @@ the pain map, event feed, and decision traces explain.
 
 ### Iteration 1A — owned production
 
+*Implementation specification: [Iteration 1A — Owned Production](../specs/iteration-1a-owned-production.md).*
+
 - Add static, authored Charter identities. Leaders, relationships, land rulings, and politics are
   dormant; each Charter runs the same neutral Manager policy.
 - Give units, facilities, and every located stockpile a stable owner. A facility's host and a
