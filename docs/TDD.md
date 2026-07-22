@@ -18,11 +18,11 @@ or mutates simulation state directly.
 | Project | Role |
 |---|---|
 | `src/Charters.Sim` | Authoritative `net8.0` simulation library with no Godot references. Arch 2.1 is an internal implementation detail for units. |
-| `src/Charters.Headless` | CLI host for scenarios, deterministic advancement, metrics, and state digests. |
+| `src/Charters.Headless` | CLI host for scenarios, rapid advancement, metrics, and state digests. |
 | `src/Charters.Game` | Godot viewer and input host. It reads simulation projections and submits commands through the public simulation boundary. |
-| `tests/Charters.Tests` | Unit, integration, determinism, and architecture tests over the simulation. |
+| `tests/Charters.Tests` | Unit, integration, world-generation reproducibility, and architecture tests over the simulation. |
 | `data/` | Authored definitions, map templates, scenarios, and tuning values. |
-| `scripts/check.ps1` | Repository build, tests, and repeated-seed determinism smoke. |
+| `scripts/check.ps1` | Repository build, tests, world-generation reproducibility, and headless smoke. |
 
 Namespaces are domain slices such as `Movement`, `Facilities`, `Items`, `Units`, `Map`, and `AI`.
 Each slice owns its definitions, runtime state, systems, facts, and serialization conversion.
@@ -53,7 +53,7 @@ rules never read presentation state, metrics, or Godot objects back into decisio
 - immutable definition registries;
 - typed registries for Charters, facilities, depots, and identified ground stockpiles;
 - plain domain state for requests, operations, reservations, relationships, and decision history;
-- deterministic random streams;
+- seeded simulation-owned random streams;
 - the ordered phase schedule; and
 - buffered facts, conservation state, metrics, and read-only projections.
 
@@ -121,13 +121,15 @@ Each plain-state registry:
 
 - exclusively owns its objects and their add/remove lifecycle;
 - provides typed-ID lookup;
-- iterates in stable ID order without sorting each tick;
+- exposes one authoritative in-place iteration order;
 - hides its mutable collection and objects from external consumers; and
-- updates lookup indexes as part of the same mutation that changes ordered storage.
+- updates lookup indexes as part of the same mutation that changes its storage.
 
-Low object counts make ordered insertion and compaction acceptable. Runtime-created objects receive
-monotonic stable IDs so they append in deterministic order. If scale invalidates these choices,
-measure it before replacing the registry or moving the state into ECS.
+Registry order may be insertion or dense storage order; it is not required to be sorted by ID and is
+not a serialized gameplay promise. Systems iterate it directly when their operations are independent.
+Runtime-created objects still receive monotonic stable IDs for identity and external references, not
+to force a canonical processing order. If scale invalidates these choices, measure it before
+replacing the registry or moving the state into ECS.
 
 ### Storage ownership
 
@@ -196,12 +198,31 @@ location, resolves it once, and constructs runtime state with the absolute addre
 component, domain object, command, fact, or save record depends on a region-relative offset unless
 the offset is explicitly presentation-only data.
 
+### Definition features
+
+Definition JSON keeps universal data as ordinary fields and represents optional, composable
+capabilities as a polymorphic `features` list using `System.Text.Json`'s `JsonPolymorphic` and
+`JsonDerivedType` support. Item stack and stockpile limits, for example, are universal item fields;
+being equippable or expanding carried slots are features.
+
+Authored discriminator values are stable kebab-case data tokens such as `equippable` and
+`slot-expansion`, not serialized C# type names. Unknown discriminators, properties belonging to a
+different feature case, duplicate single-instance features, and invalid feature combinations are
+aggregated validation errors. Feature order has no gameplay meaning. A feature that intentionally
+permits multiple instances must say so in its owning definition contract; otherwise its type may
+appear at most once.
+
+Polymorphism is an authoring and immutable-definition concern, not a requirement for hot runtime
+dispatch. Loading converts DTO features to resolved definition features. Unit spawning and other
+boundaries materialize frequently used capabilities into components or owned runtime state once,
+rather than scanning a feature list per entity per tick.
+
 Serialization follows a DTO → validate → convert pipeline. DTOs may contain nullable values and
 authored strings; runtime objects may assume validated, resolved data. Loaders aggregate independent
 authoring errors into one failure. Runtime saves serialize stable domain state through explicit
 mappers and never serialize Arch chunks, entity handles, delegates, or object graphs directly.
 
-## 6. Tick execution and determinism
+## 6. Tick execution, randomness, and reproducibility
 
 Simulation time is an integer tick. `Advance` runs on one thread and executes an explicit ordered
 phase table. Each phase declares its cadence; systems do not advance the clock themselves. The
@@ -211,27 +232,32 @@ Within a phase:
 
 1. read the state established by earlier phases;
 2. gather order-independent aggregates or explicit intentions;
-3. resolve conflicts in stable domain order; and
+3. resolve genuine contention with the owning mechanic's explicit priority and tie rule; and
 4. apply mutations and structural changes at a defined boundary.
 
 Do not structurally mutate the Arch world while iterating the affected query. Queue creates,
 component-set changes that alter archetypes, and destruction in reusable command buffers, then apply
 them after the query. The same rule applies to registry mutation during registry iteration.
 
-Arch chunk or entity iteration order is never an observable gameplay tiebreaker. Direct ECS
-aggregation is valid when the operation is commutative, such as counting eligible workers. When
-priority or random consumption can change an outcome, collect candidates into reused scratch,
-resolve by the documented score, and use stable IDs only for exact ties. Cold, rare lifecycle paths
-may sort reused scratch by stable ID; ordinary per-tick systems maintain ordered data instead of
-sorting every tick.
+Independent updates and commutative aggregation iterate their native ECS or registry storage in
+place. Do not gather or sort them merely to canonicalize execution. When several actors contend for
+limited state, iteration accident is not a sufficient game rule: the owning mechanic defines a score,
+priority, reservation rule, random tie, or stable-ID tie as appropriate. Implement the cheapest clear
+resolution for that mechanic; a full sort is not required when a single-pass selection suffices.
 
-All randomness comes from the simulation's named deterministic streams. Do not use `System.Random`,
-wall-clock time, process-dependent hashes, thread scheduling, unordered collection iteration, or host
-frame timing as simulation input. A save includes the state of every random stream.
+World generation is reproducible for the same seed, definitions, and map template. Runtime randomness
+comes from simulation-owned seeded streams and never from wall-clock time or host frame timing. Saves
+include stream state so continuing one save is coherent, but the simulation does not promise
+byte-identical replay for the same initial seed across storage-layout, iteration-order, runtime, or
+implementation changes.
 
 The simulation remains single-threaded until profiling demonstrates a meaningful parallel workload
-and a proposed deterministic merge rule. Do not introduce `Task`, PLINQ, parallel ECS iteration, or
+with a clear ownership and merge design. Do not introduce `Task`, PLINQ, parallel ECS iteration, or
 locks speculatively.
+
+Diagnostics have a different requirement from execution. A report or digest canonicalizes its copied
+read projections on that cold boundary so output is stable for the same captured state. Canonical
+serialization does not require the path that produced the state to have used canonical iteration.
 
 ## 7. Facts, diagnostics, and presentation
 
@@ -242,7 +268,7 @@ fact never invokes arbitrary subscriber code inside the producing system.
 At defined post-phase boundaries, internal consumers advance through the journal to update:
 
 - the item-conservation ledger;
-- deterministic metrics and state digests;
+- canonical metrics and state digests for the captured state;
 - bounded developer decision history; and
 - the presentation event feed.
 
@@ -282,7 +308,7 @@ Optimize the code that runs often at representative scale. A normal simulation-t
 - LINQ and iterator state machines;
 - delegate-based ECS queries and capturing lambdas;
 - reflection and runtime string resolution;
-- rebuilding or sorting collections whose stable order can be maintained; and
+- rebuilding or sorting collections solely to canonicalize independent tick processing; and
 - exceptions for expected conditions.
 
 Prefer indexed loops, spans, Arch inline queries, dense arrays, pre-sized collections, and reused
@@ -307,12 +333,14 @@ Test at the lowest boundary that proves the rule:
 - cross-storage and lifecycle behavior receives simulation integration scenarios;
 - loaders receive aggregated validation and exact conversion tests;
 - public read projections and commands receive host-boundary tests; and
-- complete scenarios receive repeated-seed digest and metrics comparisons.
+- complete scenarios receive invariant, outcome, conservation, and metrics assertions.
 
-Determinism tests compare complete observable state, not only one subsystem's output. Tests that
-inject an impossible mutation must prove the next owning audit detects it. Performance checks use a
-representative scenario or a focused allocation assertion around an established hot path; they do
-not impose zero-allocation requirements on loading or tooling.
+World-generation tests compare complete generated state for equal seeds and prove meaningful
+variation for different seeds. Runtime scenario tests do not require byte-identical repeated runs;
+they assert owned invariants and expected outcomes. Tests that inject an impossible mutation must
+prove the next owning audit detects it. Performance checks use a representative scenario or a
+focused allocation assertion around an established hot path; they do not impose zero-allocation
+requirements on loading or tooling.
 
 Project-reference and API checks protect the architecture: the sim cannot reference Godot, hosts
 cannot receive mutable Arch or registry state, and authored DTO types do not become runtime state.
@@ -320,11 +348,13 @@ cannot receive mutable Arch or registry state, and authored DTO types do not bec
 ## A1 migration note
 
 The current foundation prototype represents facilities and stockpiles as ECS components, exposes
-`Simulation.Entities`, and raises synchronous callbacks through `SimulationEvents`. Those structures
-predate this boundary and are not exemplars for new work.
+`Simulation.Entities`, raises synchronous callbacks through `SimulationEvents`, and treats repeated
+runtime state digests as a determinism smoke. Those structures and the broad replay guarantee predate
+this boundary and are not exemplars for new work.
 
 [Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md) performs the migration while
 building the production slice: units remain in Arch; facilities, Charters, depots, and ground
 stockpiles move to registries; hosted storage becomes explicitly owned; synchronous callbacks become
-the buffered fact journal; and Godot/headless move to the read-only façade. Remove this migration
-note once those approved changes are implemented.
+the buffered fact journal; Godot/headless move to the read-only façade; and automated checks separate
+reproducible world generation from canonical same-state serialization. Remove this migration note
+once those approved changes are implemented.

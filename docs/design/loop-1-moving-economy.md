@@ -25,7 +25,7 @@ the pain map, event feed, and decision traces explain.
 - Give units and facilities stable owners. Facility buffers are embedded and owned with their
   facility; national depots embed one anonymous compartment per Charter; only decaying ground
   stockpiles have independent identities.
-- Implement deterministic Charter/depot spawn synchronization and Charter-death cleanup: ownership
+- Implement explicit Charter/depot spawn synchronization and Charter-death cleanup: ownership
   changes in place outside depots, while depot overflow fills Commons, then other Charters, then
   capped Commons ground piles.
 - Load the nine MVP items, recipes, facility definitions, inventory capacity, and equipment-slot
@@ -104,7 +104,7 @@ The allocator never awards more title or carriage quantity than remains unalloca
 
 ## Allocation
 
-Allocation is deterministic and two-phase:
+Allocation is two-phase and resolves genuine contention explicitly:
 
 1. Eligible actors evaluate the same start-of-phase snapshot and emit title or carriage intentions.
 2. The board ranks explainable scores, awards portions in order, creates hard reservations, and uses
@@ -195,7 +195,8 @@ stockpile amount or unpublished internal plan merely because the developer trace
    attributed commitment failure; ordinary higher scores cannot preempt.
 8. **Progress lease:** forward physical progress renews; a stuck allocation expires and releases its
    portion.
-9. **Deterministic collision:** identical state and seed produce the same awards and stable tie-breaks.
+9. **Contested allocation:** identical intentions use the documented score and stable-ID exact tie
+   rule rather than incidental iteration order.
 10. **Pain-map fidelity:** internal needs show severity and age only; public requests show exact public
     request data.
 11. **Disruption set:** missing input, insufficient haulers, distant stock, blocked routes, and excess
@@ -206,5 +207,5 @@ stockpile amount or unpublished internal plan merely because the developer trace
 ## Exit gate
 
 The healthy scenario reaches stable throughput; disruptions fail in distinct, diagnosable ways;
-same-seed runs make the same decisions; requests do not oscillate; and goods are never created,
-duplicated, silently reassigned, or promised twice.
+contested allocations obey their scoring and tie rules; requests do not oscillate; and goods are
+never created, duplicated, silently reassigned, or promised twice.

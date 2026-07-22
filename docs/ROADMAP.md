@@ -19,8 +19,8 @@ a war through land and relationships, then understand why the result followed.
   subsystem.
 - Deliver each loop in iterations of one or two systems. Keep each iteration reviewable on its own.
 - Put every balance value in authored data from its first playable use.
-- Add deterministic scenarios and metrics with each system. Tuning support is part of the system,
-  not a final polish pass.
+- Add seeded scenarios, world-generation reproducibility, and metrics with each system. Tuning
+  support is part of the system, not a final polish pass.
 - Add the first visible diagnostic with the behavior it explains. Attribution cannot wait until the
   end of the MVP.
 - Preserve the pure-sim/view boundary in [TDD.md](TDD.md). The view reads state and submits council
@@ -32,7 +32,7 @@ a war through land and relationships, then understand why the result followed.
 
 ## Foundation — present
 
-The repository already has the implementation substrate: deterministic simulation ticks and random
+The repository already has the implementation substrate: fixed simulation ticks, seeded random
 streams, data-loaded definitions and map templates, two-level generated hex maps, pathfinding,
 primitive movement and production, a headless digest runner, a Godot map/unit viewer, and automated
 checks. These are foundations, not a playable loop.
@@ -55,7 +55,7 @@ deadlocking, oscillating, or hiding the cause of shortages?
 - Implement the MVP item, recipe, facility, worker-staffing, inventory, and equipment-slot schemas
   from [GDD §14](GDD.md#in-mvp).
 - Add national depots with one anonymous compartment per Charter, identified decaying ground
-  stockpiles, and deterministic Charter spawn/death storage lifecycle behavior.
+  stockpiles, and explicit Charter spawn/death storage lifecycle behavior.
 - Place authored deposits, roads, facilities, depots, workers, trucks, and initial stocks in a small
   logistics test scenario.
 - Enforce item conservation and expose production, consumption, idle time, and stock by location in
@@ -66,7 +66,7 @@ deadlocking, oscillating, or hiding the cause of shortages?
 - Implement the single request record with demand, request-to-own, and transfer modes, including
   split title/carriage allocations, hard reservations, progress leases, and attributed failures.
 - Implement truck cargo, pickup, hand-over, delivery, route choice, road/off-road cooldowns, and
-  deterministic two-phase request allocation by autonomous logists.
+  two-phase request allocation with explicit scoring and tie rules for autonomous logists.
 - Add need age and severity plus request fulfillment state to the view, then add the first pain-map
   overlay and convoy events to the live feed.
 - Add seeded disruption scenarios: missing input, insufficient haulers, distant stock, blocked route,
@@ -79,8 +79,8 @@ remote demand. Removing one link produces a shortage that is obvious on the map 
 allocation weights, progress-lease duration, re-planning cadence, and starvation thresholds.
 
 **Exit gate:** A healthy scenario reaches stable throughput; each disruption fails in a distinct,
-diagnosable way; repeated same-seed runs make the same decisions; goods and hauling capacity are
-never duplicated, promised twice, or silently reassigned.
+diagnosable way; contested allocations follow their documented resolution rules; goods and hauling
+capacity are never duplicated, promised twice, or silently reassigned.
 
 ## Loop 2 — Land is command
 
@@ -252,7 +252,8 @@ and scenario setup.
 - Healthy logistics, hostile relationships, coercive rule, and poor supply each produce distinct and
   recoverable campaign states.
 - Both nations obey the same item, movement, and combat rules.
-- A complete campaign is stable, performant, deterministic for a fixed seed, and tunable from data.
+- A complete campaign is stable, performant, generated reproducibly from a seed, and tunable from
+  data.
 - External playtests find the observer phase worth watching across several consecutive councils.
 
 ## Design checkpoints

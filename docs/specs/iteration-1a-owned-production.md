@@ -18,9 +18,10 @@ The iteration is accepted when the dedicated scenario:
   recipes, absolute map deposits, roads, facilities, national depots, assigned workers, bundled
   truck-logists, equipment, and initial goods from authored generation data;
 - runs every recipe and attributes every non-producing tick to staffing, inputs, or output capacity;
-- emits a deterministic headless JSON report for throughput, idle time, storage, and conservation;
+- emits a canonically ordered headless JSON report for throughput, idle time, storage, and
+  conservation;
 - detects an item-ledger mismatch at the next ten-tick audit or report boundary;
-- unit-tests deterministic Charter/depot spawn synchronization, Charter death redistribution,
+- unit-tests Charter/depot spawn synchronization, Charter death redistribution,
   overflow ground-pile creation, and ground decay; and
 - opens in Godot with authored roads, facilities, depots, units, and ownership visible.
 
@@ -44,8 +45,8 @@ be reserved in 1B.
 This document is the implementation handoff for A1. A fresh-context implementer should work in this
 order:
 
-1. Read the [technical architecture](../TDD.md), especially the ECS admission, ownership,
-   determinism, diagnostics, and public-boundary sections.
+1. Read the [technical architecture](../TDD.md), especially the ECS admission, ownership, runtime
+   ordering/reproducibility, diagnostics, and public-boundary sections.
 2. Read this document's domain sections for the work package being implemented; do not infer behavior
    from the existing facility prototype when this specification replaces it.
 3. Implement the [work packages](#implementation-work-packages) in dependency order and land the
@@ -72,7 +73,7 @@ These are review blockers, not implementation suggestions:
 | Depot role | A depot is ownerless national infrastructure, never a facility or Charter property. Its compartments are Charter-owned. |
 | Recipe purity | Beyond definition identity, a recipe contains only inputs, outputs, and required work. Deposit compatibility belongs to the facility type. |
 | Mutation boundary | Arch, registries, and mutable map state stay inside `Charters.Sim`; hosts consume `Simulation.Read`. |
-| Ordering | Observable choices, redistribution, facts, reports, and hashes use documented stable ordering, never collection or ECS iteration accident. |
+| Ordering | Independent work iterates native storage in place. Contested outcomes use their mechanic's explicit rule, while reports and hashes canonicalize only on their cold output boundary. |
 | Conservation | Every quantity change is represented by an item transaction and is auditable by item, owner, storage address, and location. |
 
 ### A1 state and fact flow
@@ -83,7 +84,8 @@ authored definitions + map + scenario
     → absolute map data + registry objects + unit ECS state
     → ordered simulation phases
         → one-pass unit aggregates where order is irrelevant
-        → stable-ID domain-object transitions where order is observable
+        → in-place domain-object transitions
+        → explicit resolution only where actors contend for limited state
     → buffered immutable facts
     → conservation + metrics + presentation history
     → Simulation.Read projections
@@ -113,10 +115,10 @@ The unit slice maintains the internal `UnitId` → Arch entity index used to res
 neither that index nor the Arch world leaves the simulation.
 
 Charters, facilities, depots, and ground stockpiles are sealed domain objects owned by typed
-registries. Each registry provides typed-ID lookup and stable ID-ordered iteration without sorting
-on an ordinary tick. Facilities own their production state and embedded stockpile; depots own their
-Charter compartments; ground-stockpile objects own their contents and decay state. Cross-references
-between these objects and units use stable IDs only.
+registries. Each registry provides typed-ID lookup and one authoritative in-place iteration order;
+that order need not be sorted by ID. Facilities own their production state and embedded stockpile;
+depots own their Charter compartments; ground-stockpile objects own their contents and decay state.
+Cross-references between these objects and units use stable IDs only.
 
 ### Generation locations versus runtime positions
 
@@ -168,11 +170,56 @@ The definition aggregate gains the following validated records:
 | Definition | Required fields |
 |---|---|
 | Item group | `id`, `name` |
-| Item | `id`, `name`, `requestGroups`, `slotCapacity`, `stockpileCapacity`, optional `equipment` |
-| Equipment feature | `wearSlot`, `additionalInventorySlots` |
+| Item | `id`, `display`, `requestGroups`, `stackLimit`, `stockpileLimit`, `features` |
+| Item feature: equippable | `type: "equippable"`, `equipmentSlot` |
+| Item feature: slot expansion | `type: "slot-expansion"`, `additionalSlots` |
 | Recipe | `id`, `inputs`, `outputs`, `workRequired` |
 | Facility type | `id`, `name`, `workerSlots`, `allowedRecipes`, `requiresMatchingDeposit` |
-| Unit type additions | `inventorySlots`, `wearSlots` keyed by slot ID and count |
+| Unit type additions | Polymorphic `features` list |
+| Unit feature: inventory | `type: "inventory"`, `slots` |
+| Unit feature: equipment slots | `type: "equipment-slots"`, `slots` keyed by slot ID and count |
+
+Item and unit DTO feature bases use `JsonPolymorphic` with `type` as the discriminator and one
+`JsonDerivedType` per supported feature. Discriminator values are stable kebab-case authored tokens,
+not C# type names. Feature order has no meaning. Unknown types, properties belonging to another
+feature case, and duplicate features of the same type are validation errors. A type may repeat only
+when its contract explicitly permits multiples; no A1 feature does.
+
+Universal properties remain flat. Every item has stack and stockpile limits regardless of features;
+every unit type has identity and label data regardless of features. Items and unit types without
+optional capabilities author `features: []`. Conversion resolves features into immutable definition
+objects, and unit spawning materializes hot capabilities once rather than scanning definitions each
+tick.
+
+The field pack is both equippable and a slot expansion. `slot-expansion` requires one compatible
+`equippable` feature so its capacity has a wear state that owns it. The A1 shape is:
+
+```json
+{
+  "id": "field-pack",
+  "display": "Field Pack",
+  "requestGroups": ["field-equipment"],
+  "stackLimit": 1,
+  "stockpileLimit": 20,
+  "features": [
+    { "type": "equippable", "equipmentSlot": "back" },
+    { "type": "slot-expansion", "additionalSlots": 2 }
+  ]
+}
+```
+
+Infantry expresses its carried and worn capacity through unit features:
+
+```json
+{
+  "id": "infantry",
+  "name": "Infantry",
+  "features": [
+    { "type": "inventory", "slots": 2 },
+    { "type": "equipment-slots", "slots": { "back": 1 } }
+  ]
+}
+```
 
 Recipe identity is definition plumbing. Mechanically, a recipe describes only input quantities,
 output quantities, and required work. It contains no deposit, facility, owner, location, capacity,
@@ -195,7 +242,7 @@ ammunition, grenades, and field packs respectively. No A1 behavior selects by gr
 ### Carried inventory and equipment
 
 `Inventory` is the carried item container and contains a fixed number of ordered slots. Each non-empty
-slot holds one item type up to that item's `slotCapacity`. Inserts fill existing partial stacks in slot
+slot holds one item type up to that item's `stackLimit`. Inserts fill existing partial stacks in slot
 order, then empty slots in slot order. Removal drains matching slots in slot order. Both operations are
 atomic: if the entire requested quantity cannot be inserted or removed, state does not change.
 
@@ -213,7 +260,7 @@ may author an item already equipped, but no simulation operation equips or remov
 
 Facilities, depot compartments, and ground-stockpile objects reuse one sealed, host-owned stockpile
 type. It stores quantities without carried slots in a dense array indexed by resolved item-definition
-index. Each item is independently limited by its definition's `stockpileCapacity`; one item never
+index. Each item is independently limited by its definition's `stockpileLimit`; one item never
 consumes another item's capacity. Insert and removal operations perform a complete precheck, are
 atomic, and reject overflow, underflow, zero quantities, and negative quantities.
 
@@ -275,7 +322,7 @@ to a different absolute location or owner.
 
 These values are data-authored starting points and must not appear as code constants.
 
-| Item / recipe output | Inputs | Output | Work | Slot capacity | Stockpile capacity |
+| Item / recipe output | Inputs | Output | Work | Stack limit | Stockpile limit |
 |---|---|---:|---:|---:|---:|
 | Ore | none | 4 | 8 | 20 | 200 |
 | Sulfur | none | 4 | 8 | 20 | 200 |
@@ -365,7 +412,8 @@ only when owner and absolute address match, capped at the facility type's `worke
 commutative, so ECS iteration order cannot affect the result and no per-facility unit query or sort is
 needed.
 
-Then process facilities in stable facility-ID order:
+Then process facilities directly in registry order. Facility transitions are independent in A1, so
+their processing order is not a gameplay tiebreaker:
 
 1. Read the aggregated eligible-worker count for this facility.
 2. If a completed batch is waiting, atomically insert its outputs into the embedded stockpile. On
@@ -394,29 +442,29 @@ compartment in every depot of its nation.
 
 - Nation initialization registers Commons before any depot.
 - Registering a named Charter adds one empty compartment to every existing same-nation depot in
-  stable depot-ID order.
-- Creating a depot adds one empty compartment for every active same-nation Charter in stable
-  Charter-ID order.
+  depot registry order.
+- Creating a depot adds one empty compartment for every active same-nation Charter in Charter
+  registry order.
 - A duplicate or missing compartment is a simulation invariant failure.
 
 ### Charter death
 
-Commons cannot die. Dissolving any other Charter is one deterministic transaction sequence:
+Commons cannot die. Dissolving any other Charter uses this ordered lifecycle sequence; independent
+objects inside a step use their native in-place iteration:
 
 1. Resolve its nation and Commons Charter; reject unknown, already-dead, or Commons IDs.
-2. Query units once, collect the dead Charter's unit IDs into reusable lifecycle scratch, and sort
-   that rare-path buffer by stable unit ID. In that order, resolve each through the internal unit
-   index and change it to Commons. Inventory and equipment remain on the unit at the same absolute
-   address; append aggregated ownership changes for their goods.
-3. In stable facility-ID order, change each owned facility and its embedded stock to Commons in
+2. Query the dead Charter's units once and change them to Commons in place. Inventory and equipment
+   remain on each unit at the same absolute address; append aggregated ownership changes for their
+   goods. Unit order does not affect the result.
+3. Iterate the facility registry and change each owned facility and its embedded stock to Commons in
    place; append ownership changes for its goods. Do not eject or empty the facility.
-4. In stable ground-stockpile-ID order, change each owned ground pile to Commons in place. Preserve
-   its ID, absolute position, contents, and original expiry tick.
-5. Process each same-nation depot in stable depot-ID order. For every item in the dead Charter's
-   compartment, in stable item-ID order:
+4. Iterate the ground-stockpile registry and change each owned pile to Commons in place. Preserve its
+   ID, absolute position, contents, and original expiry tick.
+5. Process same-nation depots in registry order. For every item in the dead Charter's compartment, in
+   dense item-definition order:
    - insert as much as fits into the Commons compartment;
    - then insert as much as fits into each active, non-Common, non-dying Charter compartment in
-     stable Charter-ID order; and
+     Charter registry order; and
    - place the remainder into newly created Commons-owned ground stockpiles at the depot's absolute
      address.
 6. Remove the dead Charter's now-empty compartment from every depot, then remove the Charter from the
@@ -430,12 +478,12 @@ changes, not physical transfers.
 
 Ground stockpiles use normal per-item stockpile caps. When an overflow contains more than one pile
 can hold, calculate the required pile count from all remaining items, allocate stable ground IDs, and
-fill each item across those piles in pile-ID order. A pile may hold every item up to each item's
-independent cap.
+fill each item in dense definition order across those piles in creation order. A pile may hold every
+item up to each item's independent cap.
 
 New piles are Commons-owned and expire at `currentTick + 180`. Existing piles do not renew their
 expiry when ownership changes. Removing the last item destroys an empty pile immediately. At expiry,
-append explicit `Destroyed` transactions for every remaining item in stable item-ID order before
+append explicit `Destroyed` transactions for every remaining item in dense definition order before
 removing the object from the ground-stockpile registry.
 
 ### Living facility ownership change
@@ -471,17 +519,18 @@ as applicable.
 Facility eviction uses `Rehosted`; Charter-death reassignment uses `OwnershipChanged`; hauling in 1B
 uses `Transferred`. A storage-address change alone never implies movement or title change.
 
-Transactions and other simulation facts append to pre-sized, reusable ordered buffers. Appending does
+Transactions and other simulation facts append to pre-sized, reusable buffers. Appending does
 not invoke synchronous subscribers. At defined post-phase boundaries, conservation, metrics, digest,
-and presentation-feed consumers process the new values in append order and retain derived state, not
-references into the reusable journal. Production and lifecycle rules never read metrics or the
-presentation feed back as control flow.
+and presentation-feed consumers process new values in place and retain derived state, not references
+into the reusable journal. Consumer aggregation must not depend on fact order. The presentation feed
+may retain occurrence order for narration, but that order is not gameplay state. Production and
+lifecycle rules never read metrics or the presentation feed back as control flow.
 
 The conservation ledger snapshots all initial facility buffers, depot compartments, carried
 inventories, equipped items, and ground piles. It applies transactions to obtain expected current
 custody. Every tenth tick, and whenever a metrics report is requested, an audit scans all physical
 storage and compares it with the ledger by item, owner, storage address, and absolute location. Any
-mismatch throws `SimulationInvariantException` with the first stable discrepancy.
+mismatch throws `SimulationInvariantException` identifying one concrete discrepancy.
 
 ## Diagnostics and public surfaces
 
@@ -496,7 +545,7 @@ prepares the separate validated command boundary required by later council itera
 
 Add `--scenario`, defaulting to the A1 scenario. Retain `--map` as an optional override of the map
 referenced by the scenario. Add a `--metrics` switch: without it the current digest line remains;
-with it stdout contains one deterministic JSON object and no additional prose.
+with it stdout contains one canonically ordered JSON object and no additional prose.
 
 The JSON object contains:
 
@@ -548,8 +597,8 @@ replace.
 
 - Run the existing repository checks and identify the current unit, facility, item, event, digest,
   and renderer entry points.
-- Preserve working map generation, pathfinding, movement, deterministic random streams, tick cadence,
-  and headless seed behavior unless a later package explicitly changes their public boundary.
+- Preserve working map generation, pathfinding, movement, seeded random streams, tick cadence, and
+  headless seed behavior unless a later package explicitly changes their public boundary.
 - Treat the facility/stockpile ECS slice, synchronous `SimulationEvents`, random Godot spawning, and
   public Arch access as migration targets rather than architectural examples.
 - Avoid opportunistic cleanup in unrelated slices; reshape a touched slice only when the A1 contract
@@ -562,12 +611,14 @@ continues so it cannot be misattributed to the iteration.
 
 **Outcome:** all A1 definition files load into immutable, fully resolved runtime definitions.
 
-- Add the item groups, items, equipment features, pure recipes, facility types, and unit inventory and
+- Add the item groups, polymorphic item/unit features, pure recipes, facility types, inventory, and
   wear-slot additions described in [Authored data contracts](#authored-data-contracts).
 - Author the nine item/recipe rows and four facility types exactly as specified; values live in data,
   not code constants.
 - Resolve definition references once during conversion, including item-group membership, recipe
   inputs/outputs, allowed recipes, and equipment wear slots.
+- Validate feature discriminators, case-specific fields, duplicates, and cross-feature requirements;
+  keep universal item limits flat and feature order semantically irrelevant.
 - Aggregate independent definition errors in one load failure. Do not stop at the first malformed
   record or let DTO nullability leak into runtime code.
 
@@ -579,8 +630,8 @@ identity, inputs, outputs, and work, and the shipped data matches the tables in 
 **Outcome:** the simulation owns its state through the approved hybrid boundary before A1 systems
 build on it.
 
-- Add typed stable runtime identities and stable-ordered registries for Charters, facilities, depots,
-  and ground stockpiles.
+- Add typed stable runtime identities and in-place registries for Charters, facilities, depots, and
+  ground stockpiles.
 - Keep units in the internal Arch world and maintain the internal `UnitId` → Arch entity index as one
   operation with unit creation and destruction.
 - Introduce the buffered fact-journal boundary and the `Simulation.Read` façade. Move existing map and
@@ -588,13 +639,13 @@ build on it.
 - Ensure registry objects, component references, Arch handles, and mutable map cells cannot cross into
   Godot or headless. Do not expose an internal collection temporarily as the de facto public API.
 
-**Gate:** stable-ID lookup and iteration tests pass; copied projections cannot mutate authoritative
-state; Godot and headless no longer use `Arch.Core` or `Simulation.Entities`.
+**Gate:** stable-ID lookup and direct registry iteration tests pass; copied projections cannot mutate
+authoritative state; Godot and headless no longer use `Arch.Core` or `Simulation.Entities`.
 
 ### Package 3 — Storage, inventory, and transaction vocabulary
 
-**Outcome:** every A1 storage host has bounded, deterministic, atomic item behavior before production
-or lifecycle code moves goods.
+**Outcome:** every A1 storage host has bounded, atomic item behavior before production or lifecycle
+code moves goods.
 
 - Implement the closed storage-address variants from [Storage addresses](#storage-addresses).
 - Replace dictionary-backed stationary storage with dense, item-indexed, host-owned stockpiles using
@@ -608,7 +659,7 @@ or lifecycle code moves goods.
   that meaning.
 
 **Gate:** focused tests prove slot ordering, equipment capacity, stationary caps, atomic failure,
-generic transfer between both container kinds, storage-address identity, and stable item iteration
+generic transfer between both container kinds, storage-address identity, and direct dense item iteration
 without routine tick allocations.
 
 ### Package 4 — Scenario loading and absolute world state
@@ -644,8 +695,8 @@ order.
 - Centralize Charter/depot synchronization so scenario loading, tests, and later runtime creation
   cannot establish different invariants.
 
-**Gate:** Charter-first and depot-first tests produce the same ordered compartments; duplicate,
-missing, foreign-nation, or owner-bearing depot state fails explicitly.
+**Gate:** Charter-first and depot-first tests produce the same compartment membership and contents;
+duplicate, missing, foreign-nation, or owner-bearing depot state fails explicitly.
 
 ### Package 6 — Facilities, staffing, and production
 
@@ -656,65 +707,68 @@ missing, foreign-nation, or owner-bearing depot state fails explicitly.
 - Validate selected recipes against facility type and, for deposit-bound types, the absolute map hex
   at load and between-batch recipe changes.
 - On each production tick, perform the one-pass commutative worker aggregation described in
-  [Production execution](#production-execution), then process facilities in stable facility-ID order.
+  [Production execution](#production-execution), then process facilities directly in registry order.
 - Implement batch input consumption, linear worker contribution, same-tick completion, retained
   blocked output, between-batch recipe switching, and exactly one status classification per facility
   per production tick.
 - Append item and production facts through the journal; do not invoke diagnostic consumers from the
   facility transition.
 
-**Gate:** production tests cover every staffing and state transition, every shipped recipe, stable
-facility ordering, exact facts, and the absence of facility or stationary-stock ECS components.
+**Gate:** production tests cover every staffing and state transition, every shipped recipe, expected
+facts independent of their append order, and the absence of facility or stationary-stock ECS
+components.
 
 ### Package 7 — Ownership changes and ground-stockpile lifecycle
 
-**Outcome:** Charter death and facility transfer conserve every item and produce deterministic ground
+**Outcome:** Charter death and facility transfer conserve every item and produce capped ground
 overflow where required.
 
 - Implement ground-stockpile creation, stable identity allocation, capped multi-pile splitting,
   immediate empty removal, and expiry with explicit destruction transactions.
 - Implement living facility ownership changes through the eviction bridge, preserving the former
   owner on ejected ground goods and giving the new owner an empty embedded stockpile.
-- Implement the full Charter-death sequence in [Charter death](#charter-death): stable rare-path unit
-  ordering, in-place Commons transfer outside depots, local depot redistribution, overflow piles,
-  compartment removal, then Charter removal.
+- Implement the full Charter-death sequence in [Charter death](#charter-death): in-place Commons
+  transfer outside depots, registry-order local depot redistribution, overflow piles, compartment
+  removal, then Charter removal.
 - Keep location and ownership semantics distinct: same-hex rehosting is not physical transfer, and
   ownership change does not renew an existing ground expiry.
 
-**Gate:** lifecycle tests force recipient capacity limits and multiple overflow piles, verify every
-transaction and ordering rule, and reconcile starting and ending quantities exactly.
+**Gate:** lifecycle tests force recipient capacity limits and multiple overflow piles, verify the
+ordered lifecycle steps and registry-order redistribution, and reconcile quantities exactly without
+requiring an order for independent transactions.
 
 ### Package 8 — Conservation and derived diagnostics
 
-**Outcome:** facts become deterministic diagnostics without feeding back into gameplay.
+**Outcome:** facts become order-independent diagnostics without feeding back into gameplay.
 
 - Snapshot initial custody across every storage host and apply journaled item transactions to the
   expected ledger state.
 - Audit actual storage every ten ticks and at every report boundary, reporting the first discrepancy
-  in stable item/owner/storage/location order.
+  encountered with its item, owner, storage, and location context.
 - Consume production and lifecycle facts after their producing phase to maintain facility status
   totals, throughput, transaction counts, and bounded presentation history.
 - Keep consumers cursor-based over reusable journal buffers and retain derived values rather than
   references to journal storage.
 
-**Gate:** all transaction kinds reconcile; an injected untracked mutation fails at tick 10 and at an
-earlier report boundary; consumers observe append order and cannot run reentrantly.
+**Gate:** all transaction kinds reconcile regardless of fact order; an injected untracked mutation
+fails at tick 10 and at an earlier report boundary; consumers cannot run reentrantly.
 
 ### Package 9 — Headless reporting and complete state digest
 
-**Outcome:** the headless host exposes the deterministic acceptance surface without privileged state
-access.
+**Outcome:** the headless host exposes a canonical snapshot and acceptance surface without privileged
+state access.
 
 - Add `--scenario` and `--metrics` with the output behavior defined in [Headless](#headless); preserve
   the existing digest-only default and optional map override.
-- Produce every row through `Simulation.Read`, with the specified stable ordering and absolute
-  locations. Do not query Arch or registries directly from the host.
+- Produce every row through `Simulation.Read`, sorting copied rows into the specified output order
+  and absolute locations. Do not query Arch or registries directly from the host.
 - Extend the complete digest to all A1 authoritative state, including Commons, ownership, hosted
   stock, production progress, compartments, equipment, assignments, ground expiry, and random state.
-- Keep JSON byte-stable for identical input and emit no incidental prose on metrics stdout.
+- Keep JSON and digest bytes stable for the same captured read state and emit no incidental prose on
+  metrics stdout. Do not require two separately advanced simulations to reach byte-identical state.
 
-**Gate:** repeated identical runs produce byte-identical digest and JSON; report-boundary conservation
-audits run even when the regular ten-tick cadence has not elapsed.
+**Gate:** serializing the same captured state twice produces byte-identical digest and JSON;
+report-boundary conservation audits run even when the regular ten-tick cadence has not elapsed.
 
 ### Package 10 — Authored proof scenario and Godot presentation
 
@@ -741,6 +795,8 @@ marker.
 - Remove obsolete facility/stockpile ECS state, synchronous simulation callbacks, public Arch access,
   random host spawning, and compatibility adapters that preserve any of them. Once the code matches
   the contract, remove the temporary A1 migration note from the TDD.
+- Replace the repository's repeated-runtime-digest smoke with separate equal-seed world-generation
+  reproducibility and canonical same-captured-state serialization checks.
 - Search code, data, and documentation for universal stockpile identity, depot-as-facility behavior,
   foreign facility buffers, region-relative runtime state, recipe-owned deposits, or ownerless goods.
 - Run the full validation matrix below, repository checks, and the Godot build. Review the complete
@@ -757,6 +813,11 @@ or focused lifecycle test, and no deferred 1B behavior was introduced to make A1
 
 - Aggregate missing-file, duplicate-ID, malformed-ID, invalid quantity/capacity, and unresolved
   reference errors in one load failure.
+- Verify known item and unit feature discriminators select the intended derived DTOs. Reject unknown
+  discriminators, fields from another feature case, duplicate A1 feature types, and slot expansion
+  without compatible equippable state.
+- Verify feature order does not change the resolved definition and that hot unit capabilities are
+  materialized at spawn rather than discovered by per-tick polymorphic scans.
 - Assert that recipe definitions expose only inputs, outputs, and work beyond definition identity.
 - Reject invalid request-group membership, recipes without output, disallowed facility recipes,
   deposit-required facilities with non-extraction recipes, mismatched mine/deposit placement, invalid
@@ -767,7 +828,7 @@ or focused lifecycle test, and no deferred 1B behavior was introduced to make A1
 
 ### Storage and production
 
-- Verify deterministic slot packing and draining, atomic failure, field-pack capacity, stationary
+- Verify ordered slot packing and draining, atomic failure, field-pack capacity, stationary
   dense item indexing, per-item caps, and inclusion of equipment in conservation.
 - Verify the same transfer coordinator handles stockpile-to-stockpile, stockpile-to-inventory,
   inventory-to-stockpile, and inventory-to-inventory movement; insufficient source or destination
@@ -789,8 +850,8 @@ or focused lifecycle test, and no deferred 1B behavior was introduced to make A1
   reject duplicates or omissions.
 - Dissolve a Charter owning units, equipment, facilities, depot goods, and existing ground piles;
   assert all non-depot goods change to Commons in place and existing decay deadlines remain unchanged.
-- Fill Commons and recipient depot compartments to force stable-ID redistribution and enough overflow
-  for multiple capped ground piles; assert no item changes absolute location during cleanup.
+- Fill Commons and recipient depot compartments to force registry-order redistribution and enough
+  overflow for multiple capped ground piles; assert no item changes absolute location during cleanup.
 - Verify a living facility transfer rehosts former stock into ground piles while Charter death keeps
   facility stock embedded.
 - Verify empty ground piles disappear, non-empty piles survive through tick 179 after creation, and
@@ -799,16 +860,16 @@ or focused lifecycle test, and no deferred 1B behavior was introduced to make A1
 ### Architecture boundary
 
 - Assert that units are the only Arch entities and that Charters, facilities, depots, and ground
-  stockpiles live in typed registries with stable ID-ordered iteration.
+  stockpiles live in typed registries with direct in-place iteration and typed-ID lookup.
 - Assert that the public simulation surface exposes no Arch world, mutable registry object, component
   reference, or mutable map cell; Godot and headless compile without using `Arch.Core`.
 - Mutate a copied read projection and verify authoritative state is unchanged.
-- Verify fact consumers observe append order after the producing phase and cannot run reentrantly
-  inside production or lifecycle transitions.
+- Verify fact consumers produce the same aggregates when independent facts are reordered and cannot
+  run reentrantly inside production or lifecycle transitions.
 - Use a focused representative tick test or profile to reject routine production-path allocations;
   do not apply that assertion to scenario loading, validation, report construction, or view setup.
 
-### Conservation, metrics, and determinism
+### Conservation, metrics, and reproducibility
 
 - Reconcile creation, consumption, physical transfer, ownership change, rehosting, and destruction.
 - Inject an untracked mutation and verify detection at tick 10 and at an earlier explicit report
@@ -816,8 +877,10 @@ or focused lifecycle test, and no deferred 1B behavior was introduced to make A1
 - Run the A1 scenario for 120 ticks and assert that all recipes complete, the sulfur branch trails the
   iron branch as authored, a seeded transformation facility reaches `MissingInputs`, and every
   conservation discrepancy is zero.
-- Verify identical seed, definitions, map, scenario, and tick count produce byte-identical digest and
-  metrics JSON output.
+- Verify equal world-generation seeds and inputs produce identical generated maps, while different
+  seeds produce meaningful variation.
+- Verify canonical digest and metrics serialization is byte-identical when applied twice to the same
+  captured state; do not compare separately advanced runtime simulations byte for byte.
 - Run the repository check script and a Godot project build; no interactive visual test is required,
   but the scenario must boot without randomly spawned units or missing markers.
 
@@ -827,7 +890,7 @@ A1 is complete only when the authored scenario, not test-only construction, prov
 production slice; runtime positions are absolute; recipes contain only inputs, outputs, and work;
 Commons owns charterless state; depots are national infrastructure with complete Charter
 compartments; facility and depot stockpiles have no independent identity; ground stockpiles alone are
-identified and decay explicitly; only units use ECS; registry and journal ordering is deterministic;
-mutable Arch and domain state stay behind `Simulation.Read`; lifecycle cleanup conserves every item;
-idle production is attributable; and the Godot view exposes the scenario's physical and ownership
-structure.
+identified and decay explicitly; only units use ECS; independent work runs in place without canonical
+sorting; contested behavior has an explicit rule; mutable Arch and domain state stay behind
+`Simulation.Read`; lifecycle cleanup conserves every item; idle production is attributable; and the
+Godot view exposes the scenario's physical and ownership structure.

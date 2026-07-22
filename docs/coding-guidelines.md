@@ -5,8 +5,8 @@ exemplars, not a rulebook: what is being guarded against is incoherence and need
 not rule violations. A design that satisfies every pattern here but reads poorly is wrong, and a
 design that departs from a pattern to read better is right.
 
-[TDD.md](TDD.md) owns architecture, state placement, determinism, and the hot-path performance
-contract. This document owns how code expresses those decisions.
+[TDD.md](TDD.md) owns architecture, state placement, runtime ordering/reproducibility, and the hot-path
+performance contract. This document owns how code expresses those decisions.
 
 ## Exemplars
 

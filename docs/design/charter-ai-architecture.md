@@ -129,7 +129,7 @@ hosted stock, ground stockpiles, requests, and operations remain plain simulatio
 typed registries. Unit components link to that domain state through stable Charter, facility, and
 operation IDs; domain state links back through stable unit IDs rather than Arch entity handles.
 
-This boundary protects determinism, save/load stability, tests, and lifecycle handling. Physical
+This boundary protects save/load stability, tests, and lifecycle handling. Physical
 presence alone does not justify ECS representation; [TDD.md](../TDD.md#3-ecs-is-opt-in) owns the
 admission rule for moving measured hot state into ECS later.
 
@@ -143,7 +143,7 @@ admission rule for moving measured hot state into ECS later.
   permitted emergency overrides it.
 - Bound active work so a Charter cannot fragment into hundreds of negligible operations.
 - Record terminal and recoverable failures separately, with cause, responsibility, and avoidability.
-- Resolve simultaneous decisions in deterministic phases; stable IDs break exact score ties.
+- Resolve simultaneous decisions in explicit phases; stable IDs break exact score ties.
 
 ## Explainability contract
 

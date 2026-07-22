@@ -213,7 +213,7 @@ Three sources:
 - **Split:** internal tension (leader trait conflicts, over-size, a lieutenant's ambition) can fork a charter into two — the splinter petitions for its own land.
 - **Death:** military annihilation, or dissolution when loyalty/supply collapses — units, facilities,
   and their in-place goods pass to the nation's Commons Charter, while land reverts to ungranted.
-  Depot goods fill Commons storage first, then surviving Charters in stable order; any remainder
+  Depot goods fill Commons storage first, then surviving Charters; any remainder
   becomes Commons-owned, decaying ground stock.
 - **Merge:** allied charters with compatible leaders may merge (rare; leader egos usually prevent it).
 
