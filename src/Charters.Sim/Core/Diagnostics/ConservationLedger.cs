@@ -12,6 +12,10 @@ internal sealed class ConservationLedger
     private readonly ItemDefinition[] _items;
     private readonly Dictionary<string, long> _actual = [];
     private readonly Dictionary<string, long> _expected = [];
+    private readonly Dictionary<string, long> _initial = [];
+    private readonly Dictionary<string, long> _produced = [];
+    private readonly Dictionary<string, long> _consumed = [];
+    private readonly Dictionary<string, long> _destroyed = [];
     private FactCursors _cursors;
 
     public ConservationLedger(ItemDefinition[] items)
@@ -21,6 +25,10 @@ internal sealed class ConservationLedger
         {
             _actual.Add(item.Id, 0);
             _expected.Add(item.Id, 0);
+            _initial.Add(item.Id, 0);
+            _produced.Add(item.Id, 0);
+            _consumed.Add(item.Id, 0);
+            _destroyed.Add(item.Id, 0);
         }
     }
 
@@ -37,6 +45,7 @@ internal sealed class ConservationLedger
         foreach (var item in _items)
         {
             _expected[item.Id] = _actual[item.Id];
+            _initial[item.Id] = _actual[item.Id];
         }
 
         IsInitialized = true;
@@ -50,6 +59,7 @@ internal sealed class ConservationLedger
             foreach (var input in fact.Inputs)
             {
                 AddExpected(input.Item, -input.Quantity);
+                Add(_consumed, input.Item, input.Quantity);
             }
         }
 
@@ -59,6 +69,7 @@ internal sealed class ConservationLedger
             foreach (var output in fact.Outputs)
             {
                 AddExpected(output.Item, output.Quantity);
+                Add(_produced, output.Item, output.Quantity);
             }
         }
 
@@ -68,6 +79,7 @@ internal sealed class ConservationLedger
             foreach (var destroyed in fact.DestroyedGoods)
             {
                 AddExpected(destroyed.Item, -destroyed.Quantity);
+                Add(_destroyed, destroyed.Item, destroyed.Quantity);
             }
         }
     }
@@ -103,6 +115,11 @@ internal sealed class ConservationLedger
     {
         return _actual[item.Id];
     }
+
+    public long InitialTotal(ItemDefinition item) => _initial[item.Id];
+    public long ProducedTotal(ItemDefinition item) => _produced[item.Id];
+    public long ConsumedTotal(ItemDefinition item) => _consumed[item.Id];
+    public long DestroyedTotal(ItemDefinition item) => _destroyed[item.Id];
 
     private void ScanPhysicalTotals(Simulation simulation)
     {
@@ -166,6 +183,11 @@ internal sealed class ConservationLedger
         }
 
         totals[item.Id] = checked(current + quantity);
+    }
+
+    private static void Add(Dictionary<string, long> totals, ItemDefinition item, int quantity)
+    {
+        totals[item.Id] = checked(totals[item.Id] + quantity);
     }
 
     private struct CountUnitItemsState : IForEach<UnitItems>

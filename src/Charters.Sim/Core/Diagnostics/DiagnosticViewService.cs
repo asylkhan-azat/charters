@@ -30,6 +30,11 @@ public sealed class DiagnosticViewService
         return _diagnostics.Conservation.ActualTotal(item);
     }
 
+    public long InitialTotal(ItemDefinition item) => _diagnostics.Conservation.InitialTotal(item);
+    public long ProducedTotal(ItemDefinition item) => _diagnostics.Conservation.ProducedTotal(item);
+    public long ConsumedTotal(ItemDefinition item) => _diagnostics.Conservation.ConsumedTotal(item);
+    public long DestroyedTotal(ItemDefinition item) => _diagnostics.Conservation.DestroyedTotal(item);
+
     public long CompletedBatchesFor(FacilityId facilityId)
     {
         return _diagnostics.Derived.CompletedBatchesFor(facilityId);

@@ -10,9 +10,12 @@ public sealed class SimulationViews
     {
         Units = new UnitViewService(simulation);
         Diagnostics = new DiagnosticViewService(diagnostics);
+        State = new StateViewService(simulation);
     }
 
     public UnitViewService Units { get; }
 
     public DiagnosticViewService Diagnostics { get; }
+
+    public StateViewService State { get; }
 }

@@ -41,6 +41,18 @@ public sealed class Equipment
         return total;
     }
 
+    /// <summary>Returns a detached copy of the fixed equipment slots for read-only projections.</summary>
+    public IReadOnlyDictionary<string, ItemDefinition?> Snapshot()
+    {
+        Dictionary<string, ItemDefinition?> snapshot = [];
+        foreach (var (slotId, slot) in _slots)
+        {
+            snapshot.Add(slotId, slot.InstalledItem);
+        }
+
+        return snapshot;
+    }
+
     /// <summary>Installs one item into the named slot. Returns false without mutation when the slot
     /// is unknown, occupied, or incompatible with the item.</summary>
     public bool TryInstall(string slotId, ItemDefinition item)
