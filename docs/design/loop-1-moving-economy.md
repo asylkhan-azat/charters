@@ -6,208 +6,250 @@
 
 ## Goal and proof
 
-Loop 1 proves that real, Charter-owned goods can move through a multi-stage economy under autonomous
-coordination without duplication, deadlock, oscillation, or hidden failure.
+Loop 1 proves that located, Charter-owned goods can move through a multi-stage economy under
+autonomous coordination without duplication, deadlock, oscillation, hidden national pooling, or a
+cascade caused by every truck chasing the latest shortage.
 
-The watchable proof is a small authored scenario in which ore and sulfur become finished goods and
-several visible convoys satisfy remote demand. Removing one link must create a distinct shortage that
-the pain map, event feed, and decision traces explain.
+The watchable proof is a small authored scenario in which regional depots accumulate ore, sulfur,
+inputs, and finished goods; standing shuttles keep facilities operating; and Greyline convoys carry
+accepted aid to a remote depot. Removing one link must create a distinct upstream, facility-service,
+inter-depot, or delivery failure that the pain map, event feed, and decision traces explain.
 
 ## Scope
 
 ### Iteration 1A — owned production
 
-*Implementation specification: [Iteration 1A — Owned Production](../specs/iteration-1a-owned-production.md).*
+*Implementation specification:
+[Iteration 1A — Owned Production](../specs/iteration-1a-owned-production.md).*
 
-- Add static, authored Charter identities while representing charterless units and goods directly
-  as national ownership without a Charter. Leaders, relationships, land rulings, and politics are
-  dormant; named Charters run the same neutral Manager policy while charterless units retain local
-  heuristics.
+- Add static, authored Charter identities while representing genuinely charterless units and goods
+  as direct national ownership without a Charter.
 - Give units and facilities stable owners. Facility buffers are embedded and owned with their
   facility; national depots embed one anonymous compartment per Charter; only decaying ground
   stockpiles have independent identities.
-- Implement explicit Charter/depot spawn synchronization and Charter-death cleanup: ownership
-  changes in place outside depots, while depot overflow fills national charterless stock, then other
-  Charters, then capped charterless ground piles.
-- Load the eight MVP items, recipes, facility definitions, fixed unit inventory capacity, and typed
-  equipment-slot schema from data. An equipped item occupies one compatible slot at quantity one and
-  never changes inventory capacity. Group-targeted requests remain schema-only.
-- Author the Loop 1 logistics scenario from region-relative generation data, resolving deposits to
-  absolute map hexes and every runtime position to an absolute world address before simulation
-  starts. Include roads, facilities, depots, workers, trucks, initial stocks, and explicit
-  bottlenecks.
-- Record item creation, consumption, transfer, and destruction so conservation can be asserted by
-  item, owner, and location.
+- Implement Charter/depot spawn synchronization, Charter-death cleanup, the MVP item/recipe/facility
+  schemas, staffed production, an authored proof scenario, and conservation diagnostics.
 
-### Iteration 1B — request-driven transport
+### Iteration 1B — depot-driven transport
 
-- Detect scoped physical needs from facility buffers, storage targets, and explicit scenario demand.
-- Publish demand, request-to-own, and transfer through one Request Board aggregate.
-- Allocate title and carriage independently, reserve accepted goods and hauling capacity, and create
-  physical pickup/delivery operations.
-- Render request state, unmet demand, convoys, and structured failure reasons.
+*Implementation specification:
+[Iteration 1B — Depot-Driven Transport](../specs/iteration-1b-depot-driven-transport.md).*
 
-The iteration excludes Leader personality, relationship scoring, Direct Order UI, standing
-contracts, visible bidding, markets, construction, fuel, combat consumption, and route interdiction.
-The reservation schema recognizes Direct Order preemption for later use; Loop 1 does not expose it.
+- Make facility buffers recipe-relative working space and assign each facility a sticky supporting
+  depot whose owner compartment is the normal consolidation point.
+- Add durable local demand and available-output signals. Managers interpret time-to-bite,
+  suffering, consequence, route time, and policy; facts report changes but never become planning
+  state.
+- Aggregate source lines into Charter/depot/item plans, retain their contributors and deadlines, and
+  account for present stock, protected reserve, inbound, outbound, and committed quantities.
+- Create persistent facility services that deliver inputs and collect outputs, treat forecast-backed
+  standby as committed work, and preserve the service from ordinary spot-work reassignment.
+- Create private shipment orders for internal work. Allow a same-Charter direct facility shipment
+  inside one service area when it is cheaper than two depot legs and does not break existing
+  commitments.
+- Publish only inter-Charter Aid Requests and concrete Haul Jobs. Donor goods remain donor-owned
+  through carriage and change title only on delivery into the requester compartment.
+- Give logist units cargo lots whose title-holder and beneficiary are independent from the carrier,
+  then implement pickup, routing, delivery, reservations, failure attribution, and recovery-safe
+  post-pickup state.
+- Render local pain, depot pressure, facility-service state, public cooperation, visible convoys, and
+  structured failure reasons.
 
-## Physical need and visibility
+Leader personality, relationships, Direct Order UI, public standing contracts, markets, fuel, combat
+consumption, construction, and route interdiction remain outside 1B. The neutral 1B policy passes
+unresolved Manager conflicts through the future Leader boundary and approves or rejects them
+deterministically without creating a full Leader model.
 
-A physical need is the true, scoped deficit that causes work. It records stable identity, requesting
-Charter, location, exact item, minimum and desired amounts, current deficit, severity, age, and whether
-external coordination has been published.
+## Canonical logistics model
 
-The Manager resolves an on-site need directly when usable Charter-owned stock already exists there.
-Any unmet need requiring title consent or physical hauling becomes one of the public request modes.
-The original need remains the causal record; publication does not create a second deficit.
+### Ownership, custody, and hosts
 
-The pain map reads every unmet need:
+Every physical good keeps its nation and optional Charter title. Direct national ownership means the
+good is actually charterless; it is never a convenience pool for ordinary Charter production.
 
-- unpublished internal needs reveal location, item category, severity, and age;
-- public requests also reveal their requested quantity and fulfillment state;
-- exact internal stock, unpublished quantity, diagnosis, and Manager plan remain report-governed
-  information.
+- A facility buffer has the facility's owner and cannot host foreign-owned goods.
+- A depot is national infrastructure; each Charter compartment contains that Charter's goods.
+- A ground pile has an explicit owner.
+- A logist cargo hold contains one or more shipment lots, each with an explicit title-holder and
+  beneficiary separate from the carrier's Charter.
 
-## Request aggregate
+Internal movement changes custody and location but never title. An accepted aid shipment stays
+donor-owned through pickup and transit. Delivery into the requester's depot compartment atomically
+moves the goods, transfers title, completes that delivered portion, and awards aid credit. A
+same-depot donation is the same rule with a zero-distance delivery.
 
-One visible request owns its requested, allocated, delivered, and remaining quantities plus the full
-history of child allocations. It remains open while useful unmet quantity remains. Partial delivery
-never discards its history or resets its age.
+Capture, eviction, and Charter death remain separate ownership transitions. Routine logistics has no
+request-to-own operation and never nationalizes goods in transit.
 
-### Modes
+### Depots as logical hubs
 
-| Mode | Title | Carriage | Completion |
-|---|---|---|---|
-| Demand | One or more donors pledge portions; ownership changes at pickup | One or more haulers carry pledged portions | Quantity reaches requester custody at destination |
-| Request-to-own | One or more donors transfer portions where they sit | None | Accepted title transfer completes the board portion; aid credit still waits for requester custody |
-| Transfer | Requester already owns the goods | One or more haulers carry portions | Quantity reaches the requested destination |
+Each facility has one supporting depot selected by route cost with a stable exact-tie rule. The
+assignment persists until the route or ownership becomes invalid or a materially better assignment
+clears the Manager's hysteresis rule. A facility uses its owner's compartment at that depot.
 
-### Title allocations
+The depot plan is the Manager's aggregation boundary. For each Charter, depot, and item it retains:
 
-A title allocation belongs to one request and records its donor, source stockpile, item, quantity,
-state, hard goods reservation, progress-lease deadline, decision trace, and terminal reason. Multiple
-donors may pledge separate portions of the same request.
+- stock currently in the compartment;
+- protected reserve;
+- committed inbound and outbound quantities;
+- demand contributors and when each begins to hurt;
+- available-output contributors and when each buffer blocks; and
+- the remaining quantity the Manager cannot cover by the required time.
 
-For demand, a pledged portion remains donor-owned until pickup. For request-to-own, accepted title
-consent changes ownership immediately and completes that board portion without a haul. Ownership is
-not automatically physical custody: stock that remains externally hosted earns no aid credit until
-the requester actually extracts it.
+The depot is not an obligatory physical waypoint. When a same-Charter output and input inside the
+same service area match and a direct route is cheaper, the Manager may create a facility-to-facility
+shipment. The depot plan records both contributing lines as covered. Inter-Charter hand-over still
+terminates at a receiving depot compartment in 1B.
 
-### Carriage allocations
+### Physical signals
 
-A carriage allocation records its hauler Charter, quantity, origin, destination, referenced title
-allocation or requester-owned transfer stock, hard hauling reservation, operation identifier, state,
-progress-lease deadline, decision trace, and terminal reason.
+A local demand signal is durable state for one source, item, and cause. It records the current
+shortage, the tick at which that shortage will begin to impair the source, and the tick at which
+actual impairment began. A source that recovers closes the signal; partial delivery updates it
+without resetting its history.
 
-A title allocation may be divided among multiple carriage allocations. A hauler may claim only the
-quantity for which it can reserve suitable logists, truck cargo capacity, and a feasible route.
+Facilities also expose available-output signals. These record removable output, when another
+completed batch will block, and when output blockage actually began. Output clearance is supply work,
+not an inverted demand.
 
-The allocator never awards more title or carriage quantity than remains unallocated at that phase.
+Signals are authoritative planning inputs. Buffered facts announce open, material change, transition
+to suffering/blockage, and close for diagnostics and presentation. Gameplay systems do not reconstruct
+current demand from fact history.
 
-## Allocation
+### Manager interpretation and escalation
 
-Allocation is two-phase and resolves genuine contention explicitly:
+The Manager ranks physical conditions using time-to-bite, suffering duration, consequence kind,
+quantity, route time, downstream commitments, and neutral policy. A raw deficit carries no political
+priority of its own.
 
-1. Eligible actors evaluate the same start-of-phase snapshot and emit title or carriage intentions.
-2. The board ranks explainable scores, awards portions in order, creates hard reservations, and uses
-   stable domain IDs only for exact ties.
+The Manager first:
 
-Title eligibility requires matching unreserved stock above the donor's protected floor. Its score
-uses request priority, severity, age, useful quantity covered, and the opportunity cost of releasing
-the stock. Loop 4 adds relationship and doctrine factors.
+1. preserves live commitments and subtracts committed inbound;
+2. matches same-Charter supply and demand inside a depot service area;
+3. plans facility service from or to the supporting depot;
+4. uses an eligible direct facility bypass when cheaper;
+5. rebalances its own stock between depot compartments; and
+6. assigns uncommitted internal haulers.
 
-Carriage eligibility requires unreserved logists and truck capacity plus a feasible route. Its score
-uses request priority, severity, age, useful quantity carried, route time and risk, capacity fit, and
-disruption to existing commitments. Loop 4 adds relationship and doctrine factors.
+If goods cannot arrive before they matter, the Manager raises the missing-title conflict through the
+Leader boundary. If carriage is missing, it may publish routine haul work only inside delegated
+policy; otherwise it raises that conflict too. The neutral 1B policy deterministically produces an
+Aid Request or Haul Job. Later Leaders may instead reprioritize, breach a reserve, refuse, or petition
+the Council.
 
-Weights, protected floors, minimum useful portions, allocation cadence, and progress-lease duration
-are authored tuning values. Scores and rejected eligibility checks are retained in the decision
-trace.
+## Facility service
 
-## Commitment and reservation lifecycle
+A facility service is persistent Manager work linking one facility, its supporting depot, and
+reserved hauling capacity. Its normal cycle may load inputs at the depot, deliver them, wait for
+forecast output, collect a useful quantity, return to the depot, and repeat. A service may also run
+one direction when the recipe needs no inputs or has no output ready.
 
-Pledging title or claiming carriage creates a light political commitment and a hard physical
-reservation. The reservation prevents other requests and ordinary replanning from using the same
-goods, logists, or truck capacity.
+Facility buffers remain smaller than depot compartments but must absorb a useful service interval.
+Their hard input and output limits are recipe-relative and authored in batch equivalents. The pickup
+threshold, maximum wait, and next input-starvation/output-blocking deadline are distinct values.
 
-Before pickup, voluntary withdrawal releases the reservation and lightly damages the responsible
-Charter's pledge or carriage reliability. At pickup, demand ownership transfers to the requester and
-the hauler assumes physical custody. An avoidable failure after pickup carries a stronger carriage
-reliability consequence. The donor earns aid credit only if the goods reach requester custody; an
-in-place request-to-own transfer can therefore complete without immediately earning credit.
+High-throughput facilities may retain a dedicated shuttle. Nearby lower-throughput facilities may
+later share a milk run; 1B needs only the data and boundaries that do not prevent that extension.
+Sporadic work may use a one-cycle service rather than a durable assignment.
 
-Only an immediate survival crisis or a Direct Order may preempt a live hard reservation. Preemption
-releases the capacity, records the responsible actor and cause, applies the stage-appropriate
-reliability consequence, and returns undelivered quantity to the open remainder when still useful.
+### Deliberate standby
 
-Each child allocation owns a progress lease. The lease renews only on measurable physical progress:
+`StandbyForOutput` is a service phase, not idle time. It is valid only while:
 
-- the initial reservation is created;
-- goods are picked up or title is transferred;
-- the carrier reduces remaining route distance or reaches a forward route milestone;
-- goods are delivered.
+- the facility has an active or fully supplied upcoming batch;
+- staffing and inputs make the forecast physically credible;
+- useful output will be ready inside the service's maximum wait; and
+- leaving for another job would prevent return before the pickup or blockage deadline.
 
-Replanning, status heartbeats, loading without a quantity change, and movement that does not advance
-toward the destination do not renew it. Expiry releases reservations, records an attributed failure,
-and leaves the useful remainder open for new allocation.
+An assigned truck is unavailable to ordinary board work during standby. Production progress and a
+stable expected-ready tick keep the wait valid; a slipped forecast, missing input or staffing,
+unreachable route, or maximum-wait expiry releases or replans it. A generic movement progress lease
+does not expire deliberate standby.
 
-World events may make fulfillment impossible. Every cancellation, expiry, preemption, or failure
-records a stable reason, responsibility, avoidability, affected quantity, and stage. Relationship
-effects beyond pledge/carriage reliability arrive in Loop 4.
+## Private work and the public Request Board
 
-## Cadence and stability
+Internal signals, depot plans, facility services, and shipment orders are private Charter state.
+They do not expose exact quantities merely because a truck must move.
 
-- Production, movement, loading, and unloading advance at their simulation phase cadence.
-- Need records update on threshold crossings and at a data-authored validation cadence.
-- Allocation runs on new or materially changed demand, released capacity, expiry, failure, and a
-  slower periodic validation cadence.
-- Existing allocations remain intact unless completed, expired, explicitly withdrawn, preempted, or
-  made physically impossible.
-- Request age belongs to the original need and never resets because a child allocation failed.
-- Allocation and operation counts are observable metrics so fragmentation and churn can be tuned.
+The public board contains two distinct promises:
 
-## Diagnostics
+- An **Aid Request** declares an item, quantity, requester, receiving depot compartment, required-by
+  tick, and public reason. Accepted donor portions become supply commitments with hard goods
+  reservations.
+- A **Haul Job** declares identified goods, title-holder, beneficiary, origin, destination,
+  quantity, required-by tick, and linked shipment order. An accepted claim reserves the logist and
+  cargo capacity.
 
-Every allocation attempt produces structured developer data:
+The board arbitrates accepted portions against the public remainder and uses stable IDs for exact
+ties. Each Charter ranks candidate donations and jobs against its own resources; the board never
+pretends that subjective scores from different Leaders form one national utility function.
 
-- eligibility result and rejection reason;
-- score factors and final score;
-- stable tie-break key when used;
-- goods and capacity reserved;
-- progress milestones and lease renewals;
-- replan trigger and why existing work was preserved, replaced, or released;
-- cancellation, preemption, expiry, and failure attribution.
+Only accepted commitments reserve physical state. Unaccepted intentions are ephemeral. Multiple
+donors and haulers may fulfill different portions without exceeding the public request or concrete
+shipment quantities.
 
-Player presentation filters this truth through the visibility rules above. It never exposes a hidden
-stockpile amount or unpublished internal plan merely because the developer trace knows it.
+## Shipments and stability
+
+A shipment order names a physical origin, destination, item, quantity, title-holder, beneficiary,
+and required-by tick. Once a logist is assigned, a shipment advances through go-to-origin, load,
+haul, and deliver.
+
+- Loading consumes the goods reservation and creates matching cargo lots without changing title.
+- Forward movement preserves the assignment across ordinary replanning.
+- Internal delivery preserves title.
+- Aid delivery into the requester compartment changes title atomically.
+- A full destination leaves cargo on the truck and records a recoverable failure.
+
+Before pickup, an expired or withdrawn commitment can release goods and hauling capacity. After
+pickup, a timeout diagnoses a stalled shipment but cannot free the occupied truck or recreate its
+cargo elsewhere. Cargo remains bound until delivery, return, recovery, capture, or explicit
+destruction. Every failure records cause, responsible actor, avoidability, affected quantity, and
+stage.
+
+## Visibility and diagnostics
+
+The pain map reads source-level demand and output blockage:
+
+- unpublished internal state exposes location, category, time-to-bite, and suffering/blockage
+  duration;
+- depot pressure shows that a service area lacks goods or carriage without revealing exact private
+  stock;
+- public Aid Requests and Haul Jobs expose their declared quantity and fulfillment;
+- exact internal quantities, protected reserves, contributor lists, and Manager plans remain
+  report-governed.
+
+Developer traces retain candidates, eligibility failures, forecast inputs, service preservation or
+release reasons, direct-bypass choice, reservations, route decisions, delivery, and full failure
+attribution.
 
 ## Validation scenarios
 
-1. **Healthy chain:** all tiers reach stable throughput and remote demand is fulfilled.
-2. **Split fulfillment:** multiple donors and haulers deliver separate portions without exceeding the
-   request or duplicating goods and capacity.
-3. **Partial result:** delivered history remains and the correctly aged remainder stays open.
-4. **Ownership modes:** demand changes owner at pickup, request-to-own changes owner in place, and
-   transfer never changes owner.
-5. **Hard reservation:** competing requests cannot promise the same stock or assign the same hauling
-   capacity.
-6. **Graduated failure:** pre-pickup withdrawal and avoidable post-pickup failure produce different
-   reliability consequences; undelivered aid earns no credit.
-7. **Preemption:** a survival crisis and a simulated Direct Order release reservations and record an
-   attributed commitment failure; ordinary higher scores cannot preempt.
-8. **Progress lease:** forward physical progress renews; a stuck allocation expires and releases its
-   portion.
-9. **Contested allocation:** identical intentions use the documented score and stable-ID exact tie
-   rule rather than incidental iteration order.
-10. **Pain-map fidelity:** internal needs show severity and age only; public requests show exact public
-    request data.
-11. **Disruption set:** missing input, insufficient haulers, distant stock, blocked routes, and excess
-    competing demand each produce a distinct diagnosis and visible outcome.
-12. **Conservation:** every item is accounted for across production, stock, cargo, delivery,
-    consumption, and explicit destruction.
+1. **Healthy hub economy:** facility services collect raw output, feed downstream production, regional
+   depots accumulate stock, and aid reaches the Central Works depot.
+2. **Direct local bypass:** a same-Charter source supplies a nearby consumer without a redundant
+   depot round trip while the depot plan remains balanced.
+3. **Protected standby:** a truck waiting for forecast output rejects a distant spot job, collects
+   the output, and completes its service cycle.
+4. **Invalidated standby:** removing staffing or input invalidates the forecast and releases the
+   truck with an attributed reason.
+5. **Insufficient service capacity:** uncovered facilities starve or block selectively; existing
+   service commitments do not oscillate.
+6. **Split aid:** several donors cover portions of one Aid Request without over-committing stock.
+7. **Third-party carriage:** Greyline carries another Charter's goods without taking title; title
+   changes only at aid delivery.
+8. **Blocked route:** an infeasible job remains unclaimed or a live shipment stalls with its cargo
+   still accounted for.
+9. **Competing aid:** protected reserves and required-by times produce a deterministic uncovered
+   remainder.
+10. **Visibility:** internal quantities remain private while pain, public commitments, standby, and
+    convoy outcomes remain legible.
+11. **Conservation:** production, storage, reservations, cargo, delivery, ownership change, and
+    destruction reconcile by item and title-holder.
 
 ## Exit gate
 
-The healthy scenario reaches stable throughput; disruptions fail in distinct, diagnosable ways;
-contested allocations obey their scoring and tie rules; requests do not oscillate; and goods are
-never created, duplicated, silently reassigned, or promised twice.
+The healthy scenario reaches stable throughput; the same-Charter bypass avoids needless hub travel;
+forecast-backed standby survives ordinary competing work but releases when invalid; each disruption
+fails with a distinct source, depot, service, board, route, or delivery diagnosis; goods keep Charter
+title through third-party carriage and change owner only at agreed delivery; and no physical goods or
+hauling capacity are duplicated, promised twice, silently nationalized, or silently reassigned.

@@ -10,7 +10,8 @@
 
 Iteration 1A replaces the dormant production prototype with a complete, data-authored slice for
 national goods with optional Charter ownership. It establishes the schemas, ownership state,
-storage hosts, production state, and Charter lifecycle foundation that Iteration 1B will transport.
+storage hosts, production state, and Charter lifecycle foundation that
+[Iteration 1B](iteration-1b-depot-driven-transport.md) will transport.
 
 The iteration is accepted when the dedicated scenario:
 
@@ -38,7 +39,7 @@ selection, physical needs, the Request Board, hauling, pickup or delivery, route
 equipping, resource depletion, spoilage of ordinary storage, construction, politics, combat
 consumption, retooling costs, depot capture, or separate driver and truck entities. The lifecycle APIs
 are implemented and tested directly, but the A1 scenario does not kill a Charter. Recipe selection is
-authored per facility. Truck-logist remains one unit whose availability and cargo capacity will both
+authored per facility. Truck-logist remains one unit whose availability and transport capacity will
 be reserved in 1B.
 
 ## How to use this specification
@@ -155,9 +156,9 @@ entities.
 
 Concrete operations resolve the typed IDs of their participating aggregates and derive ownership and
 position from those hosts. They do not accept a caller-supplied pairing of a container with claimed
-custody. If request-driven logistics later needs one durable reference spanning several deliverable
-host kinds, Iteration 1B introduces a logistics-specific endpoint containing only those host kinds;
-equipment is never such an endpoint.
+custody. Depot-driven logistics introduces a durable reference spanning the deliverable stationary
+host kinds in [Iteration 1B](iteration-1b-depot-driven-transport.md); equipment is never such an
+endpoint.
 
 A facility cannot host foreign-owned goods. Shared static storage belongs in national depot
 compartments. Multiple ground stockpiles may occupy the same hex.

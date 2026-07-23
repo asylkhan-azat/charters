@@ -68,7 +68,12 @@ The observer phase is content (Pillar 4) and the attribution problem is the game
 - **Embed mode.** A camera command: follow a chosen squad or convoy cinematically until the next council. Near-zero cost (a camera over the existing sim); converts dead observer minutes into the game's best moments and screenshots.
 - **The three-day recap.** Every War Council opens with a ~10-second time-lapse of the map since the last council — fronts moving, convoys flowing, battles flaring. The player *sees* causality before reading a single report.
 - **Biography of a bullet.** A trace tool: pick goods at the front and see their provenance — mined at Krej, refined at Dallow, hauled by the Greyline Charter, 41 hours in transit. Provenance is logged for *sampled* items only (memory budget). The logistics pillar, made tangible.
-- **The pain map.** A map overlay heat-mapping *unmet physical demand* — where goods are needed, how severely, and for how long. Public Request Board entries show their exact public quantities and fulfillment; unpublished internal needs show only location, item category, severity, and age, preserving the information rules in §9. One glance answers "where is my logistics failing?" before it becomes "why did the front fall?" This is the game's single best diagnostic tool and ships in the MVP.
+- **The pain map.** A map overlay heat-mapping *unmet physical demand* — where goods will be
+  needed, when the shortage begins to hurt, and how long actual suffering has lasted. Public Request
+  Board entries show their exact declared quantities and fulfillment; unpublished internal signals
+  show only location, item category, time pressure, and suffering duration, preserving the
+  information rules in §9. One glance answers "where is my logistics failing?" before it becomes
+  "why did the front fall?" This is the game's single best diagnostic tool and ships in the MVP.
 - **The War Diary.** An auto-generated chronicle of the campaign: battles named after places ("Second Karsk Bridge"), records ("longest convoy run of the war"), betrayals, decorations, charter foundings and deaths. Doubles as the endgame recap and as the memory that makes emergent charters feel historic. Mostly string templates over events the sim already emits. At campaign end it **exports as a shareable text/HTML war history** — emergent-story games live on players posting their sagas.
 
 ---
@@ -145,6 +150,14 @@ Cheap implementation: 3–4 global modifiers on a calendar announced in advance.
 
 Units consume: **food** (always), **ammunition** (when fighting), **fuel** (machines). Unsupplied units degrade — morale drops, they retreat, desert, or go charterless. Supply failure is the primary way fronts break.
 
+Each Charter unit has a sticky **supporting depot** chosen by its Manager, normally the cheapest
+reachable depot serving its current operation rather than whichever depot is geometrically closest
+this tick. The unit emits durable local demand describing quantity, when the shortage begins to
+hurt, and when suffering began. Its supporting depot is the planning and dispatch anchor, not
+necessarily the physical delivery point: a convoy may meet the unit or a forward cache instead of
+making the unit abandon the front and return to the depot. Reassignment uses commitment and
+hysteresis so a moving formation does not churn between depots.
+
 **Medical items** are consumables with distinct effects (produced and hauled like everything else):
 
 - **Surgery tools** — give a lethally-wounded unit a chance to enter a **stabilized state**: unresponsive for a couple of ticks, then survives at very low HP instead of dying.
@@ -176,7 +189,13 @@ A squad that survives enough battles earns a **name** ("the Karsk Bridge Boys") 
 **Principle: a leaky bucket that always refills.** Manpower is renewable but slow — the tap outpaces peacetime attrition, lags wartime losses, and can never be permanently emptied.
 
 - **Towns are the tap.** Towns (static structures spanning 1+ hexes: villages, town halls, cities) each generate **Recruit** units at a slow base rate scaled by town size *(placeholder: 1 recruit unit per ~1–2 council cycles)*. Modifiers: **National Will** (high Will brings volunteers; low Will, draft-dodging) and **safety** (a town under fire or occupation produces nothing). For a safe town the rate never reaches zero.
-- **Towns eat (post-MVP).** Population has a food demand, served through the same Request Board as everything else. Fed towns produce recruits at full rate; hungry towns slow down and **drain National Will** (§13.1 — civilian hunger is the most natural supply crisis). Farmland becomes strategic, the backline gains a permanent logistics mission beyond ammunition, and besieging enemy population centers becomes a slow, dark, effective strategy — Will erosion through hunger.
+- **Towns eat (post-MVP).** Population emits local food demand into its assigned depot plan like any
+  other supported consumer. Its Manager handles internal supply first and publishes only the
+  unresolved inter-Charter requirement. Fed towns produce recruits at full rate; hungry towns slow
+  down and **drain National Will** (§13.1 — civilian hunger is the most natural supply crisis).
+  Farmland becomes strategic, the backline gains a permanent logistics mission beyond ammunition,
+  and besieging enemy population centers becomes a slow, dark, effective strategy — Will erosion
+  through hunger.
 - **Natural cap:** a town pauses production when its local recruit pool is full — nobody enlists into a full barracks. Together with training throughput, this bounds army growth without an artificial ceiling and respects the ~5k sim budget.
 - **Training pipeline.** Recruits must physically travel to a **training facility** (backline static structures, pre-placed at campaign start; builders can construct more post-MVP): Infantry School (fast, cheap), Trade School → Workers, Logistics School → Logists, Crew Academy (slow, expensive). Training consumes time **plus a goods input** — rifles for infantry school — so the army you can raise is bounded by the rifles you manufacture. Manpower plugs into the logistics thesis; it doesn't run beside it.
 - **Graduates emerge charterless** at the facility and enter the normal recruitment pool — unless a charter holds **recruitment rights** (§7) for that region or school.
@@ -233,8 +252,12 @@ Leaders hold opinions of each other (friendship ↔ feud), seeded on creation an
 
 **Relationships have physical consequences, chiefly through logistics:**
 
-- Charters broadcast **delivery requests** to the open **Request Board** (§10.3): "Ashfield Charter requests 400 shells at Hill 12, priority: critical."
-- Other charters' logists choose which requests to serve, weighted by relationship, distance, and their own leader's doctrine. **Friends get convoys; feuding neighbors watch you starve.**
+- A Charter that cannot cover a depot-level requirement internally may broadcast an **Aid Request**
+  to the public **Request Board** (§10.3): "Ashfield Charter requests 400 shells delivered to North
+  Depot by the next offensive."
+- Donors choose whether to pledge goods and logists choose which concrete **Haul Jobs** to serve,
+  weighted by relationship, distance, existing service commitments, and their own leader's doctrine.
+  **Friends release stock and send convoys; feuding neighbors watch you starve.**
 
 **The feud ladder.** Like unrest (§13.3), feuds escalate through visible, *non-violent* rungs — hostility inside the nation is expressed purely through refusal and politics, never guns or theft:
 
@@ -328,7 +351,15 @@ Two rules keep it from being generic mana:
 
 **Territory is objective; numbers are testimony.**
 
-- **Always live and accurate:** the map — territory control, front lines, visible battles, terrain, infrastructure — plus the **hard facts about units**: their existence, positions, casualties, and carried inventory (weapons, ammo). Nobody can hide a dead squad or invent a phantom one. **Request Board traffic is also inherently public** — requests are broadcast for logists to act on, so their quantities and fulfillment are truth, not testimony. The pain map (§3.3) also exposes the location, category, severity, and age of unpublished internal needs, but not their exact quantities, stock state, diagnosis, or internal plan.
+- **Always live and accurate:** the map — territory control, front lines, visible battles, terrain,
+  infrastructure — plus the **hard facts about units**: their existence, positions, casualties, and
+  carried inventory (weapons, ammo). Nobody can hide a dead squad or invent a phantom one. **Public
+  Request Board traffic is also inherently public** — Aid Requests, accepted pledges, and Haul Jobs
+  are broadcast for other Charters to act on, so their declared quantities and fulfillment are
+  truth, not testimony. Private facility services, depot plans, and internal shipment orders are not
+  board traffic. The pain map (§3.3) exposes the location, category, time pressure, and suffering
+  duration of unpublished local demand, but not its exact quantity, supporting-depot stock,
+  diagnosis, or Manager plan.
 - **Reported (fuzzy):** the *soft* numbers — **storage stockpiles above all** (the primary lie surface), production output, and units' internal state (experience, morale, readiness). These arrive as charter reports at each War Council, and their **accuracy scales with the leader's loyalty**:
   - Loyal leaders report honestly and promptly.
   - Disgruntled leaders pad stockpiles, understate strength (to demand more), or report late.
@@ -365,9 +396,12 @@ Mines/wells/farms (tier 1) → refineries (tier 2) → factories (tier 3) → as
 **workshops** (machine repair — §11) and **training facilities** (§5.6). Facilities occupy hexes, are
 built by Builders from materials, are operated by Workers (throughput scales with staffing and worker
 specialization), and are owned by whoever holds the land grant — capturing land captures industry.
-Each facility has one embedded stockpile owned with the facility. **Depots are not facilities:** they
-are nation-wide infrastructure buildings with separate storage for every Charter. (**Towns** (§5.6)
-are static structures too, but pre-existing — Builders cannot build population.)
+Each facility has one small embedded input/output buffer owned with the facility; it is production
+working space, not a warehouse. **Depots are not facilities:** they are high-capacity national
+infrastructure buildings with separate storage for every Charter and are the normal consolidation,
+dispatch, and inter-Charter hand-over points. Each facility has a sticky supporting depot selected by
+its Manager. (**Towns** (§5.6) are static structures too, but pre-existing — Builders cannot build
+population.)
 
 **Denial warfare:** Builders can also *demolish* — any destructible structure: bridges, rail, factories, depots, workshops. Scorched earth in front of an enemy advance denies them your industry, but it wounds your own network, and dynamiting structures in a charter's homeland is a loyalty event, not a free action. Leaders with roots there may refuse the request. *(Needs a guardrail so AI charters and the enemy director can't scorched-earth the map into a slog.)*
 
@@ -382,41 +416,83 @@ Consequences: specialization is sticky, quota demands have visible costs, the Sh
 ### 10.3 Transport
 
 - Logists move goods with vehicles: trucks (roads, flexible), trains (rail, huge capacity, fixed lines), barges (rivers/coast, cheap and slow). Vehicles are themselves tier-3 products that consume fuel — **logistics consumes logistics**.
-- **Stockpiles are ownership.** Goods everywhere — depot compartments, truck beds, facility buffers,
-  ground piles, a squad's packs — belong to a nation and may additionally belong to one Charter.
-  Facility buffers and carried inventories are part of their host; every national depot holds a
-  dedicated charterless stockpile plus a separate anonymous compartment for each Charter; only
-  decaying ground stockpiles have their own durable identity. **Moving goods never changes whose they
-  are; only politics does:** a consented hand-over, capture, eviction, or Charter death. Dead-Charter
-  property becomes charterless in place. At each depot, death overflow passes to other same-nation
-  Charters before capped charterless ground piles are created. Ground piles
-  remain physical, located goods and decay if nobody recovers them.
-- **Physical needs and the Request Board.** Facilities, storages, and units generate scoped needs from real local deficits. A Charter's manager resolves what it can on-site; any unmet need requiring title consent or hauling becomes a public Request Board record (§6.5). The original need remains the causal record, including while unpublished, and feeds the pain map (§3.3). The player never routes a truck — they shape the network by land grants, quota demands, and infrastructure priorities. Three request kinds ride the board:
-  - **Demand** — "we need 400 shells at Hill 12, critical." Fulfillment takes two consents, each relationship-weighted: a *donor* willing to give (a visible, recorded act of aid — friends send convoys, feuding neighbors let you starve) and a *hauler* willing to carry. Ownership passes to the requester at pickup.
-  - **Request-to-own** — asking another charter to sign over goods where they sit, no movement involved. Ownership changes when the requester accepts the donor's title consent. Refusals are legible snubs that can escalate into council petitions ("make the Shell Baron share").
-  - **Transfer** — "haul *my* goods from depot A to depot B." No ownership change. Charters with no logists of their own can still run logistics through the board — and purely logistical charters become the nation's haulers-for-hire, supporting several factions at once.
-- **One board record, two consent types.** The three kinds are modes of one request record rather
-  than separate systems. A pledge is title consent and a delivery claim is carriage consent: demand
-  needs both, request-to-own needs only title consent, and transfer has implicit title consent because
-  the requester already owns the goods. One request may be split across several donors and haulers;
-  their child allocations retain individual quantities, progress, and responsibility while delivered
-  history and the unmet remainder stay on the original record.
-- **Commitments reserve physical capacity.** A pledge or delivery claim makes a light political
-  commitment and hard-reserves its goods or hauling capacity. Ordinary replanning cannot take that
-  capacity; only an immediate survival crisis or Direct Order may preempt it, producing an attributed
-  failure. Each child allocation expires after a tunable period without measurable physical progress
-  — reservation, pickup, forward route progress, or delivery — so stuck work releases its capacity
-  without making active work oscillate.
-- **Political accounting follows physical custody.** A title hand-over is an offer the receiver
-  accepts, never a unilateral dump. Aid credit accrues only when goods physically reach the
-  receiver's custody, loss reports identify both title-holder and host, and charters whose pledges or
-  carriage claims repeatedly evaporate lose reliability. Pre-pickup withdrawal has a light consequence;
-  an avoidable carriage failure after pickup has a stronger one. Signing over a doomed remote stockpile
-  therefore earns nothing unless the recipient actually extracts it.
-- **Group requests.** A request can target an item *group* instead of an exact type — a desperate charter asks for "anything that shoots 7.62" and takes bolt rifles when assault rifles won't come. Breadth is a desperation signal the player can read on the board — and the *donor* chooses what to send: friends part with their best; a cold neighbor technically complies with the junk from the back of the depot.
-- **Spot and standing.** Any request can be one-off ("400 shells to Hill 12, critical") or a **standing contract** ("500 shells to Hill 12, weekly"). Logists on standing contracts run stable routes — which feeds relationship formation (regular partners bond), route infrastructure investment, and named roads (§17).
+- **Charter goods remain Charter property.** Goods everywhere — depot compartments, facility
+  buffers, cargo holds, ground piles, and a squad's packs — belong to a nation and may additionally
+  belong to one Charter. Direct national ownership is reserved for genuinely charterless state; the
+  logistics model never nationalizes ordinary Charter goods. A carrier is the custodian of cargo,
+  not automatically its title-holder. Internal movement never changes title. Donated goods change
+  title only when delivered into the recipient's depot compartment; capture, eviction, and Charter
+  death retain their separate rules. Dead-Charter property becomes charterless in place. At each
+  depot, death overflow passes to other same-nation Charters before capped charterless ground piles
+  are created.
+- **Depots are logical hubs, not mandatory physical waypoints.** A Charter's Manager gives every
+  supported facility and, later, every supplied unit a sticky supporting depot. The Charter's
+  compartment there aggregates projected requirements, available stock, inbound and outbound
+  commitments, and protected reserve by item. Goods normally consolidate at depots, and every
+  inter-Charter hand-over terminates in the receiver's compartment. The Manager may send a same-
+  Charter shipment directly from one facility to another inside one service area when that is
+  cheaper than two depot legs; the depot plan records the match even though the goods bypass storage.
+- **Local conditions are facts; urgency is a decision.** Facilities and units maintain durable
+  demand signals containing the shortage quantity, when it will begin to hurt, and when actual
+  suffering began. Producing facilities separately expose available output, when their buffer will
+  block, and when blockage began. State transitions emit facts for history and diagnostics, but the
+  Manager plans from current physical state. It combines time pressure, consequence, accepted
+  commitments, route time, and Leader policy rather than treating raw deficit fraction as urgency.
+- **Facility service is standing work.** Facility buffers are sized for several production batches
+  but remain much smaller than depot compartments. Managers create persistent depot↔facility service
+  plans that may deliver inputs and collect outputs on the same trip. High-throughput facilities may
+  retain a dedicated shuttle; nearby low-throughput facilities may share a milk run; sporadic
+  facilities use spot collection. A truck deliberately waiting for forecast output is on standby,
+  not idle, and ordinary replanning cannot offer its capacity elsewhere. It leaves when a useful
+  pickup threshold, a buffer deadline, or a maximum wait is reached, and is released if the
+  production forecast becomes invalid.
+- **Private work and public cooperation are separate.** Internal demand signals, depot plans,
+  facility services, and shipment orders stay inside the Charter. If the Manager cannot cover goods
+  before they matter, it raises the conflict to its Leader; if it lacks carriage, it seeks help only
+  inside delegated policy or after the same escalation. The Leader may reprioritize internal work,
+  release reserves, refuse the sacrifice, or publish to the public Request Board:
+  - an **Aid Request** asks other Charters to deliver an exact item and quantity into a named
+    receiving depot compartment by a declared time; and
+  - a **Haul Job** asks a logist to carry already identified goods over a concrete origin,
+    destination, quantity, and delivery window.
+  Pure logist Charters can claim Haul Jobs for several factions. Internal transfers are never public
+  request modes, and routine logistics has no request-to-own operation.
+- **Pledges become shipments.** A donor that accepts an Aid Request makes a supply commitment against
+  stock above its own protected reserve. The accepted commitment hard-reserves a quantity at a
+  concrete source and creates a shipment order to the receiving depot; multiple donors may cover
+  portions. If donor and receiver use the same depot, delivery is a zero-distance atomic move between
+  compartments. Otherwise an internal logist or a claimed Haul Job becomes a physical shipment.
+- **Cargo preserves title.** A logist cargo hold contains shipment lots with item, quantity,
+  title-holder, and beneficiary separate from the carrier's affiliation. Pickup changes custody
+  only. Delivery into the requested compartment atomically changes title when donor and recipient
+  differ, satisfies the public commitment, and awards aid credit. A full destination leaves the
+  goods in cargo; it never silently transfers title or destroys them.
+- **Commitments reserve physical capacity.** Accepted supply commitments reserve goods; active
+  facility services, Haul Jobs, and shipments reserve hauling capacity. Only uncommitted capacity is
+  eligible for spot work. Pre-pickup commitments may expire and release cleanly. After pickup, a
+  stalled shipment remains bound to its physical cargo until delivery, return, recovery, capture, or
+  explicit loss; a timer can diagnose failure but cannot make the truck or goods available by fiat.
+  Only an immediate survival crisis or Direct Order may preempt otherwise valid standing work, with
+  attributed consequences.
+- **Political accounting follows agreed delivery.** A pledge is an offer the receiver accepts, never
+  a unilateral dump. Aid credit and title transfer occur at the receiving depot. Loss reports
+  identify donor, title-holder, beneficiary, carrier, and physical host. Pre-pickup withdrawal has a
+  light consequence; an avoidable failure after pickup has a stronger carriage consequence.
+- **Group requests.** An Aid Request can target an item *group* instead of an exact type — a
+  desperate Charter asks for "anything that shoots 7.62" and takes bolt rifles when assault rifles
+  will not come. Breadth is a desperation signal the player can read on the board — and the *donor*
+  chooses what to send: friends part with their best; a cold neighbor technically complies with the
+  junk from the back of the depot.
+- **Spot and standing.** Public Aid Requests and Haul Jobs are one-off in the MVP. Post-MVP
+  **standing contracts** ("500 shells to North Depot, weekly") turn repeated public cooperation into
+  stable inter-Charter routes. Internal facility services are already persistent Manager work and do
+  not require a political contract. Regular external partners bond, invest in route infrastructure,
+  and create named roads (§17).
 - **Cry-wolf credibility (post-MVP):** requesters self-declare priority, so what stops inflation? Charters whose "critical" requests are repeatedly found overblown (delivered, then the stock sat unused) get their priorities discounted by other charters' logists. Self-regulating, zero UI — and it produces the emergent character of *the charter nobody believes anymore*.
-- **Escort requests** ride the same board: convoys through dangerous territory post them, and *fighting* charters can claim them. Combat charters get an economy role between offensives, escort duty forges warrior–logist friendships (§7 symbiosis), and declining to escort a feuding charter's convoy is a legible snub with physical consequences.
+- **Escort requests** link to concrete Haul Jobs: convoys through dangerous territory post them, and
+  *fighting* charters can claim them. Combat charters get an economy role between offensives, escort
+  duty forges warrior–logist friendships (§7 symbiosis), and declining to escort a feuding charter's
+  convoy is a legible snub with physical consequences.
 - **Recovery hauling:** damaged machines (§11) are cargo too — logists haul them back to workshops. Trucks run loaded in both directions, and retreats force triage: abandon the hulls, or risk the trucks saving them.
 - **Infrastructure ownership:** depots, roads, and rail are **shared national infrastructure** — usable
   by any Charter and never blockable (transit rights govern *armed* movement only, §7). Any Charter
@@ -545,7 +621,11 @@ At campaign end — any ending — every charter receives a **fate card** genera
   ships in MVP and later supports armor, helmets, secondary weapons, utility items, and machine
   modules without a second loadout mechanic. **No fuel in MVP** — trucks pre-exist, aren't produced,
   and run free until the first content patch. Facilities are pre-placed (no construction).
-- **Logistics:** stockpile ownership model with all three request kinds (demand, request-to-own, point-to-point transfer) and the hosting grace timer (§10.3). Group-targeted requests are schema-reserved only — near-degenerate at 8 items.
+- **Logistics:** explicit Charter title throughout facility buffers, depot compartments, and shipment
+  cargo; depot-aggregated demand and supply; persistent facility services; private internal shipment
+  orders; public Aid Requests and concrete Haul Jobs; delivery-time title transfer; and the hosting
+  grace timer (§10.3). Group-targeted Aid Requests are schema-reserved only — near-degenerate at
+  eight items.
 - **Charters:** petition-event formation only (pre-rolled compositions); 3–5 charters/side; leaders with loyalty + 2–3 doctrine/personality traits; simple friend/feud pairs affecting the request board.
 - **Manpower:** simplified tap (§5.6) — towns trickle recruits, auto-routed to pre-placed generic training camps; training costs time only.
 - **Campaign open:** the Phony War phase (§12) as the diegetic tutorial.
@@ -586,7 +666,9 @@ At campaign end — any ending — every charter receives a **fate card** genera
 1. **Charter combat/logistics AI quality** — it *is* the game; design and test it explicitly before committing to an implementation.
 2. **Attribution/readability** — the player must be able to diagnose "why did the front fall." Event feed, recap, and pain map are first-class UI, not polish.
 3. **Observer-phase deadness** — if ~3 minutes of watching is boring, the rhythm fails. Test early with real players.
-4. **Request-board economics** — decentralized logist decisions can deadlock or oscillate; needs early simulation testing at toy scale.
+4. **Depot-service economics** — insufficient local hauling, unstable facility service, or bad
+   demand aggregation can cascade through the whole production chain; needs early simulation testing
+   at toy scale before personality or combat complicates attribution.
 
 ---
 

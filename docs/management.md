@@ -19,27 +19,27 @@ the [architecture](design/charter-ai-architecture.md), and
 [Loop 1 — The Moving Economy](design/loop-1-moving-economy.md) is the active execution design.
 [Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md) is complete: all eleven
 work packages have landed, and the migration note it added to the TDD has been removed.
+[Iteration 1B — Depot-Driven Transport](specs/iteration-1b-depot-driven-transport.md) is approved for
+implementation; no 1B package has landed yet.
 
 ## Progress
 
 This session completed:
 
-- **Package 11 — Remove migration residue and close A1:** deleted the dead prototype ECS slice
-  (`ItemSimulationPhase`, `StockpileDecaySystem`, the legacy `Components.Stockpile` struct, and the
-  unused `Decaying` component), which still ran a no-op Arch query every tick even though no entity
-  had carried those components since facilities/depots/ground stockpiles moved to registries.
-  Replaced `scripts/check.ps1`'s two-independent-runs byte-identical smoke with focused xunit
-  coverage instead: equal-seed/different-seed world-generation reproducibility, and canonical
-  same-captured-state digest/metrics serialization (`Charters.Tests` now references
-  `Charters.Headless` to reach `StateDigest`/`MetricsReport` internals). Removed the "A1 migration
-  note" from the TDD and the now-false "facility ECS slice is a prototype" note from
-  coding-guidelines.md, and corrected this doc's stale progress log (it still described packages
-  0–8 of 11 and a since-replaced random Godot bootstrap). A full residue sweep for universal
-  stockpile identity, depot-as-facility behavior, foreign facility buffers, region-relative runtime
-  state, recipe-owned deposits, and ownerless goods found nothing else outstanding.
+- Reworked Loop 1 logistics around high-capacity depot compartments, small recipe-relative facility
+  buffers, durable local demand/available-output signals, sticky supporting depots, private depot
+  plans and shipment orders, persistent facility services, deliberate truck standby, and same-
+  Charter direct facility bypass.
+- Replaced the former demand/request-to-own/transfer concept with public Aid Requests and concrete
+  Haul Jobs only. Ordinary goods retain Charter title through third-party carriage and change title
+  only on delivery into the requester depot compartment; direct national ownership remains limited
+  to genuinely charterless state.
+- Added the approved 1B implementation specification and synchronized the GDD, roadmap, active Loop
+  design, and Charter AI architecture. The TDD remains unchanged because it describes implemented
+  code and no 1B package has landed.
 
 ## Next
 
-- Begin [Iteration 1B — Request-driven transport](ROADMAP.md#iteration-1b--request-driven-transport):
-  the single request record, truck cargo/pickup/delivery, two-phase allocation, and the first
-  disruption scenarios.
+- Begin [Iteration 1B — Depot-driven transport](specs/iteration-1b-depot-driven-transport.md) with
+  Package 0 (baseline and attachment map), then Package 1 (host capacity, endpoints, and
+  title-preserving cargo).

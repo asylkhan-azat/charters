@@ -62,26 +62,40 @@ deadlocking, oscillating, or hiding the cause of shortages?
 - Enforce item conservation and expose production, consumption, idle time, and stock by location in
   headless metrics.
 
-### Iteration 1B — Request-driven transport
+### Iteration 1B — Depot-driven transport
 
-- Implement the single request record with demand, request-to-own, and transfer modes, including
-  split title/carriage allocations, hard reservations, progress leases, and attributed failures.
-- Implement truck cargo, pickup, hand-over, delivery, route choice, road/off-road cooldowns, and
-  two-phase request allocation with explicit scoring and tie rules for autonomous logists.
-- Add need age and severity plus request fulfillment state to the view, then add the first pain-map
-  overlay and convoy events to the live feed.
-- Add seeded disruption scenarios: missing input, insufficient haulers, distant stock, blocked route,
-  and excess competing demand.
+*Implementation specification:
+[Iteration 1B — Depot-Driven Transport](specs/iteration-1b-depot-driven-transport.md).*
 
-**Watchable outcome:** Ore and sulfur become finished goods and visible convoys deliver them to a
-remote demand. Removing one link produces a shortage that is obvious on the map and in the feed.
+- Give facilities small recipe-relative buffers and sticky supporting depots. Add durable local
+  demand and available-output signals, and have each neutral Manager aggregate them into Charter-
+  scoped depot plans without treating diagnostics facts as control flow.
+- Implement persistent depot↔facility services, deliberate truck standby, input/output backhauls,
+  private shipment orders, same-Charter direct facility bypass, road-aware routing, and cargo lots
+  whose title is independent from the carrier.
+- Publish only unresolved inter-Charter cooperation: Aid Requests for goods delivered to a receiving
+  depot and concrete Haul Jobs for identified shipments. Add hard goods/carriage reservations,
+  neutral policy at the future Leader boundary, and title transfer only on successful delivery.
+- Add time-to-bite and suffering state, depot pressure, facility-service coverage, public request
+  fulfillment, convoy state, and structured failure reasons to the headless report, pain map, and
+  live feed.
+- Add seeded disruptions for missing supply, insufficient service capacity, invalidated standby,
+  distant stock, blocked routes, and excess competing aid.
 
-**Tune now:** production cadence, buffer targets, truck capacity and cooldowns, request priority,
-allocation weights, progress-lease duration, re-planning cadence, and starvation thresholds.
+**Watchable outcome:** Regional depots accumulate raw and finished goods while persistent shuttles
+keep nearby facilities running; Greyline convoys carry accepted aid to a remote depot. Removing one
+link produces an upstream, local-service, inter-depot, or last-mile failure that is distinct on the
+map and in the feed.
 
-**Exit gate:** A healthy scenario reaches stable throughput; each disruption fails in a distinct,
-diagnosable way; contested allocations follow their documented resolution rules; goods and hauling
-capacity are never duplicated, promised twice, or silently reassigned.
+**Tune now:** facility input/output buffer batches, depot targets and protected reserves, pickup
+thresholds, service commitment and standby windows, truck capacity and cooldowns, direct-bypass
+threshold, neutral demand/aid/haul weights, re-planning cadence, and time-to-bite thresholds.
+
+**Exit gate:** A healthy scenario reaches stable throughput without forcing every matched local flow
+through a depot; standing facility services survive ordinary higher-scored spot work; each
+disruption fails in a distinct, diagnosable way; Charter title survives third-party carriage and
+changes only at agreed delivery; goods and hauling capacity are never duplicated, promised twice, or
+silently reassigned.
 
 ## Loop 2 — Land is command
 
@@ -134,8 +148,9 @@ supply, terrain, and autonomous decisions?
 
 ### Iteration 3B — The supplied front
 
-- Connect infantry food, equipped rifles and grenades, carried ammunition, and local demand
-  generation to the economy and Request Board.
+- Connect infantry food, equipped rifles and grenades, and carried ammunition to durable local
+  demand signals and sticky supporting depots. Managers create last-mile shipments from those depots
+  and escalate only uncovered depot requirements to the public Request Board.
 - Add capture of hexes, facilities, and stock; apply land claims and liberation rules to the result.
 - Run one enemy Charter through the same physical production, transport, and combat systems, driven
   by a single authored offensive goal.
@@ -162,8 +177,8 @@ rather than arbitrary modifiers?
 ### Iteration 4A — Personality and relationships
 
 - Add the MVP leader traits, doctrine biases, competence, loyalty, and simple friend/feud pairs.
-- Apply those factors to land valuation, operation choice, request donation/hauling priority, and
-  petition generation.
+- Apply those factors to land valuation, operation choice, Aid Request donation, Haul Job priority,
+  reserve sacrifice, and petition generation.
 - Surface reasons for refusals and priority changes in council text and the event feed.
 
 ### Iteration 4B — Trust and coercion
@@ -234,8 +249,9 @@ changed without code edits?
 
 - Reconcile the region radius and total campaign size with the target of roughly 630 hexes per
   nation, then tune the authored campaign at the chosen scale.
-- Add batch seed runs and export a compact tuning report: production utilization, request latency and
-  fill rate, convoy distance/loss, shortage duration, front movement, casualties, morale breaks,
+- Add batch seed runs and export a compact tuning report: production utilization, facility-service
+  coverage, standby and blocked time, depot pressure, Aid Request latency and fill rate, Haul Job
+  latency, convoy distance/loss, shortage duration, front movement, casualties, morale breaks,
   Charter loyalty, Influence flow, Will flow, and ending cause.
 - Stress the 5,000-unit simulation ceiling separately from the smaller MVP campaign.
 - Run repeated observer/council playtests; simplify or cut any system that is not legible or does not
