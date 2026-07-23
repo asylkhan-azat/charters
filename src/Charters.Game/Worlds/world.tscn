@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://certt6uxv2keg"]
+[gd_scene load_steps=12 format=3 uid="uid://certt6uxv2keg"]
 
 [ext_resource type="Script" uid="uid://cpnl8yy7mfvan" path="res://Worlds/World.cs" id="1_f3sb7"]
 [ext_resource type="Script" uid="uid://ca0m7w3fuxymp" path="res://Worlds/HexMapRenderer.cs" id="2_hexmap"]
@@ -8,6 +8,8 @@
 [ext_resource type="Script" path="res://Visuals/UnitRenderer.cs" id="5_units"]
 [ext_resource type="Resource" uid="uid://btisrmo2worev" path="res://Data/unit_palette.tres" id="6_unit_palette"]
 [ext_resource type="Script" uid="uid://dah366l4qoo46" path="res://Visuals/EventLogPanel.cs" id="7_event_log"]
+[ext_resource type="Script" path="res://Worlds/RoadRenderer.cs" id="8_roads"]
+[ext_resource type="Script" path="res://Worlds/StructureRenderer.cs" id="9_structures"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_event_log"]
 bg_color = Color(0.105, 0.115, 0.125, 0.96)
@@ -31,6 +33,13 @@ TerrainPalette = ExtResource("3_dwbse")
 [node name="Units" type="MultiMeshInstance3D" parent="."]
 script = ExtResource("5_units")
 UnitPalette = ExtResource("6_unit_palette")
+
+[node name="Roads" type="MeshInstance3D" parent="."]
+script = ExtResource("8_roads")
+
+[node name="Structures" type="Node3D" parent="."]
+script = ExtResource("9_structures")
+CharterPalette = ExtResource("6_unit_palette")
 
 [node name="TickDriver" type="Node" parent="."]
 script = ExtResource("5_tick")

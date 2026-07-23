@@ -17,7 +17,9 @@ public sealed partial class World : Node3D
     {
         try
         {
-            _simulation = SimulationBootstrapper.Boot();
+            var boot = SimulationBootstrapper.Boot();
+            _simulation = boot.Simulation;
+            GetNode<RoadRenderer>("Roads").Render(boot.Roads);
         }
         catch (Exception exception)
         {
@@ -26,6 +28,7 @@ public sealed partial class World : Node3D
         }
 
         GetNode<HexMapRenderer>("Map").Render(_simulation);
+        GetNode<StructureRenderer>("Structures").Render(_simulation);
         _units = GetNode<UnitRenderer>("Units");
         _units.Render(_simulation);
         _eventLog = GetNode<EventLogPanel>("Ui/EventLog");
@@ -44,6 +47,7 @@ public sealed partial class World : Node3D
     private void Redraw()
     {
         _units!.Render(_simulation!);
+        GetNode<StructureRenderer>("Structures").Render(_simulation!);
         UpdateTickLabel();
     }
 

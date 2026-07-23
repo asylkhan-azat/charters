@@ -4,15 +4,14 @@
     "name": "Infantry",
     "features": [
       { "type": "inventory", "slots": 2 },
-      { "type": "equipment-slots", "slots": ["back"] }
+      { "type": "equipment-slots", "slots": ["main-weapon", "grenade"] }
     ]
   },
   {
     "id": "worker",
     "name": "Worker",
     "features": [
-      { "type": "inventory", "slots": 1 },
-      { "type": "equipment-slots", "slots": ["back"] }
+      { "type": "inventory", "slots": 1 }
     ]
   },
   {

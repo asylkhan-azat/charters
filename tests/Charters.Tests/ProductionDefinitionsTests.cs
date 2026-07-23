@@ -35,10 +35,13 @@ public sealed class ProductionDefinitionsTests
         Assert.NotNull(slotExpansion);
         Assert.Equal(2, slotExpansion!.AdditionalSlots);
 
-        foreach (var itemId in new[] { "ore", "sulfur", "food", "materials", "refined-sulfur", "rifle", "grenades", "ammunition" })
+        foreach (var itemId in new[] { "ore", "sulfur", "food", "materials", "refined-sulfur", "ammunition" })
         {
             Assert.Empty(definitions.Items[itemId].Features);
         }
+
+        Assert.Equal("main-weapon", definitions.Items["rifle"].Feature<EquippableItemFeatureDefinition>()!.EquipmentSlot);
+        Assert.Equal("grenade", definitions.Items["grenades"].Feature<EquippableItemFeatureDefinition>()!.EquipmentSlot);
     }
 
     [Fact]

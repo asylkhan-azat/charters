@@ -1,0 +1,10 @@
+{
+  "regionRadius": 4,
+  "terrainSeedsPerRegion": 5,
+  "nations": [{ "id": "player" }, { "id": "enemy" }],
+  "regions": [
+    { "id": "ironfields", "name": "Ironfields", "nation": "player", "gridCoordinate": { "q": 0, "r": 0 }, "terrainWeights": { "plains": 6, "hill": 3, "forest": 1 } },
+    { "id": "sulfur-flats", "name": "Sulfur Flats", "nation": "player", "gridCoordinate": { "q": 1, "r": 0 }, "terrainWeights": { "plains": 7, "hill": 2, "marsh": 1 } },
+    { "id": "central-works", "name": "Central Works", "nation": "player", "gridCoordinate": { "q": 0, "r": 1 }, "terrainWeights": { "plains": 7, "forest": 2, "urban": 1 } }
+  ]
+}

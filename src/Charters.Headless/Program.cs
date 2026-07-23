@@ -198,7 +198,7 @@ namespace Charters.Headless
             }
         }
 
-        private static void AddItems(IncrementalHash hash, string kind, string host, IReadOnlyList<Charters.Sim.Core.ItemQuantityView> items)
+        private static void AddItems(IncrementalHash hash, string kind, string host, IReadOnlyList<ItemQuantityView> items)
         {
             foreach (var item in items)
             {
@@ -234,7 +234,7 @@ namespace Charters.Headless
                     completedBatches = simulation.Views.Diagnostics.CompletedBatchesFor(facility.Id),
                     progressTicks = facility.ProgressTicks,
                     status = facility.LastStatus.ToString(),
-                    statusTicks = Enum.GetValues<Charters.Sim.Facilities.Models.FacilityStatus>()
+                    statusTicks = Enum.GetValues<Sim.Facilities.Models.FacilityStatus>()
                         .ToDictionary(status => status.ToString(), status => simulation.Views.Diagnostics.StatusTicksFor(facility.Id, status)),
                     stock = facility.Stock.Select(Item)
                 });
@@ -253,8 +253,8 @@ namespace Charters.Headless
             return JsonSerializer.Serialize(new { seed, tick = simulation.Tick, scenarioId, digest, facilities, depots, units, ground, conservation }, Options);
         }
 
-        private static object Item(Charters.Sim.Core.ItemQuantityView item) => new { item = item.ItemId, quantity = item.Quantity, capacity = item.Capacity };
+        private static object Item(ItemQuantityView item) => new { item = item.ItemId, quantity = item.Quantity, capacity = item.Capacity };
         private static object Owner(Charters.Sim.Charters.Ownership owner) => new { nation = owner.Nation.ToString(), charterId = owner.CharterId?.Value };
-        private static object Location(Charters.Sim.Hexes.HexAddress location) => new { q = location.Q, r = location.R };
+        private static object Location(Sim.Hexes.HexAddress location) => new { q = location.Q, r = location.R };
     }
 }

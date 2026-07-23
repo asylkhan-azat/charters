@@ -40,7 +40,7 @@ public sealed partial class UnitRenderer : MultiMeshInstance3D
             HexLayout.CenterOf(unit.Position) + Vector3.Up * MarkerHeight);
         state.Mesh.SetInstanceTransform(state.Index, transform);
 
-        var color = state.ColorPalette?.ColorOf(unit.Definition.Id) ?? Colors.Magenta;
+        var color = state.ColorPalette?.ColorOf(unit.Owner.CharterId?.Value.ToString() ?? "charterless") ?? Colors.Magenta;
         state.Mesh.SetInstanceColor(state.Index, color);
         state.Index++;
     }

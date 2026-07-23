@@ -5,6 +5,8 @@ using Charters.Sim.Charters;
 using Charters.Sim.Map;
 using Charters.Sim.Map.Generation;
 using Charters.Sim.Random;
+using Charters.Sim.Scenarios;
+using Charters.Sim.Scenarios.Infrastructure.Serialization;
 
 namespace Charters.Tests;
 
@@ -52,6 +54,16 @@ internal static class TestData
     public static MapTemplate LoadShippedMap(DefinitionSet definitions)
     {
         return MapTemplateLoader.Load(Path.Combine(FindRepoRoot(), "data", "maps", "mvp.json"), definitions);
+    }
+
+    public static Simulation CreateA1ProofSimulation(ulong seed = 42)
+    {
+        var definitions = LoadShippedDefinitions();
+        var template = MapTemplateLoader.Load(Path.Combine(FindRepoRoot(), "data", "maps", "a1-proof.json"), definitions);
+        var random = new RandomSet(seed);
+        var map = WorldGenerator.Generate(definitions, random, template);
+        var scenario = ScenarioLoader.Load(Path.Combine(FindRepoRoot(), "data", "scenarios", "a1-proof.json"), definitions, template, map);
+        return ScenarioSimulationFactory.Create(scenario, definitions, map, random);
     }
 
     private static string FindRepoRoot()

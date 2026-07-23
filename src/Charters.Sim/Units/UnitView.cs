@@ -1,4 +1,5 @@
 using Charters.Sim.Hexes;
+using Charters.Sim.Charters;
 using Charters.Sim.Units.Definitions;
 
 namespace Charters.Sim.Units;
@@ -7,4 +8,5 @@ namespace Charters.Sim.Units;
 public readonly record struct UnitView(
     UnitId Id, 
     HexAddress Position, 
-    UnitDefinition Definition);
+    UnitDefinition Definition,
+    Ownership Owner);

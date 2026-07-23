@@ -43,7 +43,7 @@ public sealed class SimulationDiagnosticsTests
         Assert.True(simulation.Services.UnitFactory.TryGetEntity(unitId, out var entity));
         var unitItems = simulation.Entities.Get<UnitItems>(entity);
         unitItems.Inventory.Put(new ItemQuantity(definitions.Items["ammunition"], 20));
-        Assert.True(unitItems.Equipment.TryInstall("back", definitions.Items["field-pack"]));
+        Assert.True(unitItems.Equipment.TryInstall("main-weapon", definitions.Items["rifle"]));
 
         simulation.AuditConservation();
 
@@ -52,7 +52,7 @@ public sealed class SimulationDiagnosticsTests
         Assert.Equal(7, simulation.Views.Diagnostics.ExpectedTotal(definitions.Items["sulfur"]));
         Assert.Equal(11, simulation.Views.Diagnostics.ExpectedTotal(definitions.Items["materials"]));
         Assert.Equal(20, simulation.Views.Diagnostics.ExpectedTotal(definitions.Items["ammunition"]));
-        Assert.Equal(1, simulation.Views.Diagnostics.ExpectedTotal(definitions.Items["field-pack"]));
+        Assert.Equal(1, simulation.Views.Diagnostics.ExpectedTotal(definitions.Items["rifle"]));
     }
 
     [Fact]

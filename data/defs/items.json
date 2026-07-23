@@ -45,7 +45,7 @@
     "tags": ["small-arms-weapons"],
     "stackLimit": 1,
     "stockpileLimit": 20,
-    "features": []
+    "features": [{ "type": "equippable", "equipmentSlot": "main-weapon" }]
   },
   {
     "id": "grenades",
@@ -53,7 +53,7 @@
     "tags": ["assault-explosives"],
     "stackLimit": 4,
     "stockpileLimit": 80,
-    "features": []
+    "features": [{ "type": "equippable", "equipmentSlot": "grenade" }]
   },
   {
     "id": "ammunition",
