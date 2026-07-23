@@ -48,7 +48,9 @@ The Leader decides:
   politically meaningful external carriage;
 - when an unresolved depot requirement deserves an Aid Request, refusal, reprioritization, or
   council petition;
-- how to respond to requests, Direct Orders, grants, and relationships.
+- how to respond to requests, Direct Orders, grants, relationships, council appeals, brokered
+  pledges, guarantees, priority grants, censures, reserve or haul-policy requests, and operational
+  restraints.
 
 Leader preferences change weights, thresholds, reserve floors, and acceptable risks. They do not
 directly become percentages of units or exact operational assignments.

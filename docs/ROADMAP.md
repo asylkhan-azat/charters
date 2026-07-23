@@ -288,6 +288,8 @@ record the decision there rather than here.
 ## Scope gate
 
 When a loop exposes a problem, first tune, simplify, or improve its existing AI and feedback. Do not
-pull a feature from the deferred list unless the MVP thesis cannot be tested without it. In particular,
-fuel, machines beyond free-running trucks, construction, medicine, research, full feud/unrest ladders,
-rights, Compacts, Grand Plans, and the expanded observer suite remain post-MVP.
+pull a feature from the deferred list unless the MVP thesis cannot be tested without it. In
+particular, fuel, machines beyond free-running trucks, construction, medicine, research (including
+mutually exclusive technology branches), full feud/unrest ladders, rights, Compacts, Grand Plans,
+scoped council leverage beyond the base MVP actions, and the expanded observer suite remain
+post-MVP.

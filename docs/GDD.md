@@ -330,15 +330,89 @@ Interaction is via a **structured action/petition system** (no freeform dialogue
 | Appoint Marshal | Name one leader Marshal of a front: charters fighting there coordinate under his operational lead | Coordination bonus + prestige for him; resentment from everyone he now outranks, scaled by their pride |
 | Request operation | "Take Region X" / "Fortify the river line" / "Prioritize shell production" | **First request each council is free; each subsequent one costs a small amount of Influence** (anti-micromanagement tax). Compliance depends on loyalty, doctrine, feasibility |
 | **Grand Plan** | Broadcast a strategic goal to all leaders, or a chosen subset: *"The Emperor wants the Eastern Mountains conquered."* Charters weigh it against their own doctrine and situation. Each targeted leader answers with a public **pledge** — units, goods, or a polite demurral — so the player sees coalition strength (and who is dragging their feet) before anything launches | **Influence** (scales with audience size) |
+| Council Appeal | Publicly endorse one existing Aid Request until the next council | Free, but limited to one active appeal; increases voluntary attention without overriding reserves or commitments |
+| Brokered Pledge | Ask one capable Charter to make a minor, substantial, or all-feasible contribution to an Aid Request | Leader may accept, counter, or refuse; an accepted exact pledge becomes a public commitment |
+| Release the Reserves | Ask a Charter to lower one protected item reserve at a named depot for one council cycle | Voluntary; forcing it is a Direct Order and risks the donor's own future supply |
+| Haul Mobilization | Ask a Charter to expose its uncommitted hauling capacity to public Haul Jobs in a named scope | Voluntary; standing services and shipments already carrying cargo remain protected |
+| The General's Guarantee | Stake the player's word on an Aid Request, pledge, or declared operation | Success earns political credit; failure or abandonment costs Influence and trust |
+| Red Line | Forbid new offensive commitments in a named region until the next council | **Influence** + resentment; defence, retreat, and logistics remain legal |
+| Operational Veto | Approve, delay, forbid, or demand preparation for a disclosed major operation | Approval is free; restraint costs Influence and loyalty, but is narrower than a Red Line |
+| Public Censure | Publicly condemn a Charter for a recent attributable failure | Loyalty and relationship consequences; must cite an eligible event and does not itself compel correction |
+| Grant of Priority | Give one Charter official preference for a named category of public cooperation for one council cycle | Raises the beneficiary's loyalty but creates visible favoritism and possible rival resentment |
 | **Direct Order** | Compulsory version of a request — cannot be refused | **Influence**; loyalty hit; witnessed by other leaders |
 | Mediate dispute | Resolve an inter-charter feud event | Outcome shifts both loyalties |
 | Demand quota | Production/delivery quota on an industrial charter | Compliance loyalty-gated |
 | Honor / decorate | Ceremonial recognition of a charter's deed | Cheap loyalty tool; devalues if spammed |
 | Found charter | Create a charter from charterless units (§6.2) | Heavy Influence |
 
-### 8.2 Influence
+### 8.2 Scoped council leverage
 
-The player's coercion currency. **Gained** by: rising average loyalty, honored compacts, victories at objectives, leaders' requests honored. **Spent** on: Direct Orders, Grand Plans, extra operation requests beyond the free one, compelling coverage of ungranted land, Emergency Summons, founding charters.
+These actions operate on Leaders, public commitments, and broad outcomes. They never let the player
+select trucks, allocate units, draw routes, schedule facilities, or take title to goods. Managers
+remain responsible for converting accepted political direction into feasible physical plans.
+
+Unless a rule says otherwise, a temporary council effect lasts until the next scheduled council.
+An Emergency Summons opens a council and therefore permits the same actions; none becomes a separate
+observer-phase button. Brokered Pledge, Release the Reserves, and Haul Mobilization are specialized
+requests and share the normal first-free-then-Influence request allowance. Only one Appeal, one
+Guarantee, and one Grant of Priority may be active at a time; Public Censure is limited to once per
+council.
+
+- **Council Appeal.** The player selects one published Aid Request. Every eligible Leader treats the
+  appeal as a visible positive factor when deciding whether to donate goods or accept its Haul Jobs,
+  but may still protect reserves, preserve standing commitments, or refuse for an attributable
+  reason. The appeal neither promises a result nor creates reservations by itself.
+- **Brokered Pledge.** The player selects an Aid Request, one capable Charter, and a broad requested
+  contribution: minor, substantial, or all feasible. The Leader accepts, counters, or refuses. On
+  acceptance, the Charter's Manager resolves the band into an exact feasible quantity; that public
+  pledge creates the ordinary goods and carriage commitments required to fulfill it.
+- **Release the Reserves.** The player asks a Charter to lower the protected floor for one item in
+  one depot. The Leader may release part of the reserve, release everything above a survival floor,
+  or refuse. Released goods merely become available for ordinary planning, Aid Requests, and
+  shipments; they do not teleport or change title. A Direct Order can compel reserve sacrifice but
+  cannot duplicate goods, cancel cargo in transit, or erase an existing hard commitment.
+- **Haul Mobilization.** The player asks one Charter to favor public Haul Jobs, optionally scoped to
+  a region or beneficiary. Only genuinely uncommitted capacity changes priority: active shipments,
+  cargo already picked up, and valid standing facility services remain protected. The Leader may
+  accept, narrow the scope, or refuse.
+- **The General's Guarantee.** The player attaches their credibility to one Aid Request, accepted
+  pledge, or declared operation and its existing success condition. Leaders value cooperation more
+  highly because the Grand General has made the outcome politically salient. Success earns
+  Influence and loyalty with participants; expiry, explicit abandonment, or preventable failure
+  costs Influence and trust. A guarantee changes willingness, not physical feasibility.
+- **Red Line.** The player names a region in which no Charter may create or join a new offensive
+  commitment until the next council. Units may defend, retreat, resupply, evacuate, or finish
+  resolving an engagement already in contact. A Red Line is a witnessed multi-Leader restraint:
+  aggressive and land-hungry Leaders resent it, especially when it blocks one of their claims.
+- **Operational Veto.** A disclosed major operation appears before the council with its Leader's
+  stated objective and preparation. The player may approve it, delay it, forbid it, or ask the
+  Leader to return after specified broad readiness conditions are met. Approval is free; asking for
+  preparation is a request, while delay or prohibition spends Influence and causes a witnessed
+  loyalty loss. The veto cannot apply to an intention the player does not know; loyalty-gated
+  disclosure therefore matters. A Red Line is the costlier tool when the player needs a blanket
+  prohibition despite uncertain intentions.
+- **Public Censure.** The player cites a recent event whose responsibility is attributable, then
+  condemns the responsible Charter before the council. The act lowers the target's loyalty, moves
+  its friends and rivals according to relationship and personality, and may provoke compliance,
+  defensiveness, or defiance. It applies no hidden production or combat penalty. Repeated or plainly
+  unfair censures create national anxiety and make the player look arbitrary.
+- **Grant of Priority.** The player names one Charter and one category of public cooperation, such
+  as food aid, ammunition aid, or hauling. For one cycle, eligible Leaders treat helping that
+  Charter as prestigious service to the nation. The grant affects future as well as existing board
+  work in its category, but never breaches reserves or hard commitments. The beneficiary appreciates
+  the favor; rivals can resent repeated preference.
+
+Council Appeal and Grant of Priority are deliberately different. An appeal highlights one concrete,
+already-public need. A priority grant favors one recipient across a narrow category for a whole
+cycle, making it more powerful and more politically divisive.
+
+### 8.3 Influence
+
+The player's coercion currency. **Gained** by: rising average loyalty, honored compacts, victories at
+objectives, leaders' requests honored, and successful Guarantees. **Spent or lost** on: Direct
+Orders, Grand Plans, extra requests beyond the free one, Red Lines, operational restraint,
+compelling coverage of ungranted land, failed or abandoned Guarantees, Emergency Summons, and
+founding charters.
 
 Two rules keep it from being generic mana:
 
@@ -510,10 +584,30 @@ Consequences: specialization is sticky, quota demands have visible costs, the Sh
 
 Tech progression without a player-clicked tree — **the tech tree is the society**:
 
-- Technology is a **branching tree** (genuinely nonlinear: armor, artillery, aviation, logistics, medicine branches with real forks).
+- Technology is a **branching tree** (genuinely nonlinear: armor, artillery, aviation, logistics,
+  medicine branches with real forks). Some forks are **exclusive families**: completing one node
+  permanently locks its named alternatives for that nation for the rest of the campaign. Any
+  unfinished progress in a newly locked alternative is recorded as abandoned work and cannot be
+  completed or refunded.
+- Exclusive choices trade capabilities rather than offering an obvious upgrade. For example,
+  completing **Mk Rifle 1A** unlocks a faster-firing rifle with lower damage and shorter range while
+  permanently locking **Bregitto Rifle Variant 1**, whose rifle fires more slowly but hits harder at
+  longer range; completing Bregitto locks Mk 1A instead.
+- Both nations may begin from the same functional tree and obey the same physical rules, yet finish
+  with asymmetric doctrine, equipment, production demand, and battlefield behavior because their
+  Charters completed different exclusive choices. Names and presentation may be nation-specific,
+  but corresponding alternatives must expose comparable tradeoffs rather than hidden faction buffs.
 - **Researcher units** (§5.2) work at laboratories/design bureaus. Each charter's **leader chooses** which node their researchers advance — steered by doctrine: the Artillery Zealot funds gun tech, the logistics-minded leader chases better trucks.
 - Progress on a node accumulates from *all* contributing charters; when it completes, the charter that contributed most is named the tech's **inventor** — prestige, War Diary entry, and their factories brag about it.
-- **Design bureau proposals:** industrial charters pitch prototypes at council — "grant us a proving ground and the sulfur flats, and we'll give you a heavier hull by spring." Tech arrives as negotiation; unlocks are charter achievements.
+- **Design bureau proposals:** industrial charters pitch prototypes at council — "grant us a
+  proving ground and the sulfur flats, and we'll give you a heavier hull by spring." A proposal for
+  an exclusive node names every alternative its completion would lock, and reports warn when rival
+  branches are approaching the point of no return. Tech arrives as negotiation; unlocks are charter
+  achievements.
+- A weapon or machine technology unlocks a new physical item, recipe, or permanent chassis change;
+  it does not silently improve equipment that already exists. Mk 1A rifles must be manufactured and
+  hauled to units, old rifles remain old rifles, and captured locked-branch equipment can be used
+  when compatible but does not grant its production technology.
 - The player never clicks a research button (Pillar 6). They shape the nation's tech path by *which industrialists they empower* — plus requests, Grand Plans, and lab-land grants.
 
 ---
@@ -648,9 +742,13 @@ At campaign end — any ending — every charter receives a **fate card** genera
 8. Air, naval, artillery arms.
 9. Intelligence/espionage & audits; report lies & spin (MVP ships staleness only).
 10. Grand-persona authored leaders; authored event chains.
-11. Research & Technology: branching tech tree, Researcher units, design bureau proposals, inventor prestige (§10.4).
+11. Research & Technology: branching tech tree with nation-wide exclusive choices and physical
+    equipment variants, Researcher units, design bureau proposals, inventor prestige (§10.4).
 12. Seasons & weather calendar (§4.4); terrain scarring (§11); skimming (§10.3); full unrest ladder + opposition blocs (§13.3); full feud ladder (§6.5).
-13. Council levers 2.0: rights grants (§7), Compacts (§3.2), Grand Plans with pledge rolls, joint operations, Marshal appointments (§8.1). MVP councils use the base action set only.
+13. Council levers 2.0: rights grants (§7), Compacts (§3.2), Grand Plans with pledge rolls, joint
+    operations, Marshal appointments, and the scoped appeals, pledges, reserve/haul requests,
+    guarantees, operational restraints, censures, and priority grants in §8.2. MVP councils use the
+    base action set only.
 14. Logistics 2.0: standing contracts, escort requests, recovery hauling (§10.3); Damaged state & workshops, captured equipment (§11); denial warfare/demolition (§10.2); full manpower pipeline with specialized schools and goods costs (§5.6).
 15. Produced intelligence: observation balloons, recon flights (§9).
 16. Land & politics texture: homeland attachment (§7), front fatigue & rest-land rotation (§11), night rules (§11). MVP eviction uses a simplified flat grace window.
