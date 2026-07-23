@@ -34,6 +34,12 @@ This session completed:
   Haul Jobs only. Ordinary goods retain Charter title through third-party carriage and change title
   only on delivery into the requester depot compartment; direct national ownership remains limited
   to genuinely charterless state.
+- Simplified living facility transfer: the new owner claims the active production state and every
+  item in the small embedded buffer with the facility. The former A1 ejection-to-ground behavior is
+  now an explicit 1B Package 1 migration; separately hosted goods retain the land-loop grace rule.
+- Separated physical configuration, diagnostic guardrails, and neutral AI policy tuning. Future
+  Leaders compile semantic posture into bounded effective Manager policy; active work snapshots its
+  terms. The 1B tuning plan now states the simulation effect of moving every value up or down.
 - Added the approved 1B implementation specification and synchronized the GDD, roadmap, active Loop
   design, and Charter AI architecture. The TDD remains unchanged because it describes implemented
   code and no 1B package has landed.

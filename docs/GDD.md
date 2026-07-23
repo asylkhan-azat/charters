@@ -292,14 +292,16 @@ Setup also offers **scenario seeds** (post-MVP): distinct geographies — river 
 - **Land quality is a negotiation currency — and it's subjective.** A hex with a rail line, an ore deposit, or a factory is objectively worth ten of farmland, but leaders value land through their own doctrine: a farming-minded leader shrugs at a mining hex; the Shell Baron would trade three villages for it. The same grant can be an insult to one leader and a coronation to another — reading what a leader *wants* is part of the game.
 - **Borders and enclaves create relationships — friction or symbiosis.** Splitting a rail line between feuding charters, or planting an enclave in a rival's heartland, creates predictable trouble (sometimes the player wants that: divide and rule). But complementary neighbors bond: a warrior charter beside an ammo-producing worker charter has nothing to argue about and everything to trade — proximity plus mutual dependence breeds friendship. Even two warrior charters can become fast friends by saving each other in battle. **Adjacency is a relationship engine, and the player is its architect.**
 - **Revocation is expensive.** Taking land away tanks loyalty with the loser and *worries every other leader* ("are we next?"). Revoking from the disloyal to reward the loyal is a legitimate — and dangerous — play.
-- **The eviction rule.** On revocation (or lease lapse), movable stock on the land remains claimable
+- **Facility claim and eviction.** On revocation (or lease lapse), each static facility transfers
+  immediately with its active production state and all goods in its small embedded input/output
+  buffer. The new landholder claims that buffer as part of the industrial asset; no ground piles are
+  created merely to empty a facility. Separately hosted movable stock on the land remains claimable
   by the previous owner for a **grace window** — their logists must physically haul it out in time.
-  Static facilities transfer immediately, but their former owner's embedded stock is ejected into
-  identified ground stockpiles at the facility before its new owner receives an empty buffer.
-  Whatever remains when the window closes changes owners with the land. An eviction becomes a
-  *logistics event*: a visible convoy exodus, and a real question of whether the evicted Charter's
-  logists can clear the ground stock in time. *(Grace window length: tuning value.)* Charter death is
-  different: the facility and its contents become charterless together (§10.3).
+  Whatever eligible stock remains when the window closes changes owners with the land. An eviction
+  can still become a visible convoy exodus, but the former owner is not allowed to strip a facility's
+  working buffer after losing the facility itself. *(Grace window length: tuning value.)* Charter
+  death follows the same aggregate principle but makes the facility and its contents charterless
+  together (§10.3).
 - **Homeland attachment.** Land held long enough becomes a charter's **homeland**: defending it grants a morale bonus, grants adjacent to it are valued extra, and revoking it is a category-worse insult than revoking ordinary land. One counter per charter-region, and land gains *memory* — late-game maps aren't zones, they're places somebody is from. It also creates the game's hardest decision: the only defensible line runs through someone's homeland.
 - **The liberation rule.** **Grants survive occupation** — enemy-captured land stays on its charter's books, and retaking their homeland is their war. But when a *different* charter liberates it, the liberator gains a moral claim and may petition for the land — forcing exactly the ruling this game is about: reward the charter that bled for it, or restore the dispossessed. Without this rule, every counteroffensive is undefined behavior.
 - **Grants can be refused.** A leader may decline a grant — rare, loyalty-dependent, and mildly embarrassing for the player ("the Ironclads want no swamp"). This gives subjective land value behavioral teeth: pushing bad land on proud people teaches the player something, publicly.
@@ -474,8 +476,9 @@ Each facility has one small embedded input/output buffer owned with the facility
 working space, not a warehouse. **Depots are not facilities:** they are high-capacity national
 infrastructure buildings with separate storage for every Charter and are the normal consolidation,
 dispatch, and inter-Charter hand-over points. Each facility has a sticky supporting depot selected by
-its Manager. (**Towns** (§5.6) are static structures too, but pre-existing — Builders cannot build
-population.)
+its Manager. When facility control changes, its production state and embedded buffer follow the
+facility under the [facility-claim rule](#7-land-granting--the-core-verb). (**Towns** (§5.6) are
+static structures too, but pre-existing — Builders cannot build population.)
 
 **Denial warfare:** Builders can also *demolish* — any destructible structure: bridges, rail, factories, depots, workshops. Scorched earth in front of an enemy advance denies them your industry, but it wounds your own network, and dynamiting structures in a charter's homeland is a loyalty event, not a free action. Leaders with roots there may refuse the request. *(Needs a guardrail so AI charters and the enemy director can't scorched-earth the map into a slog.)*
 
@@ -495,10 +498,11 @@ Consequences: specialization is sticky, quota demands have visible costs, the Sh
   belong to one Charter. Direct national ownership is reserved for genuinely charterless state; the
   logistics model never nationalizes ordinary Charter goods. A carrier is the custodian of cargo,
   not automatically its title-holder. Internal movement never changes title. Donated goods change
-  title only when delivered into the recipient's depot compartment; capture, eviction, and Charter
-  death retain their separate rules. Dead-Charter property becomes charterless in place. At each
-  depot, death overflow passes to other same-nation Charters before capped charterless ground piles
-  are created.
+  title only when delivered into the recipient's depot compartment. Facility transfer is a separate
+  aggregate transition that claims its small embedded buffer with the facility; capture, eviction,
+  and Charter death retain their rules in §7. Dead-Charter property becomes charterless in place. At
+  each depot, death overflow passes to other same-nation Charters before capped charterless ground
+  piles are created.
 - **Depots are logical hubs, not mandatory physical waypoints.** A Charter's Manager gives every
   supported facility and, later, every supplied unit a sticky supporting depot. The Charter's
   compartment there aggregates projected requirements, available stock, inbound and outbound

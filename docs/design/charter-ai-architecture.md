@@ -53,7 +53,8 @@ The Leader decides:
   restraints.
 
 Leader preferences change weights, thresholds, reserve floors, and acceptable risks. They do not
-directly become percentages of units or exact operational assignments.
+directly become percentages of units or exact operational assignments. Leaders express semantic
+policy; they do not edit raw tuning fields.
 
 ### Charter Manager
 
@@ -134,6 +135,30 @@ adding personality; later Leaders may approve, refuse, reprioritize, or petition
 Leader-to-player escalation never interrupts the observer phase. The Leader resolves the issue
 autonomously or queues a petition for the next War Council. Only the player may invoke an Emergency
 Summons under the GDD rules.
+
+### Policy compilation and tuning ownership
+
+Authored data separates three kinds of value:
+
+- **mechanics and physical configuration** define what the world can do, such as cargo capacity,
+  facility buffer capacity, movement cost, and simulation cadence;
+- **hard guardrails** preserve legal and stable behavior, such as capacity invariants, valid tuning
+  ranges, conservation, and the rule that ordinary rescoring cannot reclaim committed work; and
+- **neutral policy defaults** describe how the dormant 1B Manager behaves, such as reserve posture,
+  useful pickup size, commitment duration, standby patience, safety margin, and aid generosity.
+
+Future Leader AI does not replace the first two categories and does not apply one universal
+multiplier to the third. It produces semantic postures and decisions; a deterministic policy
+compiler maps those inputs, Manager doctrine, accepted commitments, and authored defaults into a
+bounded, versioned `EffectiveManagerPolicy`. For example, a cautious reserve posture can raise
+protected stock and desired facility cover, while an efficiency posture can prefer fuller pickups
+and longer forecast-backed standby. Each lever has its own direction and allowed range.
+
+Operational heuristics remain Manager-owned even when Leader policy biases them. The Leader may
+prefer stability or urgency; the Manager still calculates routes, forecasts, quantities, and exact
+assignments from physical state. Active services and accepted commitments snapshot their relevant
+policy terms until renewal or a permitted break condition, so a policy change cannot retroactively
+erase a promise or cause assignment churn.
 
 ## State and execution boundaries
 

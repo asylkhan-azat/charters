@@ -27,6 +27,8 @@ The iteration is accepted when the dedicated scenario:
   work as Haul Jobs, never as internal transfer or request-to-own modes;
 - carries another Charter's cargo without changing title at pickup, then transfers title atomically
   when aid reaches the requester compartment;
+- changes a facility owner by atomically claiming its active production state and small embedded
+  buffer for the new owner, without ejecting goods into ground piles;
 - distinguishes source shortage, depot shortage, service-capacity failure, invalid standby, blocked
   route, stalled cargo, and public refusal in diagnostics;
 - reconciles every item and owner across buffers, depot compartments, reservations, cargo,
@@ -36,13 +38,14 @@ The iteration is accepted when the dedicated scenario:
 
 ## Scope boundaries
 
-1B includes recipe-relative facility input/output limits; sticky supporting-depot assignment for
-facilities; durable demand and available-output signals; Charter/depot/item planning; private
-shipment orders; same-Charter direct facility bypass; persistent facility services; deliberate
-standby; truck cargo whose title is independent from the carrier; pickup, routing, and delivery;
-public Aid Requests, supply commitments, Haul Jobs, and haul commitments; hard goods and carriage
-reservations; neutral decisions at the future Leader boundary; attributed failure; conservation;
-headless diagnostics; the first pain-map overlay; and convoy/service events.
+1B includes recipe-relative facility input/output limits; aggregate facility-and-buffer ownership
+transfer; sticky supporting-depot assignment for facilities; durable demand and available-output
+signals; Charter/depot/item planning; private shipment orders; same-Charter direct facility bypass;
+persistent facility services; deliberate standby; truck cargo whose title is independent from the
+carrier; pickup, routing, and delivery; public Aid Requests, supply commitments, Haul Jobs, and haul
+commitments; hard goods and carriage reservations; neutral decisions at the future Leader boundary;
+attributed failure; conservation; headless diagnostics; the first pain-map overlay; and
+convoy/service events.
 
 1B does not include personality, relationships, a concrete Leader domain object, council petitions,
 Direct Order UI, public standing contracts, group-target selection, unit consumption or unit
@@ -83,7 +86,7 @@ implementation cut. Update the TDD only when implementation makes a new technica
 | Custody | A carrier does not become cargo owner. Each cargo lot retains an explicit title-holder and beneficiary independent from the logist's affiliation. |
 | Delivery transfer | Pickup changes custody only. Aid title changes exactly once, atomically with insertion into the requester depot compartment. Internal delivery never changes title. |
 | Depot role | A depot is national infrastructure with high-capacity owner compartments. It is the logical aggregation and inter-Charter hand-over boundary, not a mandatory waypoint for same-Charter local flow. |
-| Facility role | A facility buffer is recipe-relative working space, smaller than depot storage, and cannot host foreign-owned goods. |
+| Facility role | A facility buffer is recipe-relative working space, smaller than depot storage, and cannot host foreign-owned goods. Changing facility owner atomically claims its production state and every buffered item for the new owner; no eviction pile is created. |
 | Signal authority | Durable demand and available-output signals describe current physical state. Facts announce changes but never become the Manager's source of truth. |
 | Local completion | Stock at a supporting depot can cover a plan but does not satisfy a facility signal until physically delivered to that facility. |
 | Private/public split | Internal signals, depot plans, facility services, and shipment orders are private. Only Aid Requests, accepted pledges, Haul Jobs, and their declared progress are public. |
@@ -138,13 +141,20 @@ The Facility aggregate owns those admission checks. Callers do not resolve its a
 and bypass the recipe buffer policy. Production checks the same output limit before completing a
 batch.
 
+The buffer and production state are inseparable from facility control. A living ownership change
+preserves the active recipe and work progress, changes the facility and every buffered item to the
+new owner atomically, and emits one attributed aggregate transition. It does not clear the buffer,
+copy the stockpile, or create ground piles. Inputs already consumed by an active batch remain
+represented only by that inherited work progress; outputs completed afterward belong to the new
+owner.
+
 Depot compartments retain the larger per-item stationary limits authored for storage. The 1B data
 validator rejects a proof-scenario facility buffer that is not strictly smaller than its supporting
 depot compartment for an item it handles. Ground-stockpile capacity and decay retain the 1A rules.
 
-Input/output batch counts, pickup thresholds, and depot targets are authored policy, not code
-constants. "Smaller buffer" does not mean less than one useful pickup or less than one service
-interval.
+Input/output batch capacities are authored physical configuration. Desired input cover, pickup
+thresholds, and depot targets are neutral policy defaults rather than code constants. "Smaller
+buffer" does not mean less than one useful pickup or less than one service interval.
 
 ### Cargo hold
 
@@ -219,11 +229,11 @@ One live `DemandSignal` exists per source, item, and cause. It records:
 - `OpenedTick`; and
 - current state: forecast, suffering, recovered, or closed.
 
-For a facility input, the target is the active recipe's input quantity multiplied by the authored
-desired input batches. `BitesAtTick` follows actual buffered batches, current production progress,
-and staffing; it is not a guessed arbitrary age threshold. Missing staffing produces a separate
-production diagnosis and makes the replenishment forecast non-urgent until staffing can consume the
-input.
+For a facility input, the target is the active recipe's input quantity multiplied by the Manager's
+effective desired-input policy, capped by physical capacity. `BitesAtTick` follows actual buffered
+batches, current production progress, and staffing; it is not a guessed arbitrary age threshold.
+Missing staffing produces a separate production diagnosis and makes the replenishment forecast
+non-urgent until staffing can consume the input.
 
 The physical shortage excludes planned inbound. The Manager accounts for reservations and inbound
 once in the depot plan; the source does not make promised goods physically present.
@@ -355,6 +365,7 @@ A `FacilityService` is durable private work keyed by `FacilityServiceId` and rec
 - reservation and minimum-commitment expiry;
 - expected output-ready tick and forecast-valid-until tick;
 - pickup threshold and maximum standby deadline;
+- effective-policy version and the service terms snapshotted from it;
 - current phase, cycle count, and decision trace; and
 - terminal or recoverable failure reason.
 
@@ -398,6 +409,10 @@ Standby ends when the pickup threshold is reached, the output-blocking deadline 
 pickup, maximum wait expires, the forecast slips beyond tolerance, staffing/input disappears, the
 route fails, or a permitted emergency preempts the service. Every exit records why the truck waited,
 departed, or became available.
+
+The service snapshots its commitment, pickup, standby, forecast, and safety terms when created or
+renewed. A later policy change applies at renewal unless an existing permitted break condition fires;
+it never makes the assigned truck ordinary free capacity mid-cycle.
 
 ### Service capacity and selective degradation
 
@@ -567,8 +582,19 @@ Preemption records the broken responsibility and never silently republishes alre
 
 ### World and ownership changes
 
-- Facility ownership change closes its signals, cancels unpicked service work, and reassigns the new
-  owner's supporting-depot plan after the existing 1A stock-ejection rule.
+- Facility ownership change resolves in this order:
+  1. cancel and release unpicked reservations, services, shipment orders, and public commitments
+     whose source or destination is the old-owner facility;
+  2. close the old owner's demand/supply signals and remove their depot-plan contributions;
+  3. atomically change the facility, active production state, and every buffered item to the new
+     owner without changing quantity or creating a ground pile;
+  4. emit the facility-claim fact with former owner, new owner, recipe progress, and claimed
+     quantities; and
+  5. assign or validate the new owner's supporting depot, open new signals, and plan from the
+     inherited buffer.
+  Cargo already loaded before the transition is not part of the facility aggregate and keeps its
+  prior title. If that cargo targeted the facility, foreign-buffer admission makes the old delivery
+  invalid and requires return, recovery, or another eligible destination.
 - Charter death uses the 1A redistribution rule. Commitments by or to the dead Charter terminate with
   attribution; physical cargo follows its explicit title-holder through the death transition.
 - A destroyed or removed endpoint invalidates unpicked work. Picked-up cargo remains with the
@@ -593,7 +619,8 @@ Preemption records the broken responsibility and never silently republishes alre
 - haul claim acceptance/withdrawal/expiry;
 - reservation creation/consumption/release;
 - shipment load, route milestone, stall, delivery, return, and terminal loss;
-- title change at aid delivery; and
+- title change at aid delivery;
+- facility-and-buffer claim on ownership change; and
 - every recoverable or terminal failure with cause, actor, avoidability, stage, and quantity.
 
 Facts contain stable IDs and context but never become gameplay control flow.
@@ -612,6 +639,8 @@ Extend the 1A audit by item and title-holder across:
 The audit also asserts:
 
 - facility contents respect recipe-relative limits;
+- every facility buffer has exactly the facility owner, including immediately after ownership
+  change;
 - every cargo lot matches one live or terminal shipment disposition;
 - cargo quantities match occupied cargo-hold slots;
 - reservations do not exceed present goods or capacity;
@@ -660,28 +689,35 @@ Do not add player route controls, internal quantity disclosure, or interactive b
 
 ### Tuning values
 
-All values live in authored data. Proposed starting points are implementation probes, not balance
-promises:
+These values have different roles. Some set physical capacity or timing. Some are safety checks.
+Others are starting preferences for the neutral Manager or Leader. Future Leaders may influence
+preference values within safe limits, but they cannot change physical rules or rewrite work that was
+already accepted. The
+[Charter AI architecture](../design/charter-ai-architecture.md#policy-compilation-and-tuning-ownership)
+owns this split.
 
-| Value | Proposed start | Meaning |
-|---|---:|---|
-| `managerPlanningCadence` | 10 ticks | Signal aggregation, matching, service validation, and escalation cadence |
-| `signalValidationCadence` | 10 ticks | Slow safety recomputation when no threshold event fired |
-| `inputBufferBatches` | 3 | Hard facility input capacity in active-recipe batches |
-| `outputBufferBatches` | 6 | Hard facility output capacity in active-recipe batches |
-| `desiredInputBatches` | 2 | Normal input target below the hard limit |
-| `pickupThresholdFraction` | 0.5 | Output-buffer fraction that makes collection useful |
-| `serviceMinimumCommitmentTicks` | 60 ticks | Minimum period ordinary replanning preserves an assigned service |
-| `maximumStandbyTicks` | 40 ticks | Longest forecast-backed wait before forced validation/release |
-| `forecastSlipToleranceTicks` | 10 ticks | Allowed movement in expected-ready time before replan |
-| `standbyReturnSafetyTicks` | 5 ticks | Margin required before temporarily borrowing a service truck; borrowing remains disabled in 1B |
-| `directBypassMinimumSavings` | 2 route ticks | Minimum benefit over two depot legs |
-| `supplyCommitmentExpiryTicks` | 60 ticks | Pre-pickup donor reservation window |
-| `haulCommitmentExpiryTicks` | 60 ticks | Pre-pickup external-hauler reservation window |
-| `shipmentStallTicks` | 60 ticks | No-forward-progress window that diagnoses a loaded shipment as stalled |
-| `minimumUsefulShipment` | 1 item | Smallest accepted quantity; tune upward if fragmentation appears |
-| `offRoadCooldownTicks` | 2 ticks | Additional cooldown for each off-road logist step |
-| `protectedReserve` | per Charter/depot/item | Stock unavailable for routine donation |
+The starting values are for the first working version, not final balance:
+
+| Value | Proposed start | Meaning | Effect |
+|---|---:|---|---|
+| `managerPlanningCadence` | 10 ticks | **Game setting.** How often a Manager reviews needs, jobs, and truck assignments. | Increase it for slower reactions and fewer reviews. Decrease it for faster reactions and more planning work. |
+| `signalValidationCadence` | 10 ticks | **Safety check.** How often the game double-checks shortage and available-output reports. | Increase it to check less often, so stale reports last longer. Decrease it to correct them sooner, using more processing time. |
+| `truckCargoSlots` | 12 slots | **Physical limit.** How much cargo a truck can carry. | Increase it for fewer trips and less truck pressure. Decrease it for more trips and tighter truck shortages. |
+| `inputBufferBatches` | 3 | **Physical limit.** How many input batches a facility can hold. | Increase it to survive late deliveries but keep more goods outside depots. Decrease it to keep goods central but risk starvation sooner. |
+| `outputBufferBatches` | 6 | **Physical limit.** How many output batches a facility can hold. | Increase it to allow later pickups but leave more goods at the facility. Decrease it to require frequent pickups and block production sooner. |
+| `desiredInputBatches` | 2 | **Manager choice.** How many input batches the Manager tries to keep at a facility. | Increase it to reduce starvation but store more goods at facilities. Decrease it to use leaner stocks with less protection from delays. |
+| `pickupThresholdFraction` | 0.5 | **Manager choice.** How full the output buffer should be before a normal pickup. | Increase it for fuller truckloads and longer waits. Decrease it for earlier pickups and more partly filled trips. |
+| `serviceMinimumCommitmentTicks` | 60 ticks | **Manager choice.** How long a newly assigned service truck is protected from normal reassignment. | Increase it for steadier service but less freedom to move trucks. Decrease it for more flexibility but more service changes. |
+| `maximumStandbyTicks` | 40 ticks | **Manager choice.** How long a truck may wait at a facility for expected output. | Increase it to wait for fuller loads but keep trucks busy longer. Decrease it to release trucks sooner but risk extra travel or missed output. |
+| `forecastSlipToleranceTicks` | 10 ticks | **Manager choice.** How much later expected output may become before the Manager changes the plan. | Increase it to wait through small delays but risk wasting time. Decrease it to leave bad waits sooner but react to minor delays more often. |
+| `standbyReturnSafetyTicks` | 5 ticks | **Manager choice.** Extra return time required before lending a service truck to another job. Truck lending is not part of 1B. | Increase it to protect facility service and reject more side jobs. Decrease it to allow more side jobs but risk returning late. |
+| `directBypassMinimumSavings` | 2 route ticks | **Manager choice.** How much time a direct facility trip must save before it may skip the depot. | Increase it to send more goods through depots. Decrease it to allow more direct trips between facilities. |
+| `supplyCommitmentExpiryTicks` | 60 ticks | **Cooperation choice.** How long promised aid goods are held while waiting for pickup. | Increase it to protect promises longer but lock goods away. Decrease it to release goods sooner but let more promises expire. |
+| `haulCommitmentExpiryTicks` | 60 ticks | **Cooperation choice.** How long an outside truck is held while waiting to pick up an accepted haul. | Increase it to allow more travel time but keep trucks reserved longer. Decrease it to free trucks sooner but cancel more slow pickups. |
+| `shipmentStallTicks` | 60 ticks | **Safety check.** How long a loaded truck may stop moving before it is marked as stalled. | Increase it to allow slow journeys but report real problems later. Decrease it to report problems sooner but risk false alarms. |
+| `minimumUsefulShipment` | 1 item | **Manager choice.** The smallest load the Manager will send. | Increase it for fewer small jobs but slower help for small shortages. Decrease it for quicker small deliveries but more trips and jobs. |
+| `offRoadCooldownTicks` | 2 ticks | **Physical rule.** Extra travel time for each off-road truck step. | Increase it to make roads and depot placement more important. Decrease it to make off-road travel more attractive. |
+| `protectedReserve` | per Charter/depot/item | **Leader choice.** How much stock a Charter keeps back instead of spending or donating it. | Increase it for more safety and less aid. Decrease it for more aid and greater risk of a later shortage. |
 
 The scenario must tune facility capacity and pickup threshold together. No output buffer may be
 smaller than one atomic batch or so small that healthy service requires a truck departure every
@@ -751,13 +787,16 @@ it changes during play.
 title safely.
 
 - Add recipe-relative Facility admission and output limits.
+- Replace the A1 living-transfer ejection bridge with atomic facility, production-state, and buffer
+  claim; retain the existing Charter-death aggregate transition.
 - Add `StorageEndpoint` resolution for facilities, owner depot compartments, and ground piles.
 - Add the cargo-hold feature and cargo lots; migrate truck definitions and the empty A1 truck data.
 - Add atomic hauling load/delivery primitives with internal-title preservation and aid-delivery title
   transition seams.
 
-**Gate:** focused tests cover host-specific capacity, forbidden foreign facility stock, endpoint
-resolution, lot stacking identity, cargo capacity, and title independent from carrier.
+**Gate:** focused tests cover host-specific capacity, forbidden foreign facility stock, aggregate
+facility claim without ground piles, inherited recipe progress, endpoint resolution, lot stacking
+identity, cargo capacity, and title independent from carrier.
 
 ### Package 2 — Supporting depots and durable physical signals
 
@@ -846,8 +885,9 @@ accounted for.
 - Add reliability counters and full attribution.
 - Extend conservation and reservation audits across cargo and title changes.
 
-**Gate:** no timer frees loaded cargo; every terminal path has a physical disposition; ownership and
-quantity audits identify deliberate injected discrepancies.
+**Gate:** no timer frees loaded cargo; ownership change cancels incompatible unpicked work while
+leaving loaded cargo titled and physical; every terminal path has a physical disposition; ownership
+and quantity audits identify deliberate injected discrepancies.
 
 ### Package 9 — Views, headless metrics, and digest
 
@@ -879,7 +919,8 @@ zero conservation discrepancy.
 **Outcome:** implementation reality and owning documents agree without migration residue.
 
 - Run the complete checks and residue sweeps for old demand/request-to-own/transfer modes, title at
-  pickup, facts-as-planning, host-inherited cargo title, and public internal transfers.
+  pickup, facts-as-planning, host-inherited cargo title, public internal transfers, and the A1
+  facility-stock ejection bridge.
 - Update the TDD for implemented storage, cargo, registry, ordering, and public-boundary facts.
 - Remove temporary compatibility code and stale migration notes.
 - Update management position and Loop 1 completion only when every gate is met.
@@ -894,6 +935,8 @@ demonstrated.
 - Facility limits are recipe-relative, atomic-batch safe, and smaller than proof-scenario depot
   capacity.
 - Facilities reject foreign title; depot compartments and cargo lots preserve it explicitly.
+- Facility ownership change claims the active recipe progress and all buffered goods without
+  changing quantity or creating a ground pile; incompatible unpicked work is released first.
 - Pickup never changes title; same-owner delivery preserves it; aid delivery changes it exactly once.
 - Carrier affiliation never changes cargo title or beneficiary.
 
@@ -955,8 +998,9 @@ The healthy scenario must show finished goods reaching Greyline's remote demand 
 and visible convoys. A service truck must deliberately wait for credible production and remain
 protected from ordinary distant work; an invalid forecast must release it. Third-party carriage must
 preserve donor title through pickup and transit, and delivery into the requester compartment must be
-the sole routine ownership-change moment. Pre-pickup expiry may release reservations; post-pickup
-stall may not release physical cargo by bookkeeping. Every disruption must fail distinctly, every
-decision must be attributable, private internal work must stay off the public board, and physical
-goods and hauling capacity must never be duplicated, promised twice, silently nationalized, or
-silently reassigned.
+the sole routine logistics ownership-change moment. Facility transfer separately claims its small
+buffer and active production state as one aggregate without ejection. Pre-pickup expiry may release
+reservations; post-pickup stall may not release physical cargo by bookkeeping. Every disruption must
+fail distinctly, every decision must be attributable, private internal work must stay off the public
+board, and physical goods and hauling capacity must never be duplicated, promised twice, silently
+nationalized, or silently reassigned.

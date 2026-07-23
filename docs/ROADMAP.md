@@ -128,8 +128,9 @@ watches workers, logists, and infantry change priorities during the following ob
 length, AI commitment duration, and goal-switch hysteresis.
 
 **Exit gate:** At least two plausible land allocations create observably different production and
-movement patterns; revocation triggers a physical stock evacuation; no useful unit or route command
-exists outside council.
+movement patterns; revocation claims each transferred facility and its small working buffer while
+separately hosted former-owner stock follows the grace-window evacuation rule; no useful unit or
+route command exists outside council.
 
 ## Loop 3 — Supply decides the battle
 

@@ -520,6 +520,13 @@ goods before removing the object from the ground-stockpile registry.
 
 ### Living facility ownership change
 
+> **Superseded in Iteration 1B.** This section records the behavior that A1 shipped and remains true
+> of the current code until
+> [1B Package 1](iteration-1b-depot-driven-transport.md#package-1--host-capacity-endpoints-and-title-preserving-cargo)
+> lands. The approved rule now transfers a living facility, its production state, and its small
+> embedded buffer to the new owner together, without ejection. Package 1 owns removal of this bridge
+> and its tests.
+
 Charter death transfers a facility and its goods together. Any other facility ownership change uses
 the eviction bridge:
 
@@ -750,6 +757,10 @@ components.
 
 ### Package 7 — Ownership changes and ground-stockpile lifecycle
 
+> This package records the completed A1 behavior. Its living-facility ejection path is superseded by
+> [1B Package 1](iteration-1b-depot-driven-transport.md#package-1--host-capacity-endpoints-and-title-preserving-cargo);
+> Charter-death redistribution and independent ground-pile lifecycle remain current.
+
 **Outcome:** Charter death and facility transfer conserve every item and produce capped ground
 overflow where required.
 
@@ -883,8 +894,10 @@ or focused lifecycle test, and no deferred 1B behavior was introduced to make A1
   assert all non-depot goods become charterless in place and existing decay deadlines remain unchanged.
 - Fill charterless and recipient depot storage to force registry-order redistribution and enough
   overflow for multiple capped ground piles; assert no item changes absolute location during cleanup.
-- Verify a living facility transfer rehosts former stock into ground piles while Charter death keeps
-  facility stock embedded.
+- Verify the historical A1 living-transfer ejection behavior until
+  [1B Package 1](iteration-1b-depot-driven-transport.md#package-1--host-capacity-endpoints-and-title-preserving-cargo)
+  replaces it with aggregate facility-and-buffer claim; Charter death keeps facility stock embedded
+  under both rules.
 - Verify empty ground piles disappear, non-empty piles survive through tick 179 after creation, and
   tick 180 emits destruction before registry removal.
 

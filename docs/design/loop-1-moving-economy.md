@@ -67,7 +67,9 @@ deterministically without creating a full Leader model.
 Every physical good keeps its nation and optional Charter title. Direct national ownership means the
 good is actually charterless; it is never a convenience pool for ordinary Charter production.
 
-- A facility buffer has the facility's owner and cannot host foreign-owned goods.
+- A facility buffer has the facility's owner and cannot host foreign-owned goods. Changing the
+  facility owner atomically claims its active production state and all buffered goods for the new
+  owner; the buffer is not ejected or emptied.
 - A depot is national infrastructure; each Charter compartment contains that Charter's goods.
 - A ground pile has an explicit owner.
 - A logist cargo hold contains one or more shipment lots, each with an explicit title-holder and
@@ -78,8 +80,9 @@ donor-owned through pickup and transit. Delivery into the requester's depot comp
 moves the goods, transfers title, completes that delivered portion, and awards aid credit. A
 same-depot donation is the same rule with a zero-distance delivery.
 
-Capture, eviction, and Charter death remain separate ownership transitions. Routine logistics has no
-request-to-own operation and never nationalizes goods in transit.
+Facility transfer, capture, eviction, and Charter death remain separate ownership transitions.
+Already-loaded cargo is outside the facility aggregate and keeps its existing title. Routine
+logistics has no request-to-own operation and never nationalizes goods in transit.
 
 ### Depots as logical hubs
 
@@ -243,7 +246,9 @@ attribution.
    remainder.
 10. **Visibility:** internal quantities remain private while pain, public commitments, standby, and
     convoy outcomes remain legible.
-11. **Conservation:** production, storage, reservations, cargo, delivery, ownership change, and
+11. **Facility claim:** changing a facility owner claims its recipe progress and buffered goods,
+    cancels incompatible unpicked work, and creates no eviction ground pile.
+12. **Conservation:** production, storage, reservations, cargo, delivery, ownership change, and
     destruction reconcile by item and title-holder.
 
 ## Exit gate
