@@ -22,6 +22,9 @@ public static class FacilityProductionSystem
                 simulation.Facts.FacilityOutputsProduced.Append(
                     new FacilityOutputsProducedFact(facility.Id, produced.Outputs));
             }
+
+            simulation.Facts.FacilityStatusRecorded.Append(
+                new FacilityStatusRecordedFact(facility.Id, facility.LastStatus));
         }
     }
 }

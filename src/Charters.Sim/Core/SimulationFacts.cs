@@ -10,6 +10,7 @@ public sealed class SimulationFacts
     {
         FacilityInputsConsumed = new FactJournal<FacilityInputsConsumedFact>();
         FacilityOutputsProduced = new FactJournal<FacilityOutputsProducedFact>();
+        FacilityStatusRecorded = new FactJournal<FacilityStatusRecordedFact>();
         FacilityOwnershipChanged = new FactJournal<FacilityOwnershipChangedFact>();
         CharterDissolved = new FactJournal<CharterDissolvedFact>();
         GroundStockpileExpired = new FactJournal<GroundStockpileExpiredFact>();
@@ -19,9 +20,21 @@ public sealed class SimulationFacts
 
     public FactJournal<FacilityOutputsProducedFact> FacilityOutputsProduced { get; }
 
+    public FactJournal<FacilityStatusRecordedFact> FacilityStatusRecorded { get; }
+
     public FactJournal<FacilityOwnershipChangedFact> FacilityOwnershipChanged { get; }
 
     public FactJournal<CharterDissolvedFact> CharterDissolved { get; }
 
     public FactJournal<GroundStockpileExpiredFact> GroundStockpileExpired { get; }
+
+    internal void Clear()
+    {
+        FacilityInputsConsumed.Clear();
+        FacilityOutputsProduced.Clear();
+        FacilityStatusRecorded.Clear();
+        FacilityOwnershipChanged.Clear();
+        CharterDissolved.Clear();
+        GroundStockpileExpired.Clear();
+    }
 }

@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://certt6uxv2keg"]
+[gd_scene load_steps=10 format=3 uid="uid://certt6uxv2keg"]
 
 [ext_resource type="Script" uid="uid://cpnl8yy7mfvan" path="res://Worlds/World.cs" id="1_f3sb7"]
 [ext_resource type="Script" uid="uid://ca0m7w3fuxymp" path="res://Worlds/HexMapRenderer.cs" id="2_hexmap"]
@@ -7,6 +7,19 @@
 [ext_resource type="Script" uid="uid://k72k0b6ig8ih" path="res://Worlds/TickDriver.cs" id="5_tick"]
 [ext_resource type="Script" path="res://Visuals/UnitRenderer.cs" id="5_units"]
 [ext_resource type="Resource" uid="uid://btisrmo2worev" path="res://Data/unit_palette.tres" id="6_unit_palette"]
+[ext_resource type="Script" uid="uid://dah366l4qoo46" path="res://Visuals/EventLogPanel.cs" id="7_event_log"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_event_log"]
+bg_color = Color(0.105, 0.115, 0.125, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.28, 0.3, 0.32, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
 
 [node name="World" type="Node3D" unique_id=1897925246]
 script = ExtResource("1_f3sb7")
@@ -30,6 +43,52 @@ script = ExtResource("3_camera")
 [node name="TickLabel" type="Label" parent="Ui"]
 offset_left = 12.0
 offset_top = 8.0
-offset_right = 320.0
+offset_right = 420.0
 offset_bottom = 34.0
-text = "tick 0 - x1"
+text = "tick 0 - x1  |  [E] event log"
+
+[node name="EventLog" type="PanelContainer" parent="Ui"]
+visible = false
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -460.0
+offset_top = -300.0
+offset_right = -20.0
+offset_bottom = 300.0
+grow_horizontal = 0
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_event_log")
+script = ExtResource("7_event_log")
+
+[node name="Margin" type="MarginContainer" parent="Ui/EventLog"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="Layout" type="VBoxContainer" parent="Ui/EventLog/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Ui/EventLog/Margin/Layout"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "Event Log  [E]"
+
+[node name="Separator" type="HSeparator" parent="Ui/EventLog/Margin/Layout"]
+layout_mode = 2
+
+[node name="Entries" type="RichTextLabel" parent="Ui/EventLog/Margin/Layout"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/default_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.55)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+scroll_active = true
+scroll_following = true

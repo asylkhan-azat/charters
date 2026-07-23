@@ -25,6 +25,7 @@ public sealed partial class TickDriver : Node
     public bool Paused { get; private set; }
     public string SpeedLabel => Speeds[_speedIndex].Label;
 
+    public event Action? TickEnded;
     public event Action? Changed;
 
     public override void _Process(double delta)
@@ -51,7 +52,12 @@ public sealed partial class TickDriver : Node
             _pendingTicks -= ticks;
         }
 
-        Simulation.Advance(ticks);
+        for (var i = 0; i < ticks; i++)
+        {
+            Simulation.Advance();
+            TickEnded?.Invoke();
+        }
+
         Changed?.Invoke();
     }
 

@@ -1,9 +1,11 @@
+using System.Collections.Frozen;
 using Arch.Core;
 using Charters.Sim.AI.Components;
 using Charters.Sim.Charters;
 using Charters.Sim.Core;
 using Charters.Sim.Facilities.Models;
 using Charters.Sim.Hexes;
+using Charters.Sim.Items;
 using Charters.Sim.Movement.Components;
 using Charters.Sim.Movement.Pathfinding;
 using Charters.Sim.Units.Components;
@@ -31,18 +33,33 @@ public class UnitFactory
         FacilityId? assignment = null)
     {
         _simulation.ValidateOwnership(owner);
+
         var id = new UnitId(_idCounter++);
 
-        var entity = assignment is { } facilityId
-            ? _simulation.Entities.Create(
+        var inventorySlots = type.Feature<InventoryUnitFeatureDefinition>()?.Slots ?? 0;
+
+        var equipmentFeature = type.Feature<EquipmentSlotsUnitFeatureDefinition>();
+
+        var equipmentSlots = equipmentFeature is null ?
+            FrozenSet<string>.Empty :
+            equipmentFeature.Slots;
+
+        var items = new UnitItems(
+            new Inventory(inventorySlots),
+            new Equipment(equipmentSlots));
+
+        var entity = assignment is { } facilityId ?
+            _simulation.Entities.Create(
                 new UnitIdentity(id, type),
                 new Position { Address = address },
                 owner,
-                new FacilityAssignment(facilityId))
-            : _simulation.Entities.Create(
+                items,
+                new FacilityAssignment(facilityId)) :
+            _simulation.Entities.Create(
                 new UnitIdentity(id, type),
                 new Position { Address = address },
                 owner,
+                items,
                 new Navigation { Path = new NavPath() },
                 new Wandering());
 

@@ -1,6 +1,7 @@
 using Arch.Core;
 using Charters.Sim.AI;
 using Charters.Sim.Charters;
+using Charters.Sim.Core.Diagnostics;
 using Charters.Sim.Facilities;
 using Charters.Sim.GroundStockpiles;
 using Charters.Sim.Items;
@@ -21,8 +22,12 @@ public sealed class Simulation
         new GroundStockpileSimulationPhase(),
     ];
 
+    private readonly SimulationDiagnostics _diagnostics;
+
     public Simulation(SimulationOptions options, SimulationState state)
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.ConservationAuditCadence);
+
         Options = options;
         Tick = state.Tick;
         Map = state.Map;
@@ -30,7 +35,8 @@ public sealed class Simulation
         ValidateStateOwnership();
         Entities = World.Create();
         Facts = new SimulationFacts();
-        Views = new SimulationViews(this);
+        _diagnostics = new SimulationDiagnostics(this);
+        Views = new SimulationViews(this, _diagnostics);
         Services = new SimulationServices(this, new RandomSet(state.RandomStreams));
     }
 
@@ -55,6 +61,7 @@ public sealed class Simulation
 
     public void Advance()
     {
+        _diagnostics.Begin(this);
         Tick++;
 
         foreach (var phase in Phases)
@@ -62,8 +69,20 @@ public sealed class Simulation
             if (Tick % phase.Cadence == 0)
             {
                 phase.Execute(this);
+                _diagnostics.ProcessPendingFacts(this);
             }
         }
+
+        if (Tick % Options.ConservationAuditCadence == 0)
+        {
+            _diagnostics.Audit(this);
+        }
+    }
+
+    /// <summary>Consumes pending facts and verifies physical item totals at an explicit report boundary.</summary>
+    public void AuditConservation()
+    {
+        _diagnostics.Audit(this);
     }
 
     internal void ValidateOwnership(Ownership ownership)

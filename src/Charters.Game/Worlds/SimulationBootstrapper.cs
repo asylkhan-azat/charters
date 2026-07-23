@@ -1,6 +1,7 @@
 using Charters.Sim.Core;
 using Charters.Sim.Core.Infrastructure.Serialization;
 using Charters.Sim.Charters;
+using Charters.Sim.Hexes;
 using Charters.Sim.Map.Generation;
 using Charters.Sim.Random;
 using Godot;
@@ -26,6 +27,19 @@ internal static class SimulationBootstrapper
 
         var charterless = new Ownership(Nation.Player);
 
+        SpawnStaffedFacility(
+            simulation,
+            charterless,
+            simulation.Map.HexAt(simulation.Map.Count / 3).Address,
+            "mine",
+            "produce-ore");
+        SpawnStaffedFacility(
+            simulation,
+            charterless,
+            simulation.Map.HexAt(simulation.Map.Count * 2 / 3).Address,
+            "farm",
+            "produce-food");
+
         for (var i = 0; i < 10; i++)
         {
             var hex = simulation.Map.HexAt(random.NextInt(simulation.Map.Count)).Address;
@@ -33,6 +47,31 @@ internal static class SimulationBootstrapper
         }
 
         return simulation;
+    }
+
+    private static void SpawnStaffedFacility(
+        Simulation simulation,
+        Ownership owner,
+        HexAddress location,
+        string facilityTypeId,
+        string recipeId)
+    {
+        var definitions = simulation.Options.Definitions;
+        var facilityType = definitions.FacilityTypes[facilityTypeId];
+        var facilityId = simulation.Services.FacilityFactory.Register(
+            facilityType,
+            owner,
+            location,
+            definitions.Recipes[recipeId]);
+
+        for (var i = 0; i < facilityType.WorkerSlots; i++)
+        {
+            simulation.Services.UnitFactory.Spawn(
+                location,
+                definitions.Units["worker"],
+                owner,
+                facilityId);
+        }
     }
 
     private static string ResolveDataDirectory()

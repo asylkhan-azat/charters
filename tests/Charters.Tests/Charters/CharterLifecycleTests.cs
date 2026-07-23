@@ -131,15 +131,18 @@ public sealed class CharterLifecycleTests
     }
 
     [Fact]
-    public void DissolvingAppendsACharterDissolvedFact()
+    public void DissolvingIsConsumedIntoLifecycleDiagnosticsAtTheNextBoundary()
     {
         var simulation = CreateSimulation();
         var charterId = simulation.Services.CharterFactory.Register(Nation.Player, "Ironworks");
 
         simulation.Services.CharterLifecycle.Dissolve(charterId);
         Assert.Equal(1, simulation.Facts.CharterDissolved.Count);
-        Assert.Equal(charterId, simulation.Facts.CharterDissolved[0].DissolvedCharter);
-        Assert.Equal(Nation.Player, simulation.Facts.CharterDissolved[0].Nation);
+
+        simulation.AuditConservation();
+
+        Assert.Equal(0, simulation.Facts.CharterDissolved.Count);
+        Assert.Equal(1, simulation.Views.Diagnostics.Lifecycle.ChartersDissolved);
     }
 
     private static Simulation CreateSimulation()

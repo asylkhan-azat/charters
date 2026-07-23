@@ -61,6 +61,10 @@ public sealed class FacilityOwnershipTests
         var pileId = Assert.Single(fact.GroundStockpiles);
         var pile = simulation.Registries.GroundStockpiles[pileId];
         Assert.Equal(12, pile.Stockpile.QuantityOf(ore));
+
+        simulation.AuditConservation();
+        Assert.Equal(0, simulation.Facts.FacilityOwnershipChanged.Count);
+        Assert.Equal(1, simulation.Views.Diagnostics.Lifecycle.FacilityOwnershipChanges);
     }
 
     [Fact]

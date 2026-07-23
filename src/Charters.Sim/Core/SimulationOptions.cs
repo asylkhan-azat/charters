@@ -4,4 +4,5 @@ namespace Charters.Sim.Core;
 
 public sealed record SimulationOptions(
     DefinitionSet Definitions,
-    int GroundStockpileDecayTicks = 180);
+    int GroundStockpileDecayTicks = 180,
+    int ConservationAuditCadence = 10);

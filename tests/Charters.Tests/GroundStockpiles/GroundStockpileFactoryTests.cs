@@ -116,7 +116,7 @@ public sealed class GroundStockpileFactoryTests
     }
 
     [Fact]
-    public void ExpiryEmitsDestructionFactBeforeRegistryRemoval()
+    public void ExpiryFactIsConsumedIntoConservationAndLifecycleDiagnostics()
     {
         var simulation = CreateSimulation();
         var ore = simulation.Options.Definitions.Items["ore"];
@@ -125,9 +125,10 @@ public sealed class GroundStockpileFactoryTests
 
         simulation.Advance(2);
 
-        Assert.Equal(1, simulation.Facts.GroundStockpileExpired.Count);
-        Assert.Equal(ids[0], simulation.Facts.GroundStockpileExpired[0].GroundStockpileId);
-        Assert.Equal(10, simulation.Facts.GroundStockpileExpired[0].DestroyedGoods.QuantityOf(ore));
+        simulation.AuditConservation();
+        Assert.Equal(0, simulation.Facts.GroundStockpileExpired.Count);
+        Assert.Equal(0, simulation.Views.Diagnostics.ExpectedTotal(ore));
+        Assert.Equal(1, simulation.Views.Diagnostics.Lifecycle.GroundStockpilesExpired);
     }
 
     [Fact]

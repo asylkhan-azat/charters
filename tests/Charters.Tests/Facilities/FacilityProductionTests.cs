@@ -243,7 +243,7 @@ public sealed class FacilityProductionTests
     }
 
     [Fact]
-    public void ProductionAppendsOrderIndependentConsumptionAndCreationFacts()
+    public void ProductionFactsAreConsumedIntoThroughputDiagnosticsAfterThePhase()
     {
         var simulation = CreateSimulation();
         var owner = RegisterCharter(simulation);
@@ -256,69 +256,41 @@ public sealed class FacilityProductionTests
 
         simulation.Advance();
 
-        Assert.Equal(1, simulation.Facts.FacilityInputsConsumed.Count);
-        Assert.Equal(facilityId, simulation.Facts.FacilityInputsConsumed[0].FacilityId);
-        Assert.Equal(
-            [("ore", 4)],
-            simulation.Facts.FacilityInputsConsumed[0].Inputs.Select(static q => (q.Item.Id, q.Quantity)));
+        Assert.Equal(0, simulation.Facts.FacilityInputsConsumed.Count);
+        Assert.Equal(4, simulation.Views.Diagnostics.ConsumedQuantityFor(facilityId, ore));
 
         // produce-materials: workRequired 12, refinery workerSlots 4 -> 1 tick to begin + 3 of work.
         simulation.Advance(3);
 
-        Assert.Equal(1, simulation.Facts.FacilityOutputsProduced.Count);
-        Assert.Equal(facilityId, simulation.Facts.FacilityOutputsProduced[0].FacilityId);
-        Assert.Equal(
-            [("materials", 2)],
-            simulation.Facts.FacilityOutputsProduced[0].Outputs.Select(static q => (q.Item.Id, q.Quantity)));
-
-        // Aggregation is order-independent: summing the journal in either order yields the same total.
-        long forwardTotal = 0;
-        for (var i = 0; i < simulation.Facts.FacilityOutputsProduced.Count; i++)
-        {
-            foreach (var output in simulation.Facts.FacilityOutputsProduced[i].Outputs)
-            {
-                forwardTotal += output.Quantity;
-            }
-        }
-
-        long backwardTotal = 0;
-        for (var i = simulation.Facts.FacilityOutputsProduced.Count - 1; i >= 0; i--)
-        {
-            foreach (var output in simulation.Facts.FacilityOutputsProduced[i].Outputs)
-            {
-                backwardTotal += output.Quantity;
-            }
-        }
-
-        Assert.Equal(forwardTotal, backwardTotal);
+        var materials = simulation.Options.Definitions.Items["materials"];
+        Assert.Equal(0, simulation.Facts.FacilityOutputsProduced.Count);
+        Assert.Equal(2, simulation.Views.Diagnostics.ProducedQuantityFor(facilityId, materials));
+        Assert.Equal(1, simulation.Views.Diagnostics.CompletedBatchesFor(facilityId));
     }
 
     [Fact]
     public void EveryShippedRecipeProducesWhenFullyStaffedAndSupplied()
     {
-        var simulation = CreateSimulation();
-        var owner = RegisterCharter(simulation);
-
-        AssertRecipeProduces(simulation, owner, "mine", "produce-ore", []);
-        AssertRecipeProduces(simulation, owner, "mine", "produce-sulfur", []);
-        AssertRecipeProduces(simulation, owner, "farm", "produce-food", []);
-        AssertRecipeProduces(simulation, owner, "refinery", "produce-materials", [("ore", 4)]);
-        AssertRecipeProduces(simulation, owner, "refinery", "produce-refined-sulfur", [("sulfur", 4)]);
-        AssertRecipeProduces(simulation, owner, "factory", "produce-rifle", [("materials", 2)]);
+        AssertRecipeProduces("mine", "produce-ore", []);
+        AssertRecipeProduces("mine", "produce-sulfur", []);
+        AssertRecipeProduces("farm", "produce-food", []);
+        AssertRecipeProduces("refinery", "produce-materials", [("ore", 4)]);
+        AssertRecipeProduces("refinery", "produce-refined-sulfur", [("sulfur", 4)]);
+        AssertRecipeProduces("factory", "produce-rifle", [("materials", 2)]);
         AssertRecipeProduces(
-            simulation, owner, "factory", "produce-grenades", [("materials", 1), ("refined-sulfur", 1)]);
+            "factory", "produce-grenades", [("materials", 1), ("refined-sulfur", 1)]);
         AssertRecipeProduces(
-            simulation, owner, "factory", "produce-ammunition", [("materials", 1), ("refined-sulfur", 1)]);
-        AssertRecipeProduces(simulation, owner, "factory", "produce-field-pack", [("materials", 2)]);
+            "factory", "produce-ammunition", [("materials", 1), ("refined-sulfur", 1)]);
+        AssertRecipeProduces("factory", "produce-field-pack", [("materials", 2)]);
     }
 
     private static void AssertRecipeProduces(
-        Simulation simulation,
-        CharterId owner,
         string facilityTypeId,
         string recipeId,
         (string Item, int Quantity)[] inputs)
     {
+        var simulation = CreateSimulation();
+        var owner = RegisterCharter(simulation);
         var facilityId = RegisterFacility(simulation, facilityTypeId, recipeId, owner);
         var facility = simulation.Registries.Facilities[facilityId];
 

@@ -2,65 +2,209 @@
   "regionRadius": 6,
   "terrainSeedsPerRegion": 11,
   "nations": [
-    { "id": "player" },
-    { "id": "enemy" }
+    {
+      "id": "player"
+    },
+    {
+      "id": "enemy"
+    }
   ],
   "regions": [
     {
-      "id": "heartland", "name": "Heartland", "nation": "player", "gridCoordinate": { "q": 0, "r": 0 },
-      "terrainWeights": { "plains": 6, "forest": 2, "hill": 1, "urban": 2 }
+      "id": "heartland",
+      "name": "Heartland",
+      "nation": "player",
+      "gridCoordinate": {
+        "q": 0,
+        "r": 0
+      },
+      "terrainWeights": {
+        "plains": 6,
+        "forest": 2,
+        "hill": 1,
+        "urban": 2
+      }
     },
     {
-      "id": "ironfields", "name": "Ironfields", "nation": "player", "gridCoordinate": { "q": -1, "r": 0 },
-      "terrainWeights": { "plains": 6, "forest": 1, "hill": 3 }
+      "id": "ironfields",
+      "name": "Ironfields",
+      "nation": "player",
+      "gridCoordinate": {
+        "q": -1,
+        "r": 0
+      },
+      "terrainWeights": {
+        "plains": 6,
+        "forest": 1,
+        "hill": 3
+      }
     },
     {
-      "id": "sulfurflats", "name": "Sulfur Flats", "nation": "player", "gridCoordinate": { "q": -1, "r": 1 },
-      "terrainWeights": { "plains": 7, "hill": 2, "marsh": 1 }
+      "id": "sulfurflats",
+      "name": "Sulfur Flats",
+      "nation": "player",
+      "gridCoordinate": {
+        "q": -1,
+        "r": 1
+      },
+      "terrainWeights": {
+        "plains": 7,
+        "hill": 2,
+        "marsh": 1
+      }
     },
     {
-      "id": "greenvale", "name": "Greenvale", "nation": "player", "gridCoordinate": { "q": 0, "r": 1 },
-      "terrainWeights": { "plains": 8, "forest": 2 }
+      "id": "greenvale",
+      "name": "Greenvale",
+      "nation": "player",
+      "gridCoordinate": {
+        "q": 0,
+        "r": 1
+      },
+      "terrainWeights": {
+        "plains": 8,
+        "forest": 2
+      }
     },
     {
-      "id": "midland", "name": "Midland", "nation": "player", "gridCoordinate": { "q": 0, "r": -1 },
-      "terrainWeights": { "plains": 7, "forest": 2, "hill": 1 }
+      "id": "midland",
+      "name": "Midland",
+      "nation": "player",
+      "gridCoordinate": {
+        "q": 0,
+        "r": -1
+      },
+      "terrainWeights": {
+        "plains": 7,
+        "forest": 2,
+        "hill": 1
+      }
     },
     {
-      "id": "east-march", "name": "East March", "nation": "player", "gridCoordinate": { "q": 1, "r": 0 },
-      "terrainWeights": { "plains": 4, "forest": 4, "hill": 2 }
+      "id": "east-march",
+      "name": "East March",
+      "nation": "player",
+      "gridCoordinate": {
+        "q": 1,
+        "r": 0
+      },
+      "terrainWeights": {
+        "plains": 4,
+        "forest": 4,
+        "hill": 2
+      }
     },
     {
-      "id": "north-march", "name": "North March", "nation": "player", "gridCoordinate": { "q": 1, "r": -1 },
-      "terrainWeights": { "plains": 4, "forest": 3, "hill": 3 }
+      "id": "north-march",
+      "name": "North March",
+      "nation": "player",
+      "gridCoordinate": {
+        "q": 1,
+        "r": -1
+      },
+      "terrainWeights": {
+        "plains": 4,
+        "forest": 3,
+        "hill": 3
+      }
     },
     {
-      "id": "enemy-heartland", "name": "Enemy Heartland", "nation": "enemy", "gridCoordinate": { "q": 3, "r": -1 },
-      "terrainWeights": { "plains": 6, "forest": 2, "hill": 1, "urban": 2 }
+      "id": "enemy-heartland",
+      "name": "Enemy Heartland",
+      "nation": "enemy",
+      "gridCoordinate": {
+        "q": 3,
+        "r": -1
+      },
+      "terrainWeights": {
+        "plains": 6,
+        "forest": 2,
+        "hill": 1,
+        "urban": 2
+      }
     },
     {
-      "id": "enemy-ironfields", "name": "Enemy Ironfields", "nation": "enemy", "gridCoordinate": { "q": 2, "r": -1 },
-      "terrainWeights": { "plains": 6, "forest": 1, "hill": 3 }
+      "id": "enemy-ironfields",
+      "name": "Enemy Ironfields",
+      "nation": "enemy",
+      "gridCoordinate": {
+        "q": 2,
+        "r": -1
+      },
+      "terrainWeights": {
+        "plains": 6,
+        "forest": 1,
+        "hill": 3
+      }
     },
     {
-      "id": "enemy-sulfurflats", "name": "Enemy Sulfur Flats", "nation": "enemy", "gridCoordinate": { "q": 2, "r": 0 },
-      "terrainWeights": { "plains": 7, "hill": 2, "marsh": 1 }
+      "id": "enemy-sulfurflats",
+      "name": "Enemy Sulfur Flats",
+      "nation": "enemy",
+      "gridCoordinate": {
+        "q": 2,
+        "r": 0
+      },
+      "terrainWeights": {
+        "plains": 7,
+        "hill": 2,
+        "marsh": 1
+      }
     },
     {
-      "id": "enemy-greenvale", "name": "Enemy Greenvale", "nation": "enemy", "gridCoordinate": { "q": 3, "r": 0 },
-      "terrainWeights": { "plains": 8, "forest": 2 }
+      "id": "enemy-greenvale",
+      "name": "Enemy Greenvale",
+      "nation": "enemy",
+      "gridCoordinate": {
+        "q": 3,
+        "r": 0
+      },
+      "terrainWeights": {
+        "plains": 8,
+        "forest": 2
+      }
     },
     {
-      "id": "enemy-midland", "name": "Enemy Midland", "nation": "enemy", "gridCoordinate": { "q": 3, "r": -2 },
-      "terrainWeights": { "plains": 7, "forest": 2, "hill": 1 }
+      "id": "enemy-midland",
+      "name": "Enemy Midland",
+      "nation": "enemy",
+      "gridCoordinate": {
+        "q": 3,
+        "r": -2
+      },
+      "terrainWeights": {
+        "plains": 7,
+        "forest": 2,
+        "hill": 1
+      }
     },
     {
-      "id": "enemy-east-march", "name": "Enemy East March", "nation": "enemy", "gridCoordinate": { "q": 4, "r": -1 },
-      "terrainWeights": { "plains": 4, "forest": 4, "hill": 2 }
+      "id": "enemy-east-march",
+      "name": "Enemy East March",
+      "nation": "enemy",
+      "gridCoordinate": {
+        "q": 4,
+        "r": -1
+      },
+      "terrainWeights": {
+        "plains": 4,
+        "forest": 4,
+        "hill": 2
+      }
     },
     {
-      "id": "enemy-north-march", "name": "Enemy North March", "nation": "enemy", "gridCoordinate": { "q": 4, "r": -2 },
-      "terrainWeights": { "plains": 4, "forest": 3, "hill": 3 }
+      "id": "enemy-north-march",
+      "name": "Enemy North March",
+      "nation": "enemy",
+      "gridCoordinate": {
+        "q": 4,
+        "r": -2
+      },
+      "terrainWeights": {
+        "plains": 4,
+        "forest": 3,
+        "hill": 3
+      }
     }
   ]
 }
