@@ -69,7 +69,7 @@ The Manager plans from the Charter's true physical state. It:
   planned movement;
 - maintains standing facility services and treats forecast-backed truck standby as committed work;
 - turns Leader goals and accepted commitments into plans;
-- separates Soft/Hard stock access from Planned/Reserved commitment and mirrors exact goods
+- separates Internal/Soft/Hard stock access from Planned/Reserved commitment and mirrors exact goods
   reservations with destination-capacity reservations;
 - allocates available units and facilities;
 - creates parent shipment orders and one-item legs, including deliberate parallel legs and
@@ -130,10 +130,12 @@ is scoped, testable, and explainable.
 
 ### Manager authority and escalation
 
-Managers may use Soft stock above the current goal, maintain targets and goals, assign supporting
-depots, preserve facility services, create private shipments, and publish concrete Haul Jobs within
-delegated cooperation policy. Hard access into goal-protected stock requires an exact reservation
-and policy authority. Managers require a Leader decision to request another Charter's title, approve
+Managers may move their own Charter's unreserved stock freely between their own endpoints, donate
+Soft stock above the current goal, maintain targets and goals, assign supporting depots, preserve
+facility services, create private shipments, and publish concrete Haul Jobs within delegated
+cooperation policy. The protected goal constrains what leaves the Charter, not where the Charter
+keeps it. Hard access into goal-protected stock requires an exact reservation and per-request policy
+authority. Managers require a Leader decision to request another Charter's title, approve
 Hard aid, lower a politically protected goal outside delegation, abandon an accepted commitment,
 cancel a major strategic operation, or make a doctrinal sacrifice. In Loop 1 a neutral policy
 occupies this boundary without adding personality; later Leaders may approve, refuse, reprioritize,
@@ -202,8 +204,12 @@ admission rule for moving measured hot state into ECS later.
 - Rebuild physical flows after movement, production, expiry, and current logistics execution; newly
   planned movement starts on the next tick.
 - Keep gross physical flow state separate from reservations and traffic.
-- Keep access and commitment orthogonal: Soft/Hard controls which stock may be claimed, while
-  Planned/Reserved controls whether an exact quantity is promised.
+- Keep access and commitment orthogonal: Internal/Soft/Hard controls which stock may be claimed,
+  while Planned/Reserved controls whether an exact quantity is promised.
+- Derive urgency from physical state. An execution band follows from impairment and from the
+  credible deadline measured against replenishment lead time; it is never authored per operation.
+- Bound work granularity with a minimum replan remainder and explicit terminal states, so partial
+  execution cannot fragment a Charter or leave planning records alive indefinitely.
 - Mirror exact source-goods reservations with destination-capacity reservations.
 - Preserve active commitments across ordinary replanning.
 - Treat deliberate standby as an explicit service phase with a forecast and decision deadline, never

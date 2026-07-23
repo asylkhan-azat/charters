@@ -37,8 +37,16 @@ This session completed:
   been retired.
 - Approved rebuilt `ItemConsumptionFlow`/`ItemSupplyFlow` snapshots, allocation-free tagged source
   references, credible deadlines, and source-owned impairment history.
-- Approved depot target/goal compilation, orthogonal Soft/Hard access and Planned/Reserved
+- Approved depot target/goal compilation, orthogonal stock access and Planned/Reserved
   commitment, fixed-cadence planning, and snapshotted shipment execution terms.
+- Reviewed the 1B logistics model and closed its open decision points: the stock goal now protects
+  what leaves a Charter rather than where it sits (new `Internal` access), execution bands are
+  derived from impairment and lead time instead of being unassigned, flows carry nominal alongside
+  effective cadence so targets neither jitter nor strand an unstaffed facility, route cost became a
+  cached service feeding a lead-time-floored stocking horizon, remainders below a replan threshold
+  merge instead of fragmenting, parent orders gained terminal states, and service/leg authority,
+  standby capacity bounds, co-blocker ties, donor ordering, and reservation-breach causes are now
+  stated. Reservations moved ahead of the arithmetic that reads them in the package order.
 - Approved deliberate parallel legs, partial pickup and delivery, exact source/destination
   reservations, cargo-remainder recovery, and the future stationary resupply-point boundary.
 - Established the 1B baseline and attachment map with the A1 proof protected.

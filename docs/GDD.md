@@ -373,10 +373,11 @@ council.
   acceptance, the Charter's Manager resolves the band into an exact feasible quantity; that public
   pledge creates the ordinary goods and carriage commitments required to fulfill it.
 - **Lower the Stock Goal.** The player asks a Charter to lower `StockGoalQuantity` for one item in
-  one depot. The Leader may lower it partway, lower it to a survival floor, or refuse. Newly Soft
-  goods merely become available for ordinary planning, Aid Requests, and shipments; they do not
-  teleport or change title. A Direct Order can compel goal sacrifice but
-  cannot duplicate goods, cancel cargo in transit, or erase an existing hard commitment.
+  one depot. The Leader may lower it partway, lower it to a survival floor, or refuse. Newly
+  unprotected goods become available to Aid Requests and to units drawing supply; the Charter's own
+  factories could already be served from them. They do not teleport or change title. A Direct Order
+  can compel goal sacrifice but cannot duplicate goods, cancel cargo in transit, or erase an
+  existing hard commitment.
 - **Haul Mobilization.** The player asks one Charter to favor public Haul Jobs, optionally scoped to
   a region or beneficiary. Only genuinely uncommitted capacity changes priority: active shipments,
   cargo already picked up, and valid standing facility services remain protected. The Leader may
@@ -513,22 +514,29 @@ Consequences: specialization is sticky, quota demands have visible costs, the Sh
   inter-Charter hand-over terminates in the receiver's compartment. A same-Charter shipment may move
   directly between facilities when it saves enough route time without breaking commitments.
 - **Local conditions are facts; urgency is a decision.** Systems rebuild consumption and supply
-  value snapshots from current physical state every logistics phase. They expose recipe batch,
-  current-staffing cadence, gross stored quantity, next credible transition, credible
-  starvation/blockage deadline, and actual impairment age. The snapshots have no persistent
-  lifecycle. A deadline appears only when uninterrupted current operation can reach it; conditional
-  forecasts belong to Manager planning. Transition facts support history and diagnostics but never
-  drive behavior.
+  value snapshots from current physical state every logistics phase. They expose recipe batch, both
+  the recipe's full-crew cadence and the rate its current crew can actually sustain, gross stored
+  quantity, next credible transition, credible starvation/blockage deadline, and actual impairment
+  age. Stocking plans read the full-crew figure, so an idle factory is still supplied and can
+  restart; forecasts read the current crew. The snapshots have no persistent lifecycle. A deadline
+  appears only when uninterrupted current operation can reach it; conditional forecasts belong to
+  Manager planning. Transition facts support history and diagnostics but never drive behavior.
 - **Targets and protected goals are distinct.** For each Charter, depot, and item, the Manager
   compiles a desired stock target from consumption cover and standing objectives, capped by physical
-  capacity. It separately compiles a protected stock goal below or equal to that target. Objectives
-  persist until changed or withdrawn, even after attainment. Stock above the goal is routine working
-  stock; capacity clipping remains an attributed shortfall.
+  capacity. Cover is measured over a horizon that widens for distant facilities, so a far-off mine is
+  stocked for the round trip it actually has. It separately compiles a protected stock goal below or
+  equal to that target. Objectives persist until changed or withdrawn, even after attainment. Stock
+  above the goal is routine working stock; stock above the target is never thrown away, it merely
+  stops attracting deliveries; capacity clipping remains an attributed shortfall.
+- **The goal guards against what a Charter cannot take back.** Moving goods between a Charter's own
+  depots and factories never touches the protected goal: the Manager scheduled that move and can
+  redirect it later. The goal bites only on draws it does not control — donated aid, and later,
+  supplies drawn by units in the field. A Charter never starves its own factory to protect a number.
 - **Access and promises are independent.** Soft work can claim only unreserved stock above the
-  protected goal. Hard work may reserve into goal-protected stock. Planned work has no exact goods
-  promise; Reserved work protects an exact quantity. Ordinary internal work is normally
-  Soft/Planned. Important internal work may be Hard and partly Reserved. Accepted aid is
-  Soft/Reserved unless Leader policy explicitly approves Hard access.
+  protected goal. Hard work may reserve into goal-protected stock and exists only where a Leader has
+  approved a specific donation. Planned work has no exact goods promise; Reserved work protects an
+  exact quantity. Ordinary internal work is Planned; important internal work is partly Reserved.
+  Accepted aid is Soft/Reserved unless Leader policy explicitly approves Hard access.
 - **Facility service is standing work.** Facility buffers are sized for several production batches
   but remain much smaller than depot compartments. Managers create persistent depot↔facility service
   plans that may deliver inputs and collect outputs on the same trip. High-throughput facilities may
@@ -554,26 +562,32 @@ Consequences: specialization is sticky, quota demands have visible costs, the Sh
   portions. If donor and receiver use the same depot, delivery is a zero-distance atomic move.
   Otherwise an internal logist or a claimed Haul Job becomes a physical shipment.
 - **Orders tolerate physical uncertainty.** A parent shipment order creates one-item legs with
-  snapshotted target, minimum departure, Soft/Hard access, reservation, pickup deadline, top-up, and
+  snapshotted target, minimum departure, access, reservation, pickup deadline, top-up, and
   fallback terms. Managers may create several parallel legs even when one truck could eventually
-  carry the target. Soft legs may short-load above their minimum; Hard legs may accumulate exact
-  source reservations while waiting. Unpicked remainder returns to the parent for a later planning
-  pass.
+  carry the target. Planned legs may short-load above their minimum; Reserved legs may accumulate
+  exact source reservations while waiting. Unpicked remainder returns to the parent for a later
+  planning pass.
+- **Urgency is earned, not assigned.** How hard a shipment tries — how much it reserves, how long it
+  waits, how little it will settle for — follows from how soon the shortage bites measured against
+  how long resupply actually takes on that route. A facility already starving gets the most
+  aggressive terms. A distant facility escalates sooner than a near one facing the same deadline.
+  Nothing is hand-flagged as important. Small leftovers merge into later runs instead of sending a
+  truck out for a handful of items.
 - **Cargo preserves title.** A logist cargo hold contains shipment lots with item, quantity,
   title-holder, and beneficiary separate from the carrier's affiliation. Pickup changes custody
   only. Delivery into the requested compartment atomically changes title when donor and recipient
   differ, satisfies the public commitment, and awards aid credit. A full destination leaves the
   goods in cargo; it never silently transfers title or destroys them.
 - **Commitments reserve physical capacity.** Exact source reservations are mirrored by destination
-  capacity reservations; active services and shipments reserve hauling capacity. Soft pickup
+  capacity reservations; active services and shipments reserve hauling capacity. Unreserved pickup
   acquires goods and destination capacity atomically. Pre-pickup commitments may expire and release
   cleanly. Delivery may admit only part of a cargo: the delivered portion alone advances title and
   commitment arithmetic, while the remainder stays on the truck until delivery, return, recovery,
   capture, or explicit loss. A timeout diagnoses failure but cannot release physical cargo by fiat.
 - **Planning has a cadence.** Managers replace or resize plans only on fixed planning ticks. A
   short-load, invalid forecast, or lost route is diagnosed immediately but waits for the next pass
-  before new work is planned. Ordinary mistakes arise from stale plans and Soft-stock competition,
-  not injected randomness.
+  before new work is planned. Ordinary mistakes arise from stale plans and competition for
+  unreserved stock, not injected randomness.
 - **Political accounting follows agreed delivery.** A pledge is an offer the receiver accepts, never
   a unilateral dump. Aid credit and title transfer occur at the receiving depot. Loss reports
   identify donor, title-holder, beneficiary, carrier, and physical host. Pre-pickup withdrawal has a
