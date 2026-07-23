@@ -25,6 +25,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\Charters.Sim\Charters.Sim.csproj"/>
+        <ProjectReference Include="..\..\src\Charters.Headless\Charters.Headless.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

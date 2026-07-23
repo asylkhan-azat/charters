@@ -5,8 +5,7 @@
 local code taste. Iteration specifications may refine this contract for their slice but may not
 silently contradict it.*
 
-This document describes implemented foundations and approved near-term architecture. A temporary
-prototype divergence is called out explicitly in [the A1 migration note](#a1-migration-note). Once a
+This document describes implemented foundations and approved near-term architecture. Once a
 documented architecture changes, update this document with the code that changes it.
 
 ## 1. Project and authority boundaries
@@ -422,17 +421,3 @@ requirements on loading or tooling.
 
 Project-reference and API checks protect the architecture: the sim cannot reference Godot, hosts
 cannot receive mutable Arch or registry state, and authored DTO types do not become runtime state.
-
-## A1 migration note
-
-The current foundation prototype represents facilities and stockpiles as ECS components, exposes
-`Simulation.Entities`, raises synchronous callbacks through `SimulationEvents`, and treats repeated
-runtime state digests as a determinism smoke. Those structures and the broad replay guarantee predate
-this boundary and are not exemplars for new work.
-
-[Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md) performs the migration while
-building the production slice: units remain in Arch; facilities, Charters, depots, and ground
-stockpiles move to registries; hosted storage becomes explicitly owned; synchronous callbacks become
-the buffered fact journal; Godot/headless move to the read-only façade; and automated checks separate
-reproducible world generation from canonical same-state serialization. Remove this migration note
-once those approved changes are implemented.

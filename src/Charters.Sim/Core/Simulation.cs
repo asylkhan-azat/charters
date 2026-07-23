@@ -4,7 +4,6 @@ using Charters.Sim.Charters;
 using Charters.Sim.Core.Diagnostics;
 using Charters.Sim.Facilities;
 using Charters.Sim.GroundStockpiles;
-using Charters.Sim.Items;
 using Charters.Sim.Map;
 using Charters.Sim.Movement;
 using Charters.Sim.Random;
@@ -18,7 +17,6 @@ public sealed class Simulation
         new AiSimulationPhase(),
         new MovementSimulationPhase(),
         new FacilitySimulationPhase(),
-        new ItemSimulationPhase(),
         new GroundStockpileSimulationPhase(),
     ];
 

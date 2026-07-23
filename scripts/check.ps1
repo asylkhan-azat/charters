@@ -13,12 +13,7 @@ Assert-NativeSuccess "dotnet build" $LASTEXITCODE
 dotnet test Charters.sln -c Release --no-build
 Assert-NativeSuccess "dotnet test" $LASTEXITCODE
 
-dotnet run --project src/Charters.Headless -c Release --no-build -- --ticks 500 --seed 7 > "$env:TEMP\charters-run1.txt"
-Assert-NativeSuccess "first determinism run" $LASTEXITCODE
-dotnet run --project src/Charters.Headless -c Release --no-build -- --ticks 500 --seed 7 > "$env:TEMP\charters-run2.txt"
-Assert-NativeSuccess "second determinism run" $LASTEXITCODE
-if (Compare-Object (Get-Content "$env:TEMP\charters-run1.txt") (Get-Content "$env:TEMP\charters-run2.txt")) {
-    throw "Determinism smoke failed: identical-seed digests differ"
-}
+dotnet run --project src/Charters.Headless -c Release --no-build -- --ticks 500 --seed 7 --scenario data/scenarios/a1-proof.json --metrics > "$env:TEMP\charters-run.txt"
+Assert-NativeSuccess "headless smoke" $LASTEXITCODE
 
 Write-Host "All checks passed."

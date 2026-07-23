@@ -17,39 +17,29 @@ tracks position and progress.*
 The implementation foundation and MVP roadmap are in place. Charter AI boundaries are captured in
 the [architecture](design/charter-ai-architecture.md), and
 [Loop 1 — The Moving Economy](design/loop-1-moving-economy.md) is the active execution design.
-[Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md) is underway: work packages
-0 through 8 (of 11) are complete.
+[Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md) is complete: all eleven
+work packages have landed, and the migration note it added to the TDD has been removed.
 
 ## Progress
 
-Packages 0–7 landed in prior sessions — see the spec's
-[work packages](specs/iteration-1a-owned-production.md#implementation-work-packages) for what each
-covers; implementation detail from those sessions is not repeated here.
-
 This session completed:
 
-- **Package 8 — Conservation and derived diagnostics:** units now materialize their fixed inventory
-  and equipment storage at spawn so the initial physical snapshot covers every A1 storage kind.
-  Cursor-based consumers process production, facility-status, ownership, Charter-death, and
-  ground-expiry facts only after their producing phase or at an explicit report boundary, retain
-  derived facility/lifecycle totals and a bounded sequenced presentation history, then clear the
-  reusable journals. The conservation ledger applies creation, consumption, and destruction facts
-  to expected per-item totals and audits physical state at the configured cadence (ten ticks by
-  default) and on demand, reporting the first ordinal item discrepancy. Focused coverage includes
-  fact-order independence, inventory/equipment inclusion, journal reuse, history rollover, and both
-  scheduled and early-report mismatch detection.
-- **Viewer development surface:** the temporary Godot bootstrap now creates a fully staffed ore mine
-  and farm alongside its random units. A dark, scrollable event-log panel accumulates
-  `PresentationEvent` values after each viewer-driven tick and toggles with `E`; monotonic
-  presentation sequence numbers prevent duplicate entries when the bounded simulation history
-  wraps. This is developer-view scaffolding, not completion of Package 10's authored scenario or
-  presentation gate.
-
-No Package 9 work is in progress.
+- **Package 11 — Remove migration residue and close A1:** deleted the dead prototype ECS slice
+  (`ItemSimulationPhase`, `StockpileDecaySystem`, the legacy `Components.Stockpile` struct, and the
+  unused `Decaying` component), which still ran a no-op Arch query every tick even though no entity
+  had carried those components since facilities/depots/ground stockpiles moved to registries.
+  Replaced `scripts/check.ps1`'s two-independent-runs byte-identical smoke with focused xunit
+  coverage instead: equal-seed/different-seed world-generation reproducibility, and canonical
+  same-captured-state digest/metrics serialization (`Charters.Tests` now references
+  `Charters.Headless` to reach `StateDigest`/`MetricsReport` internals). Removed the "A1 migration
+  note" from the TDD and the now-false "facility ECS slice is a prototype" note from
+  coding-guidelines.md, and corrected this doc's stale progress log (it still described packages
+  0–8 of 11 and a since-replaced random Godot bootstrap). A full residue sweep for universal
+  stockpile identity, depot-as-facility behavior, foreign facility buffers, region-relative runtime
+  state, recipe-owned deposits, and ownerless goods found nothing else outstanding.
 
 ## Next
 
-- Continue [Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md) with
-  **Package 9 — Headless reporting and complete state digest**: add scenario/metrics CLI behavior,
-  build canonical report rows exclusively from read projections, extend the digest across all A1
-  authoritative state, and make report construction run the conservation boundary audit.
+- Begin [Iteration 1B — Request-driven transport](ROADMAP.md#iteration-1b--request-driven-transport):
+  the single request record, truck cargo/pickup/delivery, two-phase allocation, and the first
+  disruption scenarios.

@@ -20,9 +20,9 @@ their feel; depart with reason.
 - **Map and definitions** — `src/Charters.Sim/Hexes/`, `Map/`, and `Core/Definitions/`: dense indexed
   topology where position is intrinsic, domain-keyed immutable definitions, and small infrastructure
   whose callers supply game rules.
-
-The existing facility ECS slice and synchronous events are foundation prototypes being replaced by
-[Iteration 1A](specs/iteration-1a-owned-production.md); they are not taste references for new work.
+- **Registries and lifecycle** — `src/Charters.Sim/Facilities/`, `Depots/`, `GroundStockpiles/`, and
+  `Charters/`: registry-owned domain objects with typed stable IDs, host-owned stockpiles, and
+  explicit lifecycle transitions instead of ECS components.
 
 ## Judging complexity
 

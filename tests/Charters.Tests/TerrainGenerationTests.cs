@@ -91,4 +91,33 @@ public sealed class TerrainGenerationTests
             }
         }
     }
+
+    [Fact]
+    public void EqualSeedsProduceIdenticalGeneratedMaps()
+    {
+        var definitions = TestData.LoadDefinitions();
+
+        var first = TestData.GenerateMap(definitions, seed: 42);
+        var second = TestData.GenerateMap(definitions, seed: 42);
+
+        Assert.Equal(first.Count, second.Count);
+        for (var i = 0; i < first.Count; i++)
+        {
+            Assert.Equal(first.HexAt(i).Terrain.Id, second.HexAt(i).Terrain.Id);
+            Assert.Equal(first.HexAt(i).Region.Id, second.HexAt(i).Region.Id);
+        }
+    }
+
+    [Fact]
+    public void DifferentSeedsProduceMeaningfullyDifferentTerrain()
+    {
+        var definitions = TestData.LoadDefinitions();
+
+        var first = TestData.GenerateMap(definitions, seed: 42);
+        var second = TestData.GenerateMap(definitions, seed: 4242);
+
+        Assert.NotEqual(
+            Enumerable.Range(0, first.Count).Select(i => first.HexAt(i).Terrain.Id),
+            Enumerable.Range(0, second.Count).Select(i => second.HexAt(i).Terrain.Id));
+    }
 }
