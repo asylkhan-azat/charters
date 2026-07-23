@@ -1,3 +1,4 @@
+using Charters.Sim.Core;
 using Charters.Sim.Core.Definitions;
 using Charters.Sim.Core.Infrastructure.Serialization;
 using Charters.Sim.Items.Definitions;
@@ -24,31 +25,23 @@ internal static class ScenarioContentValidator
         ScenarioIdentitySets identities,
         ValidationCollector errors)
     {
-        var nationIds = map.Nations.Select(static n => n.Id).ToHashSet();
-
-        ValidateCharters(fileName, dto.Charters, nationIds, errors);
+        ValidateCharters(fileName, dto.Charters, errors);
         ValidateDeposits(fileName, dto.Deposits, definitions, errors);
         ValidateFacilities(fileName, dto.Facilities, definitions, identities, errors);
-        ValidateDepots(fileName, dto.Depots, definitions, nationIds, identities, errors);
+        ValidateDepots(fileName, dto.Depots, definitions, identities, errors);
         ValidateUnits(fileName, dto, definitions, map, regionRadius, errors);
     }
 
     private static void ValidateCharters(
         string fileName,
         IReadOnlyList<ScenarioCharterDto>? charters,
-        IReadOnlySet<string> nationIds,
         ValidationCollector errors)
     {
         foreach (var charter in charters ?? [])
         {
-            if (charter.Nation is null || !nationIds.Contains(charter.Nation))
+            if (!NationParser.TryParse(charter.Nation, out _))
             {
                 errors.Add($"{fileName}: charter '{DisplayId(charter.Id)}' references unknown nation '{charter.Nation}'");
-            }
-
-            if (string.IsNullOrWhiteSpace(charter.Color))
-            {
-                errors.Add($"{fileName}: charter '{DisplayId(charter.Id)}' is missing color");
             }
         }
     }
@@ -114,7 +107,6 @@ internal static class ScenarioContentValidator
         string fileName,
         IReadOnlyList<ScenarioDepotDto>? depots,
         DefinitionSet definitions,
-        IReadOnlySet<string> nationIds,
         ScenarioIdentitySets identities,
         ValidationCollector errors)
     {
@@ -122,7 +114,7 @@ internal static class ScenarioContentValidator
         {
             var displayId = DisplayId(depot.Id);
 
-            if (depot.Nation is null || !nationIds.Contains(depot.Nation))
+            if (!NationParser.TryParse(depot.Nation, out _))
             {
                 errors.Add($"{fileName}: depot '{displayId}' references unknown nation '{depot.Nation}'");
             }

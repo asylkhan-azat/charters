@@ -53,8 +53,8 @@ public sealed class RandomStreamTests
         RandomStream a = new(999, 3);
         RandomStream b = new(1, 1);
         _ = a.NextUInt();
-        var (state, inc) = a.GetState();
-        b.SetState(state, inc);
+        var state = a.GetState();
+        b.SetState(state);
 
         for (var i = 0; i < 100; i++)
         {

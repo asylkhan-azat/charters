@@ -1,6 +1,5 @@
 using Charters.Sim.Charters;
 using Charters.Sim.Core;
-using Charters.Sim.Depots;
 using Charters.Sim.Hexes;
 
 namespace Charters.Tests.Charters;
@@ -8,7 +7,7 @@ namespace Charters.Tests.Charters;
 public sealed class CharterDepotSynchronizationTests
 {
     [Fact]
-    public void SimulationCreatesOneImmortalCommonsCharterPerNationBeforeAnythingElse()
+    public void SimulationUsesTheChartersSuppliedInItsState()
     {
         var simulation = CreateSimulation();
 
@@ -20,20 +19,19 @@ public sealed class CharterDepotSynchronizationTests
             charters.Add(charter);
         }
 
-        Assert.All(charters, c => Assert.True(c.IsCommons));
         Assert.All(charters, c => Assert.Equal("Commons", c.Name));
-        Assert.Contains(charters, c => c.Nation == "player" && c.Color == "#8a8a8a");
-        Assert.Contains(charters, c => c.Nation == "enemy" && c.Color == "#5a2d2d");
+        Assert.Contains(charters, c => c.Nation == Nation.Player);
+        Assert.Contains(charters, c => c.Nation == Nation.Enemy);
     }
 
     [Fact]
-    public void CommonsIsExcludedFromPoliticalCharterRegistrationButOwnsDepotCompartments()
+    public void ExistingCharterOwnsANewDepotCompartment()
     {
         var simulation = CreateSimulation();
-        var depotId = simulation.DepotFactory.Register("player", new HexAddress(0, 0));
+        var depotId = simulation.Services.DepotFactory.Register(Nation.Player, new HexAddress(0, 0));
 
         var depot = simulation.Registries.Depots[depotId];
-        var commons = FindCommons(simulation, "player");
+        var commons = TestData.CommonsFor(simulation, Nation.Player);
 
         Assert.True(depot.HasCompartment(commons.Id));
     }
@@ -42,9 +40,9 @@ public sealed class CharterDepotSynchronizationTests
     public void RegisteringCharterAfterDepotAddsCompartmentToEveryExistingSameNationDepot()
     {
         var simulation = CreateSimulation();
-        var depotId = simulation.DepotFactory.Register("player", new HexAddress(0, 0));
+        var depotId = simulation.Services.DepotFactory.Register(Nation.Player, new HexAddress(0, 0));
 
-        var charterId = simulation.CharterFactory.Register("player", "Ironworks", "#ff0000");
+        var charterId = simulation.Services.CharterFactory.Register(Nation.Player, "Ironworks");
 
         var depot = simulation.Registries.Depots[depotId];
         Assert.True(depot.HasCompartment(charterId));
@@ -54,12 +52,12 @@ public sealed class CharterDepotSynchronizationTests
     public void RegisteringDepotAfterCharterAddsCompartmentForEveryActiveSameNationCharter()
     {
         var simulation = CreateSimulation();
-        var charterId = simulation.CharterFactory.Register("player", "Ironworks", "#ff0000");
+        var charterId = simulation.Services.CharterFactory.Register(Nation.Player, "Ironworks");
 
-        var depotId = simulation.DepotFactory.Register("player", new HexAddress(0, 0));
+        var depotId = simulation.Services.DepotFactory.Register(Nation.Player, new HexAddress(0, 0));
 
         var depot = simulation.Registries.Depots[depotId];
-        var commons = FindCommons(simulation, "player");
+        var commons = TestData.CommonsFor(simulation, Nation.Player);
         Assert.True(depot.HasCompartment(commons.Id));
         Assert.True(depot.HasCompartment(charterId));
     }
@@ -68,19 +66,19 @@ public sealed class CharterDepotSynchronizationTests
     public void CharterFirstAndDepotFirstOrderingsProduceTheSameCompartmentMembership()
     {
         var charterFirst = CreateSimulation();
-        var charterFirstCharterId = charterFirst.CharterFactory.Register("player", "Ironworks", "#ff0000");
-        var charterFirstDepotId = charterFirst.DepotFactory.Register("player", new HexAddress(0, 0));
+        var charterFirstCharterId = charterFirst.Services.CharterFactory.Register(Nation.Player, "Ironworks");
+        var charterFirstDepotId = charterFirst.Services.DepotFactory.Register(Nation.Player, new HexAddress(0, 0));
 
         var depotFirst = CreateSimulation();
-        var depotFirstDepotId = depotFirst.DepotFactory.Register("player", new HexAddress(0, 0));
-        var depotFirstCharterId = depotFirst.CharterFactory.Register("player", "Ironworks", "#ff0000");
+        var depotFirstDepotId = depotFirst.Services.DepotFactory.Register(Nation.Player, new HexAddress(0, 0));
+        var depotFirstCharterId = depotFirst.Services.CharterFactory.Register(Nation.Player, "Ironworks");
 
         var charterFirstDepot = charterFirst.Registries.Depots[charterFirstDepotId];
         var depotFirstDepot = depotFirst.Registries.Depots[depotFirstDepotId];
 
-        Assert.True(charterFirstDepot.HasCompartment(FindCommons(charterFirst, "player").Id));
+        Assert.True(charterFirstDepot.HasCompartment(TestData.CommonsFor(charterFirst, Nation.Player).Id));
         Assert.True(charterFirstDepot.HasCompartment(charterFirstCharterId));
-        Assert.True(depotFirstDepot.HasCompartment(FindCommons(depotFirst, "player").Id));
+        Assert.True(depotFirstDepot.HasCompartment(TestData.CommonsFor(depotFirst, Nation.Player).Id));
         Assert.True(depotFirstDepot.HasCompartment(depotFirstCharterId));
     }
 
@@ -88,9 +86,9 @@ public sealed class CharterDepotSynchronizationTests
     public void CharterFromOneNationGetsNoCompartmentInAnotherNationsDepot()
     {
         var simulation = CreateSimulation();
-        var enemyCharterId = simulation.CharterFactory.Register("enemy", "Redguard", "#00ff00");
+        var enemyCharterId = simulation.Services.CharterFactory.Register(Nation.Enemy, "Redguard");
 
-        var playerDepotId = simulation.DepotFactory.Register("player", new HexAddress(0, 0));
+        var playerDepotId = simulation.Services.DepotFactory.Register(Nation.Player, new HexAddress(0, 0));
 
         var playerDepot = simulation.Registries.Depots[playerDepotId];
         Assert.False(playerDepot.HasCompartment(enemyCharterId));
@@ -100,8 +98,8 @@ public sealed class CharterDepotSynchronizationTests
     public void DuplicateCompartmentRegistrationIsAnInvariantFailure()
     {
         var simulation = CreateSimulation();
-        var charterId = simulation.CharterFactory.Register("player", "Ironworks", "#ff0000");
-        var depotId = simulation.DepotFactory.Register("player", new HexAddress(0, 0));
+        var charterId = simulation.Services.CharterFactory.Register(Nation.Player, "Ironworks");
+        var depotId = simulation.Services.DepotFactory.Register(Nation.Player, new HexAddress(0, 0));
         var depot = simulation.Registries.Depots[depotId];
 
         Assert.Throws<SimulationInvariantException>(() => depot.AddCompartment(charterId));
@@ -111,7 +109,7 @@ public sealed class CharterDepotSynchronizationTests
     public void LookingUpAMissingCompartmentIsAnInvariantFailure()
     {
         var simulation = CreateSimulation();
-        var depotId = simulation.DepotFactory.Register("player", new HexAddress(0, 0));
+        var depotId = simulation.Services.DepotFactory.Register(Nation.Player, new HexAddress(0, 0));
         var depot = simulation.Registries.Depots[depotId];
 
         Assert.Throws<SimulationInvariantException>(() => depot.CompartmentFor(new CharterId(999)));
@@ -121,31 +119,14 @@ public sealed class CharterDepotSynchronizationTests
     public void RemovingAMissingCompartmentIsAnInvariantFailure()
     {
         var simulation = CreateSimulation();
-        var depotId = simulation.DepotFactory.Register("player", new HexAddress(0, 0));
+        var depotId = simulation.Services.DepotFactory.Register(Nation.Player, new HexAddress(0, 0));
         var depot = simulation.Registries.Depots[depotId];
 
         Assert.Throws<SimulationInvariantException>(() => depot.RemoveCompartment(new CharterId(999)));
     }
 
-    private static Charter FindCommons(Simulation simulation, string nation)
-    {
-        foreach (var charter in simulation.Registries.Charters)
-        {
-            if (charter.IsCommons && charter.Nation == nation)
-            {
-                return charter;
-            }
-        }
-
-        throw new InvalidOperationException($"No Commons Charter registered for nation '{nation}'.");
-    }
-
     private static Simulation CreateSimulation()
     {
-        var definitions = TestData.LoadDefinitions();
-        return new Simulation(new SimulationOptions(
-            42,
-            definitions,
-            TestData.LoadMap(definitions)));
+        return TestData.CreateSimulation();
     }
 }

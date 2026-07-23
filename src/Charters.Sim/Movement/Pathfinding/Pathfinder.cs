@@ -5,7 +5,7 @@ namespace Charters.Sim.Movement.Pathfinding;
 public static class Pathfinder
 {
     [ThreadStatic]
-    private static SearchScratch? _threadScratch;
+    private static SearchScratch? ThreadScratch;
 
     public static PathfindingResult FindPath(PathfindingParameters parameters)
     {
@@ -23,7 +23,7 @@ public static class Pathfinder
             return new PathfindingResult(true, ReadOnlyMemory<int>.Empty);
         }
 
-        var scratch = _threadScratch ??= new SearchScratch();
+        var scratch = ThreadScratch ??= new SearchScratch();
         scratch.Reset(map.Count);
         
         var startAddress = map.AddressOf(startHex);

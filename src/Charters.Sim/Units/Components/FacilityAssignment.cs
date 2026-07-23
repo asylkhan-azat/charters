@@ -1,4 +1,3 @@
-using Charters.Sim.Facilities;
 using Charters.Sim.Facilities.Models;
 
 namespace Charters.Sim.Units.Components;

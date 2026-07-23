@@ -5,6 +5,8 @@ using System.Text;
 using Charters.Headless;
 using Charters.Sim.Core;
 using Charters.Sim.Core.Infrastructure.Serialization;
+using Charters.Sim.Map.Generation;
+using Charters.Sim.Random;
 
 CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
@@ -64,7 +66,10 @@ static int Run(
             mapPath ?? Path.Combine(dataDirectory, "maps", "mvp.json"),
             definitions);
 
-        Simulation simulation = new(new SimulationOptions(seed, definitions, template));
+        var random = new RandomSet(seed);
+        var map = WorldGenerator.Generate(definitions, random, template);
+        var state = new SimulationState(0, map, [], [], [], [], random.GetAllStates());
+        var simulation = new Simulation(new SimulationOptions(definitions), state);
         simulation.Advance(ticks);
 
         Console.WriteLine($"digest {StateDigest.Complete(simulation)}");
@@ -99,9 +104,9 @@ namespace Charters.Headless
 
         private static void AddRandomStreams(IncrementalHash hash, Simulation simulation)
         {
-            foreach (var pair in simulation.Random.GetAllStates().OrderBy(static pair => pair.Key))
+            foreach (var pair in simulation.Services.Random.GetAllStates().OrderBy(static pair => pair.Key))
             {
-                Add(hash, $"random|{pair.Key}|{pair.Value.State:X16}|{pair.Value.Inc:X16}");
+                Add(hash, $"random|{pair.Key}|{pair.Value.State:X16}|{pair.Value.Increment:X16}");
             }
         }
 

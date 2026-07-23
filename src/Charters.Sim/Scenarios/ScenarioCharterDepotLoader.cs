@@ -5,42 +5,53 @@ using Charters.Sim.Depots;
 namespace Charters.Sim.Scenarios;
 
 /// <summary>
-/// Registers a resolved scenario's Charters and depots into a simulation, reusing
-/// <see cref="CharterFactory"/>/<see cref="DepotFactory"/> for identity minting and compartment
-/// synchronization so scenario loading establishes the same invariants as any other registration
-/// order. Depot starting stock is applied only once every Charter and depot from the scenario is
-/// registered, so the complete compartment set already exists.
+/// Builds a resolved scenario's Charter and depot state before a simulation exists. Depot starting
+/// stock is applied only after every compartment has been constructed.
 /// </summary>
 public static class ScenarioCharterDepotLoader
 {
-    public static void Apply(Simulation simulation, Scenario scenario)
+    public static (Charter[] Charters, Depot[] Depots) Load(Scenario scenario)
     {
-        ArgumentNullException.ThrowIfNull(simulation);
         ArgumentNullException.ThrowIfNull(scenario);
 
         Dictionary<string, CharterId> charterIds = [];
-        foreach (var charter in scenario.Charters)
+        var charters = new Charter[scenario.Charters.Count];
+        for (var i = 0; i < scenario.Charters.Count; i++)
         {
-            charterIds[charter.Id] = simulation.CharterFactory.Register(charter.Nation, charter.Name, charter.Color);
+            var resolved = scenario.Charters[i];
+            var charter = new Charter(new CharterId(i), resolved.Nation, resolved.Name);
+            charters[i] = charter;
+            charterIds[resolved.Id] = charter.Id;
         }
 
-        Dictionary<string, DepotId> depotIds = [];
-        foreach (var depot in scenario.Depots)
+        var depots = new Depot[scenario.Depots.Count];
+        for (var i = 0; i < scenario.Depots.Count; i++)
         {
-            depotIds[depot.Id] = simulation.DepotFactory.Register(depot.Nation, depot.Location);
-        }
-
-        foreach (var depot in scenario.Depots)
-        {
-            var depotObject = simulation.Registries.Depots[depotIds[depot.Id]];
-            foreach (var (charterId, quantities) in depot.InitialStock)
+            var resolved = scenario.Depots[i];
+            var depot = new Depot(new DepotId(i), resolved.Nation, resolved.Location);
+            foreach (var charter in charters)
             {
-                var compartment = depotObject.CompartmentFor(charterIds[charterId]);
+                if (charter.Nation == depot.Nation)
+                {
+                    depot.AddCompartment(charter.Id);
+                }
+            }
+
+            depots[i] = depot;
+        }
+
+        for (var i = 0; i < scenario.Depots.Count; i++)
+        {
+            foreach (var (charterId, quantities) in scenario.Depots[i].InitialStock)
+            {
+                var compartment = depots[i].CompartmentFor(charterIds[charterId]);
                 foreach (var itemQuantity in quantities)
                 {
                     compartment.Stockpile.Put(itemQuantity);
                 }
             }
         }
+
+        return (charters, depots);
     }
 }

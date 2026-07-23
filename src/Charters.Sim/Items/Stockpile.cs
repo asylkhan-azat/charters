@@ -10,13 +10,15 @@ namespace Charters.Sim.Items;
 /// </summary>
 public sealed class Stockpile : IItemContainer
 {
-    private readonly SortedDictionary<string, ItemQuantity> _contents = new(StringComparer.Ordinal);
+    private readonly SortedDictionary<ItemDefinition, int> _contents = new(ItemIdComparer.Instance);
 
     public int Count => _contents.Count;
 
+    public bool IsEmpty => _contents.Count == 0;
+
     public int QuantityOf(ItemDefinition item)
     {
-        return _contents.TryGetValue(item.Id, out var stored) ? stored.Quantity : 0;
+        return _contents.GetValueOrDefault(item, 0);
     }
 
     public bool Has(ItemQuantity itemQuantity)
@@ -31,6 +33,17 @@ public sealed class Stockpile : IItemContainer
         return (long)QuantityOf(itemQuantity.Item) + itemQuantity.Quantity <= itemQuantity.Item.StockpileLimit;
     }
 
+    /// <summary>
+    /// How much more of this item fits before its independent stockpile limit is reached. Used by
+    /// partial-fill redistribution such as Charter-death depot cleanup, not by the atomic
+    /// <see cref="IItemContainer"/> contract.
+    /// </summary>
+    public int AvailableCapacityFor(ItemDefinition item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        return item.StockpileLimit - QuantityOf(item);
+    }
+
     public void Put(ItemQuantity itemQuantity)
     {
         if (!CanAccept(itemQuantity))
@@ -40,10 +53,7 @@ public sealed class Stockpile : IItemContainer
                 $"stockpile limit {itemQuantity.Item.StockpileLimit} exceeded.");
         }
 
-        _contents[itemQuantity.Item.Id] = itemQuantity with
-        {
-            Quantity = QuantityOf(itemQuantity.Item) + itemQuantity.Quantity
-        };
+        _contents[itemQuantity.Item] = QuantityOf(itemQuantity.Item) + itemQuantity.Quantity;
     }
 
     public void Take(ItemQuantity itemQuantity)
@@ -58,11 +68,11 @@ public sealed class Stockpile : IItemContainer
 
         if (remaining == 0)
         {
-            _contents.Remove(itemQuantity.Item.Id);
+            _contents.Remove(itemQuantity.Item);
         }
         else
         {
-            _contents[itemQuantity.Item.Id] = itemQuantity with { Quantity = remaining };
+            _contents[itemQuantity.Item] = remaining;
         }
     }
 
@@ -145,18 +155,28 @@ public sealed class Stockpile : IItemContainer
 
     public struct Enumerator
     {
-        private SortedDictionary<string, ItemQuantity>.Enumerator _contents;
+        private SortedDictionary<ItemDefinition, int>.Enumerator _contents;
 
-        internal Enumerator(SortedDictionary<string, ItemQuantity>.Enumerator contents)
+        internal Enumerator(SortedDictionary<ItemDefinition, int>.Enumerator contents)
         {
             _contents = contents;
         }
 
-        public ItemQuantity Current => _contents.Current.Value;
+        public ItemQuantity Current => new(_contents.Current.Key, _contents.Current.Value);
 
         public bool MoveNext()
         {
             return _contents.MoveNext();
+        }
+    }
+
+    private sealed class ItemIdComparer : IComparer<ItemDefinition>
+    {
+        public static readonly ItemIdComparer Instance = new();
+
+        public int Compare(ItemDefinition? x, ItemDefinition? y)
+        {
+            return string.CompareOrdinal(x!.Id, y!.Id);
         }
     }
 }

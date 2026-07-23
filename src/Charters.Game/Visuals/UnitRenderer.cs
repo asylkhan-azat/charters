@@ -16,7 +16,7 @@ public sealed partial class UnitRenderer : MultiMeshInstance3D
 
     public void Render(Simulation simulation)
     {
-        var unitCount = simulation.Services.Units.UnitCount;
+        var unitCount = simulation.Views.Units.UnitCount;
 
         if (Multimesh is null || Multimesh.InstanceCount != unitCount)
         {
@@ -30,7 +30,7 @@ public sealed partial class UnitRenderer : MultiMeshInstance3D
             Mesh = Multimesh
         };
         
-        simulation.Services.Units.ForEachUnit(OnUnitDraw, ref state);
+        simulation.Views.Units.ForEachUnit(OnUnitDraw, ref state);
     }
 
     private static void OnUnitDraw(UnitView unit, ref UnitDrawState state)

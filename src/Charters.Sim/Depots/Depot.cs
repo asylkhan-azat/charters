@@ -12,10 +12,8 @@ public sealed class Depot : IIdentifiable<DepotId>
 {
     private readonly SortedDictionary<CharterId, DepotCompartment> _compartments = [];
 
-    public Depot(DepotId id, string nation, HexAddress location)
+    public Depot(DepotId id, Nation nation, HexAddress location)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(nation);
-
         Id = id;
         Nation = nation;
         Location = location;
@@ -23,7 +21,7 @@ public sealed class Depot : IIdentifiable<DepotId>
 
     public DepotId Id { get; }
 
-    public string Nation { get; }
+    public Nation Nation { get; }
 
     public HexAddress Location { get; }
 

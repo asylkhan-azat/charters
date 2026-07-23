@@ -8,6 +8,21 @@ public sealed class Registry<TId, TItem>
 {
     private readonly SortedDictionary<TId, TItem> _itemsById = [];
 
+    public Registry(IEnumerable<TItem> items)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+
+        foreach (var item in items)
+        {
+            Add(item);
+        }
+    }
+
+    public Registry()
+        : this([])
+    {
+    }
+
     public int Count => _itemsById.Count;
 
     public TItem this[TId id] => _itemsById[id];

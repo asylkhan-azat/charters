@@ -32,7 +32,7 @@ public sealed class Facility : IIdentifiable<FacilityId>
 
     public FacilityTypeDefinition Type { get; }
 
-    public CharterId Owner { get; }
+    public CharterId Owner { get; private set; }
 
     public HexAddress Location { get; }
 
@@ -52,6 +52,12 @@ public sealed class Facility : IIdentifiable<FacilityId>
 
     // Recomputed every tick from scratch; a facility never remembers which workers staffed it.
     internal int ClaimedSpots { get; private set; }
+
+    /// <summary>Changes the owner in place. Callers decide whether the embedded stock stays or is evicted first.</summary>
+    internal void ChangeOwner(CharterId newOwner)
+    {
+        Owner = newOwner;
+    }
 
     public void SwitchRecipe(RecipeDefinition recipe)
     {

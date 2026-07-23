@@ -1,7 +1,5 @@
 using Charters.Sim.Core.Infrastructure.Serialization;
 using Charters.Sim.Hexes;
-using Charters.Sim.Map;
-using Charters.Sim.Scenarios;
 using Charters.Sim.Scenarios.Infrastructure.Serialization;
 
 namespace Charters.Tests.Scenarios;
@@ -15,7 +13,7 @@ public sealed class ScenarioLoaderTests
           "diagnostics": { "conservationAuditCadence": 10 },
           "tuning": { "groundStockpileDecayTicks": 180 },
           "charters": [
-            { "id": "ironworks", "name": "Ironworks", "nation": "player", "color": "#ff0000" }
+            { "id": "ironworks", "name": "Ironworks", "nation": "player" }
           ],
           "deposits": [
             { "id": "ore-deposit", "item": "ore", "location": { "region": "north", "offset": { "q": 0, "r": 0 } } }
@@ -137,7 +135,7 @@ public sealed class ScenarioLoaderTests
     public void UnknownNationIsRejected()
     {
         AssertRejects(
-            ValidScenario.Replace("\"nation\": \"player\", \"color\"", "\"nation\": \"unknown\", \"color\""),
+            ValidScenario.Replace("\"name\": \"Ironworks\", \"nation\": \"player\"", "\"name\": \"Ironworks\", \"nation\": \"unknown\""),
             "references unknown nation 'unknown'");
     }
 
@@ -214,7 +212,7 @@ public sealed class ScenarioLoaderTests
             ValidScenario
                 .Replace(
                     "\"charters\": [",
-                    "\"charters\": [{ \"id\": \"otherco\", \"name\": \"Otherco\", \"nation\": \"player\", \"color\": \"#00ff00\" },")
+                    "\"charters\": [{ \"id\": \"otherco\", \"name\": \"Otherco\", \"nation\": \"player\" },")
                 .Replace(
                     "\"id\": \"worker-1\", \"type\": \"infantry\", \"owner\": \"ironworks\",",
                     "\"id\": \"worker-1\", \"type\": \"infantry\", \"owner\": \"otherco\","),

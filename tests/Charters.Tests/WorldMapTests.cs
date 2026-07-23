@@ -10,8 +10,7 @@ public sealed class WorldMapTests
     public void HexAccessDelegatesToTheUnderlyingGrid()
     {
         TerrainDefinition plains = new("plains", "Plains");
-        NationInfo nation = new("player", "#8a8a8a");
-        RegionInfo region = new("center", "Center", nation, new HexAddress(0, 0));
+        RegionInfo region = new("center", "Center", new HexAddress(0, 0));
         HexMap<Hex> hexes = new([new HexAddress(0, 0), new HexAddress(1, 0)]);
         for (var hexIndex = 0; hexIndex < hexes.Count; hexIndex++)
         {
@@ -19,7 +18,7 @@ public sealed class WorldMapTests
             hexes[hexIndex].Region = region;
         }
 
-        WorldMap map = new(hexes, [region], [nation]);
+        WorldMap map = new(hexes, [region]);
 
         Assert.Equal(2, map.Count);
         Assert.Equal(new HexAddress(1, 0), map.AddressOf(1));

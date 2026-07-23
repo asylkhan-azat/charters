@@ -7,7 +7,7 @@ public sealed class RegistryTests
 {
     private static Charter TestCharter(long id)
     {
-        return new Charter(new CharterId(id), "player", "Test", "#ffffff", isCommons: false);
+        return new Charter(new CharterId(id), Nation.Player, "Test");
     }
 
     [Fact]

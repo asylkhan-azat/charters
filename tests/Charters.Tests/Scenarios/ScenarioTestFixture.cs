@@ -50,8 +50,8 @@ internal sealed class ScenarioTestFixture : IDisposable
               "regionRadius": 3,
               "terrainSeedsPerRegion": 1,
               "nations": [
-                { "id": "player", "commonsColor": "#8a8a8a" },
-                { "id": "enemy", "commonsColor": "#5a2d2d" }
+                { "id": "player" },
+                { "id": "enemy" }
               ],
               "regions": [
                 {

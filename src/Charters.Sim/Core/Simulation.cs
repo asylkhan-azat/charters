@@ -1,15 +1,12 @@
 using Arch.Core;
 using Charters.Sim.AI;
 using Charters.Sim.Charters;
-using Charters.Sim.Core.Definitions;
-using Charters.Sim.Depots;
 using Charters.Sim.Facilities;
+using Charters.Sim.GroundStockpiles;
 using Charters.Sim.Items;
 using Charters.Sim.Map;
-using Charters.Sim.Map.Generation;
 using Charters.Sim.Movement;
 using Charters.Sim.Random;
-using Charters.Sim.Units;
 
 namespace Charters.Sim.Core;
 
@@ -21,40 +18,33 @@ public sealed class Simulation
         new MovementSimulationPhase(),
         new FacilitySimulationPhase(),
         new ItemSimulationPhase(),
+        new GroundStockpileSimulationPhase(),
     ];
 
-    public Simulation(SimulationOptions options)
+    public Simulation(SimulationOptions options, SimulationState state)
     {
-        Definitions = options.Definitions;
-        Random = new RandomSet(options.Seed);
-        Map = WorldGenerator.Generate(Definitions, Random, options.MapTemplate);
-        Entities = World.Create();
-        UnitFactory = new UnitFactory(this);
-        Registries = new SimulationRegistries();
-        Facts = new SimulationFacts();
-        CharterFactory = new CharterFactory(this);
-        DepotFactory = new DepotFactory(this);
-        FacilityFactory = new FacilityFactory(this);
-        Services = new SimulationServices(this);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentOutOfRangeException.ThrowIfNegative(state.Tick);
 
-        foreach (var nation in Map.Nations)
-        {
-            CharterFactory.RegisterCommons(nation.Id, nation.CommonsColor);
-        }
+        Options = options;
+        Tick = state.Tick;
+        Map = state.Map;
+        Registries = new SimulationRegistries(state);
+        Entities = World.Create();
+        Facts = new SimulationFacts();
+        Views = new SimulationViews(this);
+        Services = new SimulationServices(this, new RandomSet(state.RandomStreams));
     }
 
     public long Tick { get; private set; }
-    public DefinitionSet Definitions { get; }
-    public RandomSet Random { get; }
+    public SimulationOptions Options { get; }
     public WorldMap Map { get; }
-    internal World Entities { get; }
-    public UnitFactory UnitFactory { get; }
     public SimulationRegistries Registries { get; }
     public SimulationFacts Facts { get; }
-    public CharterFactory CharterFactory { get; }
-    public DepotFactory DepotFactory { get; }
-    public FacilityFactory FacilityFactory { get; }
+    public SimulationViews Views { get; }
     public SimulationServices Services { get; }
+    internal World Entities { get; }
 
     public void Advance(int ticks)
     {

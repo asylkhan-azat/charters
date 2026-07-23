@@ -1,3 +1,4 @@
+using Charters.Sim.Core;
 using Charters.Sim.Core.Definitions;
 using Charters.Sim.Hexes;
 using Charters.Sim.Items.Definitions;
@@ -50,7 +51,7 @@ internal static class ScenarioConverter
         List<ResolvedCharter> results = [];
         foreach (var charter in charters ?? [])
         {
-            results.Add(new ResolvedCharter(charter.Id!, charter.Name!, charter.Nation!, charter.Color!));
+            results.Add(new ResolvedCharter(charter.Id!, charter.Name!, NationParser.Parse(charter.Nation)));
         }
 
         return results;
@@ -117,7 +118,7 @@ internal static class ScenarioConverter
                 compartments[charterId] = ConvertStock(stock, definitions);
             }
 
-            results.Add(new ResolvedDepot(depot.Id!, depot.Nation!, address, compartments));
+            results.Add(new ResolvedDepot(depot.Id!, NationParser.Parse(depot.Nation), address, compartments));
         }
 
         return (results, addresses);

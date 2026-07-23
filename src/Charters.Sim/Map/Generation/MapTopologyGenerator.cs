@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Charters.Sim.Hexes;
 
 namespace Charters.Sim.Map.Generation;
@@ -7,9 +6,6 @@ internal static class MapTopologyGenerator
 {
     public static MapTopology Generate(MapTemplate template)
     {
-        var nations = BuildNations(template.Nations);
-        var nationsById = nations.ToDictionary(static nation => nation.Id);
-
         List<HexAddress> addresses = [];
         var regions = new RegionInfo[template.Regions.Count];
         var regionHexes = new List<int>[template.Regions.Count];
@@ -19,7 +15,6 @@ internal static class MapTopologyGenerator
                 template.Regions[i],
                 i,
                 template.RegionRadius,
-                nationsById,
                 addresses,
                 regions,
                 regionHexes);
@@ -34,35 +29,19 @@ internal static class MapTopologyGenerator
             }
         }
 
-        return new MapTopology(hexes, [.. regions], nations, regionHexes);
-    }
-
-    private static ImmutableArray<NationInfo> BuildNations(IReadOnlyList<NationTemplate> nations)
-    {
-        var nationInfos = new NationInfo[nations.Count];
-        for (var i = 0; i < nations.Count; i++)
-        {
-            nationInfos[i] = new NationInfo(nations[i].Id, nations[i].CommonsColor);
-        }
-
-        return [.. nationInfos];
+        return new MapTopology(hexes, [.. regions], regionHexes);
     }
 
     private static void AddRegion(
         RegionTemplate template,
         int regionIndex,
         int regionRadius,
-        IReadOnlyDictionary<string, NationInfo> nationsById,
         List<HexAddress> addresses,
         RegionInfo[] regions,
         List<int>[] regionHexes)
     {
         var center = RegionLattice.CenterOf(template.GridCoordinate, regionRadius);
-        regions[regionIndex] = new RegionInfo(
-            template.Id,
-            template.Name,
-            nationsById[template.Nation],
-            center);
+        regions[regionIndex] = new RegionInfo(template.Id, template.Name, center);
         regionHexes[regionIndex] = [];
 
         var addressesBeforeRegion = addresses.Count;

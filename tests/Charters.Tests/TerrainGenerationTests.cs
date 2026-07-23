@@ -12,20 +12,19 @@ public sealed class TerrainGenerationTests
         var definitions = TestData.LoadDefinitions();
         var template = TestData.LoadMap(definitions);
 
-        Simulation simulation = new(new SimulationOptions(42, definitions, template));
+        var map = TestData.GenerateMap(definitions);
 
-        Assert.Equal(14, simulation.Map.Regions.Length);
-        Assert.Equal(2, simulation.Map.Nations.Length);
+        Assert.Equal(14, map.Regions.Length);
         var expectedRegionHexes = 3 * template.RegionRadius * (template.RegionRadius + 1) + 1;
-        Assert.Equal(expectedRegionHexes * template.Regions.Count, simulation.Map.Count);
+        Assert.Equal(expectedRegionHexes * template.Regions.Count, map.Count);
         Dictionary<RegionInfo, int> regionHexCounts = [];
-        for (var hexIndex = 0; hexIndex < simulation.Map.Count; hexIndex++)
+        for (var hexIndex = 0; hexIndex < map.Count; hexIndex++)
         {
-            var region = simulation.Map[hexIndex].Region;
+            var region = map[hexIndex].Region;
             regionHexCounts[region] = regionHexCounts.GetValueOrDefault(region) + 1;
         }
 
-        Assert.Equal(simulation.Map.Regions.Length, regionHexCounts.Count);
+        Assert.Equal(map.Regions.Length, regionHexCounts.Count);
 
         Assert.All(regionHexCounts.Values, count => Assert.Equal(expectedRegionHexes, count));
     }
@@ -58,12 +57,12 @@ public sealed class TerrainGenerationTests
         var template = TestData.LoadMap(definitions);
         var regionsById = template.Regions.ToDictionary(static region => region.Id);
 
-        Simulation simulation = new(new SimulationOptions(42, definitions, template));
+        var map = TestData.GenerateMap(definitions);
 
-        for (var hexIndex = 0; hexIndex < simulation.Map.Count; hexIndex++)
+        for (var hexIndex = 0; hexIndex < map.Count; hexIndex++)
         {
-            var region = simulation.Map[hexIndex].Region;
-            var terrain = simulation.Map[hexIndex].Terrain;
+            var region = map[hexIndex].Region;
+            var terrain = map[hexIndex].Terrain;
             Assert.Contains(terrain.Id, regionsById[region.Id].TerrainWeights.Keys);
         }
     }
@@ -73,23 +72,23 @@ public sealed class TerrainGenerationTests
     {
         var definitions = TestData.LoadDefinitions();
         var template = TestData.LoadMap(definitions);
-        Simulation simulation = new(new SimulationOptions(42, definitions, template));
+        var map = TestData.GenerateMap(definitions);
 
-        for (var i = 0; i < simulation.Map.Regions.Length; i++)
+        for (var i = 0; i < map.Regions.Length; i++)
         {
             Assert.Equal(
                 RegionLattice.CenterOf(template.Regions[i].GridCoordinate, template.RegionRadius),
-                simulation.Map.Regions[i].Center);
+                map.Regions[i].Center);
         }
 
-        for (var i = 0; i < simulation.Map.Count; i++)
+        for (var i = 0; i < map.Count; i++)
         {
             for (var direction = 0; direction < HexAddress.Directions.Length; direction++)
             {
-                var hasNeighbor = simulation.Map.TryIndexOf(
-                    simulation.Map.AddressOf(i).Neighbor(direction),
+                var hasNeighbor = map.TryIndexOf(
+                    map.AddressOf(i).Neighbor(direction),
                     out var expectedNeighbor);
-                Assert.Equal(hasNeighbor ? expectedNeighbor : -1, simulation.Map.NeighborOf(i, direction));
+                Assert.Equal(hasNeighbor ? expectedNeighbor : -1, map.NeighborOf(i, direction));
             }
         }
     }

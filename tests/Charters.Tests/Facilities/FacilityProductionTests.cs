@@ -1,7 +1,5 @@
 using Charters.Sim.Charters;
 using Charters.Sim.Core;
-using Charters.Sim.Facilities;
-using Charters.Sim.Facilities.Definitions;
 using Charters.Sim.Facilities.Models;
 using Charters.Sim.Hexes;
 using Charters.Sim.Items.Models;
@@ -21,7 +19,7 @@ public sealed class FacilityProductionTests
         var facility = simulation.Registries.Facilities[facilityId];
         Assert.Equal(FacilityStatus.Unstaffed, facility.LastStatus);
         Assert.Equal(0, facility.ProgressTicks);
-        Assert.Equal(0, facility.Stockpile.QuantityOf(simulation.Definitions.Items["ore"]));
+        Assert.Equal(0, facility.Stockpile.QuantityOf(simulation.Options.Definitions.Items["ore"]));
     }
 
     [Fact]
@@ -63,7 +61,7 @@ public sealed class FacilityProductionTests
         var facility = simulation.Registries.Facilities[facilityId];
         Assert.Equal(FacilityStatus.Producing, facility.LastStatus);
         Assert.Equal(0, facility.ProgressTicks);
-        Assert.Equal(4, facility.Stockpile.QuantityOf(simulation.Definitions.Items["ore"]));
+        Assert.Equal(4, facility.Stockpile.QuantityOf(simulation.Options.Definitions.Items["ore"]));
     }
 
     [Fact]
@@ -97,7 +95,7 @@ public sealed class FacilityProductionTests
         var facilityId = RegisterFacility(simulation, "mine", "produce-ore", owner);
         var elsewhere = simulation.Map.HexAt(1).Address;
 
-        simulation.UnitFactory.Spawn(elsewhere, simulation.Definitions.Units["worker"], owner, facilityId);
+        simulation.Services.UnitFactory.Spawn(elsewhere, simulation.Options.Definitions.Units["worker"], owner, facilityId);
 
         simulation.Advance();
 
@@ -113,7 +111,7 @@ public sealed class FacilityProductionTests
         var facilityId = RegisterFacility(simulation, "mine", "produce-ore", owner);
         var location = simulation.Registries.Facilities[facilityId].Location;
 
-        simulation.UnitFactory.Spawn(location, simulation.Definitions.Units["worker"], otherOwner, facilityId);
+        simulation.Services.UnitFactory.Spawn(location, simulation.Options.Definitions.Units["worker"], otherOwner, facilityId);
 
         simulation.Advance();
 
@@ -146,14 +144,14 @@ public sealed class FacilityProductionTests
         var facility = simulation.Registries.Facilities[facilityId];
         var location = facility.Location;
 
-        facility.Stockpile.Put(new ItemQuantity(simulation.Definitions.Items["ore"], 4));
+        facility.Stockpile.Put(new ItemQuantity(simulation.Options.Definitions.Items["ore"], 4));
         SpawnWorkers(simulation, owner, location, facilityId, count: 4);
 
         simulation.Advance();
 
         Assert.Equal(FacilityStatus.Producing, facility.LastStatus);
         Assert.Equal(0, facility.ProgressTicks);
-        Assert.Equal(0, facility.Stockpile.QuantityOf(simulation.Definitions.Items["ore"]));
+        Assert.Equal(0, facility.Stockpile.QuantityOf(simulation.Options.Definitions.Items["ore"]));
 
         simulation.Advance();
         Assert.Equal(4, facility.ProgressTicks);
@@ -166,7 +164,7 @@ public sealed class FacilityProductionTests
         var owner = RegisterCharter(simulation);
         var facilityId = RegisterFacility(simulation, "mine", "produce-ore", owner);
         var facility = simulation.Registries.Facilities[facilityId];
-        var oreItem = simulation.Definitions.Items["ore"];
+        var oreItem = simulation.Options.Definitions.Items["ore"];
 
         // Stockpile limit is 200; leave room for only 2 of the 4 produced ore.
         facility.Stockpile.Put(new ItemQuantity(oreItem, 198));
@@ -192,18 +190,18 @@ public sealed class FacilityProductionTests
         var facilityId = RegisterFacility(simulation, "refinery", "produce-materials");
         var facility = simulation.Registries.Facilities[facilityId];
 
-        var refinedSulfur = simulation.Definitions.Recipes["produce-refined-sulfur"];
+        var refinedSulfur = simulation.Options.Definitions.Recipes["produce-refined-sulfur"];
         facility.SwitchRecipe(refinedSulfur);
         Assert.Same(refinedSulfur, facility.CurrentRecipe);
 
         var owner = facility.Owner;
-        facility.Stockpile.Put(new ItemQuantity(simulation.Definitions.Items["sulfur"], 4));
+        facility.Stockpile.Put(new ItemQuantity(simulation.Options.Definitions.Items["sulfur"], 4));
         SpawnWorkers(simulation, owner, facility.Location, facilityId, count: 4);
         simulation.Advance();
 
         Assert.False(facility.CanSwitchRecipe);
         Assert.Throws<SimulationInvariantException>(
-            () => facility.SwitchRecipe(simulation.Definitions.Recipes["produce-materials"]));
+            () => facility.SwitchRecipe(simulation.Options.Definitions.Recipes["produce-materials"]));
     }
 
     [Fact]
@@ -214,7 +212,7 @@ public sealed class FacilityProductionTests
         var facility = simulation.Registries.Facilities[facilityId];
 
         Assert.Throws<SimulationInvariantException>(
-            () => facility.SwitchRecipe(simulation.Definitions.Recipes["produce-rifle"]));
+            () => facility.SwitchRecipe(simulation.Options.Definitions.Recipes["produce-rifle"]));
     }
 
     [Fact]
@@ -222,11 +220,11 @@ public sealed class FacilityProductionTests
     {
         var simulation = CreateSimulation();
 
-        Assert.Throws<SimulationInvariantException>(() => simulation.FacilityFactory.Register(
-            simulation.Definitions.FacilityTypes["mine"],
+        Assert.Throws<SimulationInvariantException>(() => simulation.Services.FacilityFactory.Register(
+            simulation.Options.Definitions.FacilityTypes["mine"],
             RegisterCharter(simulation),
             simulation.Map.HexAt(0).Address,
-            simulation.Definitions.Recipes["produce-rifle"]));
+            simulation.Options.Definitions.Recipes["produce-rifle"]));
     }
 
     [Fact]
@@ -251,7 +249,7 @@ public sealed class FacilityProductionTests
         var owner = RegisterCharter(simulation);
         var facilityId = RegisterFacility(simulation, "refinery", "produce-materials", owner);
         var facility = simulation.Registries.Facilities[facilityId];
-        var ore = simulation.Definitions.Items["ore"];
+        var ore = simulation.Options.Definitions.Items["ore"];
 
         facility.Stockpile.Put(new ItemQuantity(ore, 4));
         SpawnWorkers(simulation, owner, facility.Location, facilityId, count: 4);
@@ -326,13 +324,13 @@ public sealed class FacilityProductionTests
 
         foreach (var (itemId, quantity) in inputs)
         {
-            facility.Stockpile.Put(new ItemQuantity(simulation.Definitions.Items[itemId], quantity));
+            facility.Stockpile.Put(new ItemQuantity(simulation.Options.Definitions.Items[itemId], quantity));
         }
 
         SpawnWorkers(simulation, owner, facility.Location, facilityId, facility.Type.WorkerSlots);
 
         // 1 tick to begin the batch, then ceil(workRequired / workerSlots) ticks of accrued work.
-        var recipe = simulation.Definitions.Recipes[recipeId];
+        var recipe = simulation.Options.Definitions.Recipes[recipeId];
         var ticksNeeded = 1 + (recipe.WorkRequired + facility.Type.WorkerSlots - 1) / facility.Type.WorkerSlots;
         simulation.Advance(ticksNeeded);
 
@@ -353,7 +351,7 @@ public sealed class FacilityProductionTests
     {
         for (var i = 0; i < count; i++)
         {
-            simulation.UnitFactory.Spawn(location, simulation.Definitions.Units["worker"], owner, facilityId);
+            simulation.Services.UnitFactory.Spawn(location, simulation.Options.Definitions.Units["worker"], owner, facilityId);
         }
     }
 
@@ -363,24 +361,20 @@ public sealed class FacilityProductionTests
         string recipeId,
         CharterId? owner = null)
     {
-        return simulation.FacilityFactory.Register(
-            simulation.Definitions.FacilityTypes[facilityTypeId],
+        return simulation.Services.FacilityFactory.Register(
+            simulation.Options.Definitions.FacilityTypes[facilityTypeId],
             owner ?? RegisterCharter(simulation),
             simulation.Map.HexAt(0).Address,
-            simulation.Definitions.Recipes[recipeId]);
+            simulation.Options.Definitions.Recipes[recipeId]);
     }
 
     private static CharterId RegisterCharter(Simulation simulation, string name = "Ironworks")
     {
-        return simulation.CharterFactory.Register("player", name, "#ff0000");
+        return simulation.Services.CharterFactory.Register(Nation.Player, name);
     }
 
     private static Simulation CreateSimulation()
     {
-        var definitions = TestData.LoadDefinitions();
-        return new Simulation(new SimulationOptions(
-            42,
-            definitions,
-            TestData.LoadMap(definitions)));
+        return TestData.CreateSimulation();
     }
 }

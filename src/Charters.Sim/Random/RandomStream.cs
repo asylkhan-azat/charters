@@ -52,14 +52,14 @@ public sealed class RandomStream
         return (NextULong() >> 11) * (1.0 / (1UL << 53));
     }
 
-    public (ulong State, ulong Inc) GetState()
+    public RandomStreamState GetState()
     {
-        return (_state, _inc);
+        return new RandomStreamState(_state, _inc);
     }
 
-    public void SetState(ulong state, ulong inc)
+    public void SetState(RandomStreamState state)
     {
-        _state = state;
-        _inc = inc;
+        _state = state.State;
+        _inc = state.Increment;
     }
 }

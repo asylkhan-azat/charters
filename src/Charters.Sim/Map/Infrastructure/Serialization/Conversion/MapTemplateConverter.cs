@@ -12,7 +12,6 @@ internal static class MapTemplateConverter
         return new MapTemplate(
             template.RegionRadius!.Value,
             template.TerrainSeedsPerRegion!.Value,
-            template.Nations!.Select(static nation => new NationTemplate(nation.Id!, nation.CommonsColor!)).ToArray(),
             template.Regions!.Select(ConvertRegion).ToArray());
     }
 

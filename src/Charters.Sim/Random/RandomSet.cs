@@ -15,14 +15,20 @@ public sealed class RandomSet
         }
     }
 
+    public RandomSet(IReadOnlyDictionary<RandomStreamType, RandomStreamState> states)
+        : this(0)
+    {
+        SetAllStates(states);
+    }
+
     public RandomStream Get(RandomStreamType streamType)
     {
         return _streams[(int)streamType];
     }
 
-    public IReadOnlyDictionary<RandomStreamType, (ulong State, ulong Inc)> GetAllStates()
+    public IReadOnlyDictionary<RandomStreamType, RandomStreamState> GetAllStates()
     {
-        Dictionary<RandomStreamType, (ulong State, ulong Inc)> states = new();
+        Dictionary<RandomStreamType, RandomStreamState> states = new();
         foreach (var stream in Enum.GetValues<RandomStreamType>())
         {
             states.Add(stream, Get(stream).GetState());
@@ -31,7 +37,7 @@ public sealed class RandomSet
         return states;
     }
 
-    public void SetAllStates(IReadOnlyDictionary<RandomStreamType, (ulong State, ulong Inc)> states)
+    public void SetAllStates(IReadOnlyDictionary<RandomStreamType, RandomStreamState> states)
     {
         foreach (var stream in Enum.GetValues<RandomStreamType>())
         {
@@ -40,7 +46,7 @@ public sealed class RandomSet
                 throw new KeyNotFoundException($"Missing random stream state for {stream}.");
             }
 
-            Get(stream).SetState(state.State, state.Inc);
+            Get(stream).SetState(state);
         }
     }
 

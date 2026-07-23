@@ -40,6 +40,11 @@ the slice is reshaped, not appended to. Systems must never become the sum of the
 
 ## Judgment calls, and how to make them
 
+- **A service is instance state, not a static class.** Every `Simulation.Services` member — a
+  factory, a lifecycle service, or anything else that acts on the simulation — is constructed once
+  per `Simulation` and reached through `Services`, even when it holds no fields of its own today. A
+  `static class` implicitly assumes one `Simulation` per process and can't own per-simulation scratch
+  state; it never earns that assumption just because it happens to be stateless now.
 - **Behavior lives with the data it belongs to.** A local invariant belongs on its component or
   domain object. A rule spanning several components, objects, or registries belongs in a coordinating
   system. What matters is one obvious home, not whether the home is called a helper or aggregate.

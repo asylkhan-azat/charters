@@ -19,7 +19,7 @@ public static class WanderingSystem
         var wanderEntities = new WanderEntities
         {
             Hexes = simulation.Map.Hexes,
-            Random = simulation.Random.Get(RandomStreamType.Ai)
+            Random = simulation.Services.Random.Get(RandomStreamType.Ai)
         };
 
         simulation.Entities.InlineQuery<WanderEntities, Navigation, Position>(in Query, ref wanderEntities);

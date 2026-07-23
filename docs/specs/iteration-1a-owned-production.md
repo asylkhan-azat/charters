@@ -14,7 +14,7 @@ state, and Charter lifecycle foundation that Iteration 1B will transport.
 
 The iteration is accepted when the dedicated scenario:
 
-- loads three named Charters plus the player nation's automatic Commons Charter, eight items and
+- loads three named Charters plus the player nation's authored Commons Charter, eight items and
   recipes, absolute map deposits, roads, facilities, national depots, assigned workers, bundled
   truck-logists, equipment, and initial goods from authored generation data;
 - runs every recipe and attributes every non-producing tick to staffing, inputs, or output capacity;
@@ -27,7 +27,7 @@ The iteration is accepted when the dedicated scenario:
 
 ## Scope boundaries
 
-A1 includes static named Charters, automatic Commons identity, physical ownership, hosted storage,
+A1 includes static named Charters, authored Commons identity, physical ownership, hosted storage,
 bounded carried and stationary storage, fixed typed equipment slots, staffed production,
 Charter/depot spawn synchronization, Charter-death cleanup, identified decaying ground storage, the
 authored proof scenario, conservation diagnostics, headless metrics, and the minimal view needed to
@@ -74,7 +74,7 @@ These are review blockers, not implementation suggestions:
 | Equipment | Every equipped item occupies exactly one compatible typed slot at quantity one. Equipment is physical unit storage but never changes inventory capacity. |
 | Depot role | A depot is ownerless national infrastructure, never a facility or Charter property. Its compartments are Charter-owned. |
 | Recipe purity | Beyond definition identity, a recipe contains only inputs, outputs, and required work. Facility-to-deposit compatibility is deferred until a construction system exists. |
-| Mutation boundary | Arch, registries, and mutable map state stay inside `Charters.Sim`; hosts consume read-only projections through `Simulation.Services` and `Simulation.Map`. |
+| Mutation boundary | Arch, registries, and mutable map state stay inside `Charters.Sim`; hosts consume read-only projections through `Simulation.Views` and `Simulation.Map`. |
 | Ordering | Independent work iterates native storage in place. Contested outcomes use their mechanic's explicit rule, while reports and hashes canonicalize only on their cold output boundary. |
 | Conservation | Physical totals are auditable by item. Creation and removal are recorded by the concrete operations that cause them; movement and ownership changes conserve totals atomically. |
 
@@ -90,7 +90,7 @@ authored definitions + map + scenario
         → explicit resolution only where actors contend for limited state
     → buffered immutable facts
     → conservation + metrics + presentation history
-    → Simulation.Services / Simulation.Map projections
+    → Simulation.Views / Simulation.Map projections
     → headless and Godot hosts
 ```
 
@@ -136,11 +136,15 @@ creating simulation state.
 
 ### Commons
 
-Simulation initialization creates exactly one Commons system Charter for every nation before
-scenario Charters or depots are spawned.
+The authored/loaded initial state contains exactly one Commons Charter for every nation alongside
+the named Charters. `Simulation` does not create, identify, or otherwise treat it specially while
+constructing the aggregate.
 
-- Its ID is `${nation-id}-commons`, its display name is `Commons`, and its flat color comes from the
-  nation's authored `commonsColor`.
+- Its display name is `Commons`. It has an authored/resolved Charter ID like any other Charter —
+  there is no reserved identifier, stored "is Commons" flag, or special Charter registry. A command
+  or lifecycle operation that needs the Commons identity receives its typed ID explicitly.
+- Commons carries no color or other presentation state. Charterless rendering is a host concern
+  resolved from a palette keyed by identity.
 - Commons is immortal and cannot receive land grants, Leaders, relationships, petitions, political
   goals, or a strategic Manager.
 - Units owned by Commons are presented as charterless and execute the existing simple local
@@ -322,7 +326,7 @@ The scenario document contains:
 - `map`: relative path to its map template;
 - `diagnostics.conservationAuditCadence`: `10`;
 - `tuning.groundStockpileDecayTicks`: `180`;
-- named Charters with ID, name, nation, and color; Commons is never authored here;
+- Charters with ID, name, and nation, including the nation's `Commons` entry;
 - deposits with ID, item, and generated location;
 - facilities with ID, type, owner, generated location, current recipe, and initial stock;
 - depots with ID, nation, generated location, and optional initial stock keyed by Charter ID;
@@ -386,8 +390,7 @@ Create a dedicated radius-4 map with one player nation and three contiguous regi
 | Sulfur Flats | `(1, 0)` | Sulfur, refined sulfur, grenades, ammunition |
 | Central Works | `(0, 1)` | Food and the shared national road/depot junction |
 
-The player nation supplies its Commons color. Simulation initialization creates `player-commons`,
-then the scenario declares three neutral-policy named Charters:
+The scenario declares the player nation's Commons Charter plus three neutral-policy named Charters:
 
 - `ironworks`: owns the Ironfields facilities, workers, and one infantry unit;
 - `brimstone`: owns the Sulfur Flats facilities and workers; and
@@ -472,7 +475,7 @@ one status per production tick.
 Charter registration and depot creation share one invariant: every active Charter has exactly one
 compartment in every depot of its nation.
 
-- Nation initialization registers Commons before any depot.
+- Initial-state loading supplies Commons alongside the other Charters before depot construction.
 - Registering a named Charter adds one empty compartment to every existing same-nation depot in
   depot registry order.
 - Creating a depot adds one empty compartment for every active same-nation Charter in Charter
@@ -481,10 +484,13 @@ compartment in every depot of its nation.
 
 ### Charter death
 
-Commons cannot die. Dissolving any other Charter uses this ordered lifecycle sequence; independent
-objects inside a step use their native in-place iteration:
+The caller supplies Commons as the same-nation fallback owner when dissolving another Charter.
+Dissolution rejects an unknown fallback, a cross-nation fallback, or using the dying Charter as its
+own fallback. The ordered lifecycle sequence is otherwise unchanged; independent objects inside a
+step use their native in-place iteration:
 
-1. Resolve its nation and Commons Charter; reject unknown, already-dead, or Commons IDs.
+1. Resolve the dying and fallback Charters; reject unknown, already-dead, self-fallback, or
+   cross-nation IDs.
 2. Query the dead Charter's units once and change them to Commons in place. Inventory and equipment
    remain on each unit at the same absolute address; append aggregated ownership changes for their
    goods. Unit order does not affect the result.
@@ -528,7 +534,8 @@ the eviction bridge:
 2. preserve the former owner on those piles and assign the authored 180-tick A1 ground lifetime;
 3. clear the embedded stockpile, change the facility owner, and leave the new owner an empty embedded
    stockpile; and
-4. emit the facility-ownership fact with the facility ID, former owner, new owner, and ejected goods.
+4. emit the facility-ownership fact with the facility ID, former owner, new owner, and the created
+   ground stockpiles, if any goods were ejected.
 
 The land loop may replace the 180-tick default with its authored eviction grace duration when it
 implements revocation.
@@ -559,8 +566,8 @@ invariants remain the responsibility of the concrete operation and aggregate tha
 ## Diagnostics and public surfaces
 
 Arch and mutable registries are internal to `Charters.Sim`. Replace public `Simulation.Entities`
-access with read-only projections reached through `Simulation.Services` — per-domain projection
-services such as `Services.Units`, filling caller-owned reusable buffers or threading a caller `ref`
+access with read-only projections reached through `Simulation.Views` — per-domain projection
+services such as `Views.Units`, filling caller-owned reusable buffers or threading a caller `ref`
 state through allocation-free iteration — and through `Simulation.Map`'s own read-only members (such
 as `HexAt`) for map state and diagnostics. These projections expose stable IDs and absolute addresses
 but no mutable component, object, collection, or map-cell reference. A1 adds no player commands; they
@@ -588,20 +595,23 @@ The JSON object contains:
 
 Extend the digest with ordered Commons and named Charter state, roads, absolute deposits, facilities,
 embedded stock, depots and compartments, recipe progress, assignments, equipment, unit inventories,
-ground piles, and decay deadlines. Headless obtains this state through `Simulation.Services` and
+ground piles, and decay deadlines. Headless obtains this state through `Simulation.Views` and
 `Simulation.Map`. Metrics collection consumes the buffered fact journal and must not be read back by
 gameplay systems.
 
 ### Godot
 
-Godot and headless boot through the same scenario loader and consume `Simulation.Services`/
+Godot and headless boot through the same scenario loader and consume `Simulation.Views`/
 `Simulation.Map`; neither host references Arch. Remove random bootstrap spawning. Render:
 
 - shared roads as neutral gray map infrastructure;
 - facilities with type-distinct markers tinted by owning Charter;
 - depots with a distinct nation-infrastructure marker and no Charter tint;
-- units tinted by their owner, using the Commons color for charterless units; and
+- units tinted by their owner, with charterless (Commons-owned) units using the neutral entry; and
 - ground stockpiles with a distinct marker tinted by their owner when any exist.
+
+The simulation carries no colors. Every tint is a host palette lookup keyed by domain identity —
+terrain, unit type, owning Charter — the same way terrain already renders.
 
 Do not add stock numbers, production state, pain-map data, or interactive controls in A1.
 
@@ -662,7 +672,7 @@ build on it.
 - Keep units in the internal Arch world and maintain the internal `UnitId` → Arch entity index as one
   operation with unit creation and destruction.
 - Introduce the buffered fact-journal boundary and read-only projections reached through
-  `Simulation.Services` (per-domain projection services) and `Simulation.Map`. Move existing map and
+  `Simulation.Views` (per-domain projection services) and `Simulation.Map`. Move existing map and
   unit consumers to those read-only projections before removing public mutable Arch/map access.
 - Ensure registry objects, component references, Arch handles, and mutable map cells cannot cross into
   Godot or headless. Do not expose an internal collection temporarily as the de facto public API.
@@ -711,8 +721,8 @@ minimal scenario produces the same initialized simulation state on repeated load
 **Outcome:** ownership and depot compartments are valid immediately after any supported initialization
 order.
 
-- Create exactly one Commons Charter per nation before named scenario Charters when performing normal
-  initialization; Commons is never authored as an ordinary Charter.
+- Load exactly one authored Commons Charter per nation in the same Charter array as named scenario
+  Charters; simulation construction performs no implicit Charter creation.
 - Register named Charters as plain domain objects and create the missing same-nation compartment in
   every existing depot.
 - Register each ownerless national depot with an empty compartment for every active same-nation
@@ -787,7 +797,7 @@ state access.
 
 - Add `--scenario` and `--metrics` with the output behavior defined in [Headless](#headless); preserve
   the existing digest-only default and optional map override.
-- Produce every row through `Simulation.Services`/`Simulation.Map` projections, sorting copied rows into the specified output order
+- Produce every row through `Simulation.Views`/`Simulation.Map` projections, sorting copied rows into the specified output order
   and absolute locations. Do not query Arch or registries directly from the host.
 - Extend the complete digest to all A1 authoritative state, including Commons, ownership, hosted
   stock, production progress, compartments, equipment, assignments, ground expiry, and random state.
@@ -801,14 +811,14 @@ report-boundary conservation audits run even when the regular ten-tick cadence h
 
 **Outcome:** the same authored scenario proves A1 headlessly and visibly.
 
-- Author the radius-4 map, three regions, three named Charters, automatic Commons, facilities,
+- Author the radius-4 map, three regions, three named Charters, Commons, facilities,
   depots, roads, workers, truck-logists, one equipped infantry unit, and initial goods from
   [Proof map and scenario](#proof-map-and-scenario).
 - Preserve the intentional sulfur-side staffing/input bottleneck and seed transformation facilities
   exactly as specified so all recipes run before transport exists.
-- Replace Godot's random unit bootstrap with shared scenario loading and render the required Charter
-  colors, facility types, neutral depots, roads, units, and ground-pile markers through
-  `Simulation.Services` and `Simulation.Map`.
+- Replace Godot's random unit bootstrap with shared scenario loading and render Charters, facility
+  types, neutral depots, roads, units, and ground-pile markers — tinting from host palettes keyed by
+  the identities exposed through `Simulation.Views` and `Simulation.Map`.
 - Do not add A1-excluded overlays, interactive production controls, or placeholder 1B transport.
 
 **Gate:** the 120-tick acceptance run exercises all recipes, records the intended missing-input state
@@ -870,8 +880,9 @@ or focused lifecycle test, and no deferred 1B behavior was introduced to make A1
 
 ### Commons, depots, and lifecycle
 
-- Verify one immortal Commons per nation, reserved ID/name/color, exclusion from political Charter
-  counts, and charterless unit behavior.
+- Verify one Commons per nation in authored initial state, its reserved `Commons` name, exclusion
+  from political Charter counts, and charterless unit behavior without a stored flag or special
+  registry.
 - Verify Charter-first and depot-first creation produce the same complete set of compartments and
   reject duplicates or omissions.
 - Dissolve a Charter owning units, equipment, facilities, depot goods, and existing ground piles;
@@ -919,5 +930,5 @@ Commons owns charterless state; depots are national infrastructure with complete
 compartments; facility and depot stockpiles have no independent identity; ground stockpiles alone are
 identified and decay explicitly; only units use ECS; independent work runs in place without canonical
 sorting; contested behavior has an explicit rule; mutable Arch and domain state stay behind the
-`Simulation.Services`/`Simulation.Map` read-only surface; lifecycle cleanup conserves every item; idle production is attributable; and the
+`Simulation.Views`/`Simulation.Map` read-only surface; lifecycle cleanup conserves every item; idle production is attributable; and the
 Godot view exposes the scenario's physical and ownership structure.

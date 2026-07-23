@@ -7,6 +7,4 @@ internal sealed class ScenarioCharterDto
     public string? Name { get; init; }
 
     public string? Nation { get; init; }
-
-    public string? Color { get; init; }
 }

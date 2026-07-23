@@ -1,4 +1,5 @@
 using Charters.Sim.Core;
+using Charters.Sim.Random;
 using Charters.Sim.Scenarios;
 using Charters.Sim.Scenarios.Infrastructure.Serialization;
 
@@ -13,7 +14,7 @@ public sealed class ScenarioCharterDepotLoaderTests
           "diagnostics": { "conservationAuditCadence": 10 },
           "tuning": { "groundStockpileDecayTicks": 180 },
           "charters": [
-            { "id": "ironworks", "name": "Ironworks", "nation": "player", "color": "#ff0000" }
+            { "id": "ironworks", "name": "Ironworks", "nation": "player" }
           ],
           "deposits": [
             { "id": "ore-deposit", "item": "ore", "location": { "region": "north", "offset": { "q": 0, "r": 0 } } }
@@ -49,31 +50,29 @@ public sealed class ScenarioCharterDepotLoaderTests
         """;
 
     [Fact]
-    public void ApplyRegistersCharterAndDepotAndAppliesInitialStockAfterCompartmentsExist()
+    public void LoadBuildsCharterAndDepotStateWithInitialStock()
     {
         using ScenarioTestFixture fixture = new();
         var path = fixture.WriteScenario(ValidScenario);
         var scenario = ScenarioLoader.Load(path, fixture.Definitions, fixture.MapTemplate, fixture.Map);
 
-        var simulation = new Simulation(new SimulationOptions(1, fixture.Definitions, fixture.MapTemplate));
+        var random = new RandomSet(1);
+        var (charters, depots) = ScenarioCharterDepotLoader.Load(scenario);
+        var state = new SimulationState(0, fixture.Map, charters, [], depots, [], random.GetAllStates());
+        var simulation = new Simulation(new SimulationOptions(fixture.Definitions), state);
 
-        ScenarioCharterDepotLoader.Apply(simulation, scenario);
-
-        Assert.Equal(3, simulation.Registries.Charters.Count); // player commons + enemy commons + ironworks
+        Assert.Equal(1, simulation.Registries.Charters.Count);
         Assert.Equal(1, simulation.Registries.Depots.Count);
 
         Sim.Charters.Charter? ironworks = null;
         foreach (var charter in simulation.Registries.Charters)
         {
-            if (!charter.IsCommons)
-            {
-                ironworks = charter;
-            }
+            ironworks = charter;
         }
 
         Assert.NotNull(ironworks);
         Assert.Equal("Ironworks", ironworks!.Name);
-        Assert.Equal("player", ironworks.Nation);
+        Assert.Equal(Nation.Player, ironworks.Nation);
 
         Sim.Depots.Depot? depot = null;
         foreach (var candidate in simulation.Registries.Depots)

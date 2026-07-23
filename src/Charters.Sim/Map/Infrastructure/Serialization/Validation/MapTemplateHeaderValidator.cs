@@ -13,7 +13,6 @@ internal static class MapTemplateHeaderValidator
         ValidatePositive(fileName, template.RegionRadius, "regionRadius", errors);
         ValidatePositive(fileName, template.TerrainSeedsPerRegion, "terrainSeedsPerRegion", errors);
         ValidateRequiredNations(fileName, template.Nations, errors);
-        ValidateCommonsColors(fileName, template.Nations, errors);
         if (template.Regions is null)
         {
             errors.Add($"{fileName}: regions are missing");
@@ -53,25 +52,6 @@ internal static class MapTemplateHeaderValidator
             nations[1].Id != "enemy")
         {
             errors.Add($"{fileName}: nations must be exactly player then enemy");
-        }
-    }
-
-    private static void ValidateCommonsColors(
-        string fileName,
-        IReadOnlyList<NationDto>? nations,
-        ValidationCollector errors)
-    {
-        if (nations is null)
-        {
-            return;
-        }
-
-        foreach (var nation in nations)
-        {
-            if (string.IsNullOrWhiteSpace(nation.CommonsColor))
-            {
-                errors.Add($"{fileName}: nation '{nation.Id}' is missing commonsColor");
-            }
         }
     }
 

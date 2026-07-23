@@ -13,7 +13,6 @@ public sealed class MapTemplateLoaderTests
 
         Assert.Equal(6, template.RegionRadius);
         Assert.Equal(11, template.TerrainSeedsPerRegion);
-        Assert.Equal(["player", "enemy"], template.Nations.Select(static nation => nation.Id));
         Assert.Equal(14, template.Regions.Count);
         Assert.Equal("heartland", template.Regions[0].Id);
         Assert.Equal(2, template.Regions[0].TerrainWeights["urban"]);
@@ -28,7 +27,7 @@ public sealed class MapTemplateLoaderTests
             """
             {
               "regionRadius": 0,
-              "nations": [{ "id": "enemy" }, { "id": "player", "commonsColor": "#111111" }],
+              "nations": [{ "id": "enemy" }, { "id": "player" }],
               "regions": [
                 {
                   "id": "Bad_Id", "name": "", "nation": "missing",
@@ -50,7 +49,6 @@ public sealed class MapTemplateLoaderTests
         Assert.Contains("regionRadius must be at least 1", exception.Message);
         Assert.Contains("terrainSeedsPerRegion is missing", exception.Message);
         Assert.Contains("nations must be exactly player then enemy", exception.Message);
-        Assert.Contains("nation 'enemy' is missing commonsColor", exception.Message);
         Assert.Contains("region id 'Bad_Id' is not kebab-case", exception.Message);
         Assert.Contains("duplicate region id 'Bad_Id'", exception.Message);
         Assert.Contains("region 'Bad_Id' has empty name", exception.Message);
@@ -83,8 +81,8 @@ public sealed class MapTemplateLoaderTests
           "regionRadius": 1,
           "terrainSeedsPerRegion": 1,
           "nations": [
-            { "id": "player", "commonsColor": "#8a8a8a" },
-            { "id": "enemy", "commonsColor": "#5a2d2d" }
+            { "id": "player" },
+            { "id": "enemy" }
           ],
           "regions": [
             {

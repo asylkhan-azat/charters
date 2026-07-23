@@ -7,5 +7,4 @@ namespace Charters.Sim.Map.Generation;
 internal sealed record MapTopology(
     HexMap<Hex> Hexes,
     ImmutableArray<RegionInfo> Regions,
-    ImmutableArray<NationInfo> Nations,
     IReadOnlyList<List<int>> RegionHexes);

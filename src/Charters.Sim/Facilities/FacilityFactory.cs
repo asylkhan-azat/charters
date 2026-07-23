@@ -14,6 +14,10 @@ public sealed class FacilityFactory
     internal FacilityFactory(Simulation simulation)
     {
         _simulation = simulation;
+        foreach (var facility in simulation.Registries.Facilities)
+        {
+            _idCounter = Math.Max(_idCounter, checked(facility.Id.Value + 1));
+        }
     }
 
     public FacilityId Register(

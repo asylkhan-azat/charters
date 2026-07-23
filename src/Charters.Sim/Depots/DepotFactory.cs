@@ -15,9 +15,13 @@ public sealed class DepotFactory
     internal DepotFactory(Simulation simulation)
     {
         _simulation = simulation;
+        foreach (var depot in simulation.Registries.Depots)
+        {
+            _idCounter = Math.Max(_idCounter, checked(depot.Id.Value + 1));
+        }
     }
 
-    public DepotId Register(string nation, HexAddress location)
+    public DepotId Register(Nation nation, HexAddress location)
     {
         var id = new DepotId(_idCounter++);
         var depot = new Depot(id, nation, location);

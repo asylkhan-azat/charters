@@ -2,7 +2,6 @@ using Arch.Core;
 using Charters.Sim.AI.Components;
 using Charters.Sim.Charters;
 using Charters.Sim.Core;
-using Charters.Sim.Facilities;
 using Charters.Sim.Facilities.Models;
 using Charters.Sim.Hexes;
 using Charters.Sim.Movement.Components;
@@ -48,6 +47,16 @@ public class UnitFactory
 
         _entitiesByUnitId.Add(id, entity);
         return id;
+    }
+
+    public CharterId OwnerOf(UnitId id)
+    {
+        if (!TryGetEntity(id, out var entity))
+        {
+            throw new SimulationInvariantException($"Unknown unit id '{id}'.");
+        }
+
+        return _simulation.Entities.Get<Owner>(entity).CharterId;
     }
 
     public void Destroy(UnitId id)

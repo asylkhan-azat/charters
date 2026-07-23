@@ -49,13 +49,20 @@ rules never read presentation state, metrics, or Godot objects back into decisio
 `Simulation` is the single owner and clock for one campaign state. It composes:
 
 - the internal Arch world containing units;
-- the generated map and its dense hex data;
+- the world map it is handed and its dense hex data;
 - immutable definition registries;
 - typed registries for Charters, facilities, depots, and identified ground stockpiles;
 - plain domain state for requests, operations, reservations, relationships, and decision history;
-- seeded simulation-owned random streams;
+- simulation-owned random streams restored from explicit stream state;
 - the ordered phase schedule; and
 - buffered facts, conservation state, metrics, and read-only projections.
+
+World generation and initial-state assembly are not the simulation's concern. A loader or host builds
+a `SimulationState` containing the current tick, generated `WorldMap` (including regions), existing
+Charters, facilities, depots, identified ground stockpiles, and every random-stream state. The
+`Simulation` constructor hydrates its generic typed registries from those objects and resumes from
+that tick and those exact next random draws. It never invents campaign objects or resets random
+streams during construction.
 
 The simulation is a single-writer model. Only simulation systems and domain objects may mutate this
 state. A system coordinates a rule that crosses objects or storage models; an invariant-rich domain
@@ -117,6 +124,11 @@ resolved at the loading boundary; hot runtime state does not perform string look
 references resolve once to immutable definitions. Stable domain IDs, not collection positions,
 object references, or Arch handles, appear in commands, facts, saves, metrics, and cross-domain
 links.
+
+A fixed, closed set that runtime never creates is modeled as a type, not authored data threaded
+through the simulation. The two sides are the `Nation` enum (`Player`, `Enemy`); authored
+`player`/`enemy` strings resolve to it at the loading boundary, and there is always exactly one of
+each — no array of nations, and no way to represent a wrong count.
 
 Each plain-state registry:
 
@@ -315,12 +327,30 @@ branches in the tick loop.
 Arch and mutable domain registries remain internal to `Charters.Sim`. `Simulation` must not expose a
 public mutable `World`, collection, component reference, domain object, or map cell reference.
 
-`Simulation.Services` groups the public, domain-specific value-projection services (such as
-`Services.Units`); `Simulation.Map` exposes its own read-only projection members (such as `HexAt`)
-directly rather than through a separate service. Bulk reads fill caller-owned reusable buffers or
-thread a caller `ref` state through allocation-free iteration; they do not return mutable simulation
-objects. Godot can therefore reuse render buffers each frame, while headless reporting can sort or
-hash copied values without gaining mutation authority.
+Every `Simulation` member falls into one of four grouped property classes, or is one of four
+standalone properties that don't fit a group:
+
+- `Simulation.Views` (`SimulationViews`) groups read-only, presentation-facing projection services,
+  primarily consumed by Godot — such as `Views.Units`.
+- `Simulation.Services` (`SimulationServices`) groups game-logic services: identity-minting
+  factories (`Services.CharterFactory`, `Services.DepotFactory`, `Services.FacilityFactory`,
+  `Services.GroundStockpileFactory`, `Services.UnitFactory`), lifecycle services
+  (`Services.CharterLifecycle`), and shared runtime infrastructure such as `Services.Random`.
+- `Simulation.Options` (`SimulationOptions`) groups immutable definitions and tuning values such as
+  `Options.GroundStockpileDecayTicks`. Seed-derived state is resolved before construction; the map,
+  current tick, campaign objects, and exact random-stream states arrive through `SimulationState`.
+- `Simulation.Facts` (`SimulationFacts`) groups every buffered fact journal a phase appends to.
+
+`Simulation.Tick`, the internal `Simulation.Entities` Arch world, `Simulation.Map`, and
+`Simulation.Registries` stand on their own as the simulation's core generated/mutable state rather
+than a grouped service. New simulation-level state joins one of the four groups above instead of
+becoming a fifth standalone property.
+
+`Simulation.Map` exposes its own read-only projection members (such as `HexAt`) directly rather than
+through a separate service. Bulk reads fill caller-owned reusable buffers or thread a caller `ref`
+state through allocation-free iteration; they do not return mutable simulation objects. Godot can
+therefore reuse render buffers each frame, while headless reporting can sort or hash copied values
+without gaining mutation authority.
 
 Future player actions use immutable typed commands submitted through `Simulation.Enqueue`. Commands
 are validated against a tick-boundary snapshot and applied in a documented command phase. A host may
