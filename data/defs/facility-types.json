@@ -3,24 +3,45 @@
     "id": "mine",
     "name": "Mine",
     "workerSlots": 2,
-    "allowedRecipes": ["produce-ore", "produce-sulfur"]
+    "allowedRecipes": ["produce-ore", "produce-sulfur"],
+    "stockpileLimits": {
+      "ore": 60,
+      "sulfur": 60
+    }
   },
   {
     "id": "farm",
     "name": "Farm",
     "workerSlots": 2,
-    "allowedRecipes": ["produce-food"]
+    "allowedRecipes": ["produce-food"],
+    "stockpileLimits": {
+      "food": 60
+    }
   },
   {
     "id": "refinery",
     "name": "Refinery",
     "workerSlots": 4,
-    "allowedRecipes": ["produce-materials", "produce-refined-sulfur"]
+    "allowedRecipes": ["produce-materials", "produce-refined-sulfur"],
+    "stockpileLimits": {
+      "ore": 12,
+      "sulfur": 12,
+      "materials": 30,
+      "refined-sulfur": 30
+    }
   },
   {
     "id": "factory",
     "name": "Factory",
     "workerSlots": 4,
-    "allowedRecipes": ["produce-rifle", "produce-grenades", "produce-ammunition", "produce-field-pack"]
+    "allowedRecipes": ["produce-rifle", "produce-grenades", "produce-ammunition", "produce-field-pack"],
+    "stockpileLimits": {
+      "materials": 6,
+      "refined-sulfur": 3,
+      "rifle": 15,
+      "grenades": 60,
+      "ammunition": 300,
+      "field-pack": 15
+    }
   }
 ]

@@ -14,6 +14,10 @@ internal static class DefinitionSetValidator
         UnitDefinitionValidator.Validate(definitions.Units, errors);
         ItemDefinitionValidator.Validate(definitions.Items, errors);
         RecipeDefinitionValidator.Validate(definitions.Recipes, definitions.Items, errors);
-        FacilityTypeDefinitionValidator.Validate(definitions.FacilityTypes, definitions.Recipes, errors);
+        FacilityTypeDefinitionValidator.Validate(
+            definitions.FacilityTypes,
+            definitions.Recipes,
+            definitions.Items,
+            errors);
     }
 }

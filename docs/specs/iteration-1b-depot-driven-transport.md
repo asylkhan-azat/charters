@@ -38,7 +38,7 @@ The iteration is accepted when the dedicated scenario:
 
 ## Scope boundaries
 
-1B includes recipe-relative facility input/output limits; aggregate facility-and-buffer ownership
+1B includes facility-type per-item stockpile limits; aggregate facility-and-buffer ownership
 transfer; sticky supporting-depot assignment for facilities; durable demand and available-output
 signals; Charter/depot/item planning; private shipment orders; same-Charter direct facility bypass;
 persistent facility services; deliberate standby; truck cargo whose title is independent from the
@@ -86,7 +86,7 @@ implementation cut. Update the TDD only when implementation makes a new technica
 | Custody | A carrier does not become cargo owner. Each cargo lot retains an explicit title-holder and beneficiary independent from the logist's affiliation. |
 | Delivery transfer | Pickup changes custody only. Aid title changes exactly once, atomically with insertion into the requester depot compartment. Internal delivery never changes title. |
 | Depot role | A depot is national infrastructure with high-capacity owner compartments. It is the logical aggregation and inter-Charter hand-over boundary, not a mandatory waypoint for same-Charter local flow. |
-| Facility role | A facility buffer is recipe-relative working space, smaller than depot storage, and cannot host foreign-owned goods. Changing facility owner atomically claims its production state and every buffered item for the new owner; no eviction pile is created. |
+| Facility role | A facility buffer is one configured stockpile, with facility-type item limits and item-definition fallback. Authored working-item overrides keep it smaller than depot storage, and it cannot host foreign-owned goods. Changing facility owner atomically claims its production state and every buffered item for the new owner; no eviction pile is created. |
 | Signal authority | Durable demand and available-output signals describe current physical state. Facts announce changes but never become the Manager's source of truth. |
 | Local completion | Stock at a supporting depot can cover a plan but does not satisfy a facility signal until physically delivered to that facility. |
 | Private/public split | Internal signals, depot plans, facility services, and shipment orders are private. Only Aid Requests, accepted pledges, Haul Jobs, and their declared progress are public. |
@@ -126,20 +126,16 @@ and presentation history never feed back into planning.
 
 ### Facility buffers and depot capacity
 
-The existing embedded facility stockpile remains owned by its facility, but 1B makes its usable hard
-capacity recipe-relative:
+The existing embedded facility stockpile remains owned by its facility. A facility type may override
+the stockpile limit for any item; an item without an override uses
+`ItemDefinition.StockpileLimit`. The facility constructs one configured `Stockpile` and uses its
+ordinary atomic admission contract. Recipe choice does not replace the stockpile, resize it, or make
+unrelated physical goods disappear.
 
-- each active-recipe input may be inserted up to `inputBufferBatches × input quantity per batch`;
-- each active-recipe output may be inserted up to
-  `outputBufferBatches × output quantity per batch`;
-- a limit must hold at least one complete atomic recipe batch;
-- items outside the active recipe cannot be newly inserted through routine logistics; and
-- existing residual items remain physical and must be cleared or ejected by an owning lifecycle
-  operation rather than silently removed.
-
-The Facility aggregate owns those admission checks. Callers do not resolve its anonymous stockpile
-and bypass the recipe buffer policy. Production checks the same output limit before completing a
-batch.
+Every limit used by an allowed recipe must hold at least one complete atomic input or output batch.
+Production preflights the complete output batch through the configured stockpile before completing
+it. Routine logistics resolves that same stockpile through the facility endpoint rather than
+reimplementing capacity rules.
 
 The buffer and production state are inseparable from facility control. A living ownership change
 preserves the active recipe and work progress, changes the facility and every buffered item to the
@@ -148,11 +144,11 @@ copy the stockpile, or create ground piles. Inputs already consumed by an active
 represented only by that inherited work progress; outputs completed afterward belong to the new
 owner.
 
-Depot compartments retain the larger per-item stationary limits authored for storage. The 1B data
-validator rejects a proof-scenario facility buffer that is not strictly smaller than its supporting
-depot compartment for an item it handles. Ground-stockpile capacity and decay retain the 1A rules.
+Depot compartments retain item-definition stationary limits. Proof content gives facility types
+smaller overrides for every item their recipes handle; validation ensures those limits can hold an
+atomic recipe batch. Ground-stockpile capacity and decay retain the 1A rules.
 
-Input/output batch capacities are authored physical configuration. Desired input cover, pickup
+Facility-type stockpile limits are authored physical configuration. Desired input cover, pickup
 thresholds, and depot targets are neutral policy defaults rather than code constants. "Smaller
 buffer" does not mean less than one useful pickup or less than one service interval.
 
@@ -379,7 +375,7 @@ The normal cycle is:
 
 1. **At depot / load inputs** — reserve and load useful input lines from the owner compartment.
 2. **Go to facility** — use road-aware routing.
-3. **Deliver inputs** — insert up to each recipe-relative input limit.
+3. **Deliver inputs** — insert up to the configured facility stockpile limit.
 4. **Collect ready output** — reserve and load output that already clears the pickup rule.
 5. **Standby for output** — when collection is forecast soon and leaving would miss the service
    deadline, wait without exposing the truck as idle.
@@ -638,7 +634,7 @@ Extend the 1A audit by item and title-holder across:
 
 The audit also asserts:
 
-- facility contents respect recipe-relative limits;
+- facility contents respect their configured stockpile limits;
 - every facility buffer has exactly the facility owner, including immediately after ownership
   change;
 - every cargo lot matches one live or terminal shipment disposition;
@@ -703,8 +699,7 @@ The starting values are for the first working version, not final balance:
 | `managerPlanningCadence` | 10 ticks | **Game setting.** How often a Manager reviews needs, jobs, and truck assignments. | Increase it for slower reactions and fewer reviews. Decrease it for faster reactions and more planning work. |
 | `signalValidationCadence` | 10 ticks | **Safety check.** How often the game double-checks shortage and available-output reports. | Increase it to check less often, so stale reports last longer. Decrease it to correct them sooner, using more processing time. |
 | `truckCargoSlots` | 12 slots | **Physical limit.** How much cargo a truck can carry. | Increase it for fewer trips and less truck pressure. Decrease it for more trips and tighter truck shortages. |
-| `inputBufferBatches` | 3 | **Physical limit.** How many input batches a facility can hold. | Increase it to survive late deliveries but keep more goods outside depots. Decrease it to keep goods central but risk starvation sooner. |
-| `outputBufferBatches` | 6 | **Physical limit.** How many output batches a facility can hold. | Increase it to allow later pickups but leave more goods at the facility. Decrease it to require frequent pickups and block production sooner. |
+| facility-type `stockpileLimits` | per facility type/item | **Physical limit.** Overrides the item-definition fallback for a facility type's hosted stockpile. | Increase an input limit to survive later deliveries or an output limit to allow later pickups, at the cost of keeping more goods outside depots. Decrease it for leaner buffers and tighter service pressure. |
 | `desiredInputBatches` | 2 | **Manager choice.** How many input batches the Manager tries to keep at a facility. | Increase it to reduce starvation but store more goods at facilities. Decrease it to use leaner stocks with less protection from delays. |
 | `pickupThresholdFraction` | 0.5 | **Manager choice.** How full the output buffer should be before a normal pickup. | Increase it for fuller truckloads and longer waits. Decrease it for earlier pickups and more partly filled trips. |
 | `serviceMinimumCommitmentTicks` | 60 ticks | **Manager choice.** How long a newly assigned service truck is protected from normal reassignment. | Increase it for steadier service but less freedom to move trucks. Decrease it for more flexibility but more service changes. |
@@ -719,9 +714,9 @@ The starting values are for the first working version, not final balance:
 | `offRoadCooldownTicks` | 2 ticks | **Physical rule.** Extra travel time for each off-road truck step. | Increase it to make roads and depot placement more important. Decrease it to make off-road travel more attractive. |
 | `protectedReserve` | per Charter/depot/item | **Leader choice.** How much stock a Charter keeps back instead of spending or donating it. | Increase it for more safety and less aid. Decrease it for more aid and greater risk of a later shortage. |
 
-The scenario must tune facility capacity and pickup threshold together. No output buffer may be
-smaller than one atomic batch or so small that healthy service requires a truck departure every
-production tick.
+The proof definitions must tune facility-type limits and the scenario policy must tune pickup
+thresholds together. No working-item limit may be smaller than one atomic batch or so small that
+healthy service requires a truck departure every production tick.
 
 ### The 1B logistics scenario
 
@@ -776,7 +771,7 @@ Implement in order. Each package ends with focused tests and a runnable reposito
 - Run the existing checks and preserve the A1 proof result.
 - Map the AI phase, production thresholds, stockpile admission, item transfer, unit features,
   movement/pathfinding, fact journals, registries, views, metrics, and digest attachment points.
-- Record the shared-schema migrations required for recipe-relative facility capacity and cargo hold.
+- Record the shared-schema migrations required for facility-type stockpile overrides and cargo hold.
 
 **Gate:** no unexplained baseline failure, and no 1B domain state is proposed for ECS merely because
 it changes during play.
@@ -786,7 +781,7 @@ it changes during play.
 **Outcome:** every physical host enforces the new storage boundary and a truck can carry foreign
 title safely.
 
-- Add recipe-relative Facility admission and output limits.
+- Add facility-type per-item stockpile overrides with item-definition fallback.
 - Replace the A1 living-transfer ejection bridge with atomic facility, production-state, and buffer
   claim; retain the existing Charter-death aggregate transition.
 - Add `StorageEndpoint` resolution for facilities, owner depot compartments, and ground piles.
@@ -932,8 +927,8 @@ demonstrated.
 
 ### Storage, ownership, and cargo
 
-- Facility limits are recipe-relative, atomic-batch safe, and smaller than proof-scenario depot
-  capacity.
+- Facility stockpiles use facility-type per-item overrides with item-definition fallback; proof
+  working-item limits are atomic-batch safe and smaller than depot capacity.
 - Facilities reject foreign title; depot compartments and cargo lots preserve it explicitly.
 - Facility ownership change claims the active recipe progress and all buffered goods without
   changing quantity or creating a ground pile; incompatible unpicked work is released first.

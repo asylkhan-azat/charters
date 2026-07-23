@@ -54,6 +54,34 @@ public sealed class StockpileTests
     }
 
     [Fact]
+    public void HostSpecificLimitOverridesTheItemDefault()
+    {
+        var ore = ItemTestData.Item("ore", stockpileLimit: 200);
+        var stockpile = new Stockpile(new Dictionary<Sim.Items.Definitions.ItemDefinition, int>
+        {
+            [ore] = 12,
+        });
+
+        Assert.Equal(12, stockpile.LimitFor(ore));
+        Assert.True(stockpile.CanAccept(new ItemQuantity(ore, 12)));
+        Assert.False(stockpile.CanAccept(new ItemQuantity(ore, 13)));
+    }
+
+    [Fact]
+    public void MissingHostLimitFallsBackToTheItemDefinition()
+    {
+        var ore = ItemTestData.Item("ore", stockpileLimit: 200);
+        var sulfur = ItemTestData.Item("sulfur", stockpileLimit: 80);
+        var stockpile = new Stockpile(new Dictionary<Sim.Items.Definitions.ItemDefinition, int>
+        {
+            [ore] = 12,
+        });
+
+        Assert.Equal(80, stockpile.LimitFor(sulfur));
+        Assert.True(stockpile.CanAccept(new ItemQuantity(sulfur, 80)));
+    }
+
+    [Fact]
     public void HasAnswersWhetherTheCompleteQuantityIsStored()
     {
         var ore = ItemTestData.Item("ore");

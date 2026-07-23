@@ -34,6 +34,7 @@ internal static class UnitDefinitionValidator
 
         var inventories = unit.Features.OfType<InventoryUnitFeatureDto>().ToList();
         var equipmentSlots = unit.Features.OfType<EquipmentSlotsUnitFeatureDto>().ToList();
+        var cargoHolds = unit.Features.OfType<CargoHoldUnitFeatureDto>().ToList();
 
         if (inventories.Count > 1)
         {
@@ -43,6 +44,11 @@ internal static class UnitDefinitionValidator
         if (equipmentSlots.Count > 1)
         {
             errors.Add($"{FileName}: unit '{DefinitionValidationRules.DisplayId(unit.Id)}' has duplicate equipment-slots feature");
+        }
+
+        if (cargoHolds.Count > 1)
+        {
+            errors.Add($"{FileName}: unit '{DefinitionValidationRules.DisplayId(unit.Id)}' has duplicate cargo-hold feature");
         }
 
         foreach (var inventory in inventories)
@@ -59,6 +65,17 @@ internal static class UnitDefinitionValidator
         foreach (var feature in equipmentSlots)
         {
             ValidateEquipmentSlots(unit, feature, errors);
+        }
+
+        foreach (var cargoHold in cargoHolds)
+        {
+            DefinitionValidationRules.ValidatePositive(
+                FileName,
+                "unit",
+                unit.Id,
+                "cargo-hold slots",
+                cargoHold.Slots,
+                errors);
         }
     }
 

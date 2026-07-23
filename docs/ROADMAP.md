@@ -67,9 +67,9 @@ deadlocking, oscillating, or hiding the cause of shortages?
 *Implementation specification:
 [Iteration 1B — Depot-Driven Transport](specs/iteration-1b-depot-driven-transport.md).*
 
-- Give facilities small recipe-relative buffers and sticky supporting depots. Add durable local
-  demand and available-output signals, and have each neutral Manager aggregate them into Charter-
-  scoped depot plans without treating diagnostics facts as control flow.
+- Give facility types small per-item stockpile overrides and facilities sticky supporting depots.
+  Add durable local demand and available-output signals, and have each neutral Manager aggregate
+  them into Charter-scoped depot plans without treating diagnostics facts as control flow.
 - Implement persistent depot↔facility services, deliberate truck standby, input/output backhauls,
   private shipment orders, same-Charter direct facility bypass, road-aware routing, and cargo lots
   whose title is independent from the carrier.
@@ -87,7 +87,7 @@ keep nearby facilities running; Greyline convoys carry accepted aid to a remote 
 link produces an upstream, local-service, inter-depot, or last-mile failure that is distinct on the
 map and in the feed.
 
-**Tune now:** facility input/output buffer batches, depot targets and protected reserves, pickup
+**Tune now:** facility-type stockpile limits, depot targets and protected reserves, pickup
 thresholds, service commitment and standby windows, truck capacity and cooldowns, direct-bypass
 threshold, neutral demand/aid/haul weights, re-planning cadence, and time-to-bite thresholds.
 

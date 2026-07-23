@@ -70,7 +70,8 @@ internal sealed class TestDefinitionsDirectory : IDisposable
                 "id": "mine",
                 "name": "Mine",
                 "workerSlots": 2,
-                "allowedRecipes": ["produce-ore"]
+                "allowedRecipes": ["produce-ore"],
+                "stockpileLimits": { "ore": 24 }
               }
             ]
             """);

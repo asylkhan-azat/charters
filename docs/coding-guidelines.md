@@ -63,6 +63,15 @@ the slice is reshaped, not appended to. Systems must never become the sum of the
   such as `MemberNotNull`, `MemberNotNullWhen`, `NotNullWhen`, `DoesNotReturn`, and `Pure` instead of
   duplicating it as defensive branching. Add a runtime guard only when failure can enter from outside
   the static contract or must be reported as a domain error.
+- **Collections are non-null after the trust boundary.** Empty means no elements; runtime and
+  validated model code never uses `null` for that state. Nullable collections are permitted on
+  untrusted input DTOs because serializers and other hosts can violate static nullability; validate
+  and normalize them before they enter trusted code.
+- **Choose collection storage for its access pattern.** `ImmutableArray<T>` is appropriate for a
+  fixed ordered sequence. Avoid immutable lookup collections such as `ImmutableDictionary` and
+  `ImmutableHashSet`: keep dynamic data in ordinary dictionaries and sets, exposing it through
+  `IReadOnlyDictionary` or `IReadOnlySet` when callers must not mutate it; freeze lookup-heavy
+  dictionaries and sets built once at loading time with `System.Collections.Frozen`.
 - **String equality uses the default contract.** Use ordinary equality and default string-keyed
   dictionaries and sets; do not specify a comparer for equality. Use `StringComparer.Ordinal` only
   when an operation is explicitly sorting strings into a deterministic ordinal order.

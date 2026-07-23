@@ -84,18 +84,37 @@ public sealed class ProductionDefinitionsTests
 
         Assert.Equal(["mine", "farm", "refinery", "factory"], definitions.FacilityTypes.Select(static type => type.Id));
 
-        AssertFacilityType(definitions, "mine", workerSlots: 2, ["produce-ore", "produce-sulfur"]);
-        AssertFacilityType(definitions, "farm", workerSlots: 2, ["produce-food"]);
+        AssertFacilityType(
+            definitions,
+            "mine",
+            workerSlots: 2,
+            ["produce-ore", "produce-sulfur"],
+            [("ore", 60), ("sulfur", 60)]);
+        AssertFacilityType(
+            definitions,
+            "farm",
+            workerSlots: 2,
+            ["produce-food"],
+            [("food", 60)]);
         AssertFacilityType(
             definitions,
             "refinery",
             workerSlots: 4,
-            ["produce-materials", "produce-refined-sulfur"]);
+            ["produce-materials", "produce-refined-sulfur"],
+            [("ore", 12), ("sulfur", 12), ("materials", 30), ("refined-sulfur", 30)]);
         AssertFacilityType(
             definitions,
             "factory",
             workerSlots: 4,
-            ["produce-rifle", "produce-grenades", "produce-ammunition", "produce-field-pack"]);
+            ["produce-rifle", "produce-grenades", "produce-ammunition", "produce-field-pack"],
+            [
+                ("materials", 6),
+                ("refined-sulfur", 3),
+                ("rifle", 15),
+                ("grenades", 60),
+                ("ammunition", 300),
+                ("field-pack", 15)
+            ]);
     }
 
     [Fact]
@@ -151,10 +170,16 @@ public sealed class ProductionDefinitionsTests
         DefinitionSet definitions,
         string id,
         int workerSlots,
-        string[] allowedRecipes)
+        string[] allowedRecipes,
+        (string Item, int Limit)[] stockpileLimits)
     {
         var facilityType = definitions.FacilityTypes[id];
         Assert.Equal(workerSlots, facilityType.WorkerSlots);
         Assert.Equal(allowedRecipes, facilityType.AllowedRecipes.Select(static recipe => recipe.Id));
+        Assert.Equal(
+            stockpileLimits.OrderBy(static pair => pair.Item, StringComparer.Ordinal),
+            facilityType.StockpileLimits
+                .OrderBy(static pair => pair.Key.Id, StringComparer.Ordinal)
+                .Select(static pair => (pair.Key.Id, pair.Value)));
     }
 }

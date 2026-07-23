@@ -150,6 +150,32 @@ public sealed class ProductionDefinitionValidationTests
     }
 
     [Fact]
+    public void CargoHoldFeatureRequiresPositiveSlotsAndMayAppearOnlyOnce()
+    {
+        using TestDefinitionsDirectory directory = new();
+        directory.Write(
+            "unit-types.json",
+            """
+            [
+              {
+                "id": "truck-logist",
+                "name": "Truck Logist",
+                "features": [
+                  { "type": "cargo-hold", "slots": 0 },
+                  { "type": "cargo-hold", "slots": 12 }
+                ]
+              }
+            ]
+            """);
+
+        var exception = Assert.Throws<DefinitionValidationException>(
+            () => DefinitionLoader.LoadFromDirectory(directory.Path));
+
+        Assert.Contains("unit 'truck-logist' has duplicate cargo-hold feature", exception.Message);
+        Assert.Contains("unit 'truck-logist' has non-positive cargo-hold slots '0'", exception.Message);
+    }
+
+    [Fact]
     public void ItemFeaturePropertyFromAnotherCaseIsRejected()
     {
         using TestDefinitionsDirectory directory = new();
@@ -237,5 +263,61 @@ public sealed class ProductionDefinitionValidationTests
         Assert.Contains("facility type 'Bad_Id' has negative worker slots '-1'", exception.Message);
         Assert.Contains("facility type 'Bad_Id' has duplicate allowed recipe 'unknown-recipe'", exception.Message);
         Assert.Contains("facility type 'Bad_Id' references unknown recipe 'unknown-recipe'", exception.Message);
+    }
+
+    [Fact]
+    public void FacilityTypeStockpileOverridesRequireKnownItemsAndPositiveLimits()
+    {
+        using TestDefinitionsDirectory directory = new();
+        directory.Write(
+            "facility-types.json",
+            """
+            [
+              {
+                "id": "mine",
+                "name": "Mine",
+                "workerSlots": 2,
+                "allowedRecipes": ["produce-ore"],
+                "stockpileLimits": {
+                  "ore": 0,
+                  "unknown-item": 5
+                }
+              }
+            ]
+            """);
+
+        var exception = Assert.Throws<DefinitionValidationException>(
+            () => DefinitionLoader.LoadFromDirectory(directory.Path));
+
+        Assert.Contains("facility type 'mine' has non-positive 'ore' stockpile limit '0'", exception.Message);
+        Assert.Contains(
+            "facility type 'mine' stockpile limit references unknown item 'unknown-item'",
+            exception.Message);
+    }
+
+    [Fact]
+    public void FacilityTypeLimitMustHoldOneAtomicRecipeBatch()
+    {
+        using TestDefinitionsDirectory directory = new();
+        directory.Write(
+            "facility-types.json",
+            """
+            [
+              {
+                "id": "mine",
+                "name": "Mine",
+                "workerSlots": 2,
+                "allowedRecipes": ["produce-ore"],
+                "stockpileLimits": { "ore": 3 }
+              }
+            ]
+            """);
+
+        var exception = Assert.Throws<DefinitionValidationException>(
+            () => DefinitionLoader.LoadFromDirectory(directory.Path));
+
+        Assert.Contains(
+            "facility type 'mine' stockpile limit for 'ore' cannot hold one 'produce-ore' recipe batch",
+            exception.Message);
     }
 }

@@ -1,11 +1,9 @@
-using System.Collections.Frozen;
 using Arch.Core;
 using Charters.Sim.AI.Components;
 using Charters.Sim.Charters;
 using Charters.Sim.Core;
 using Charters.Sim.Facilities.Models;
 using Charters.Sim.Hexes;
-using Charters.Sim.Items;
 using Charters.Sim.Movement.Components;
 using Charters.Sim.Movement.Pathfinding;
 using Charters.Sim.Units.Components;
@@ -16,13 +14,22 @@ namespace Charters.Sim.Units;
 public class UnitFactory
 {
     private readonly Simulation _simulation;
-    private readonly Dictionary<UnitId, Entity> _entitiesByUnitId = [];
+    private readonly UnitEntityIndex _units;
+    private readonly UnitItemsService _unitItems;
+    private readonly OwnershipValidator _ownership;
 
     private long _idCounter;
 
-    public UnitFactory(Simulation simulation)
+    internal UnitFactory(
+        Simulation simulation,
+        UnitEntityIndex units,
+        UnitItemsService unitItems,
+        OwnershipValidator ownership)
     {
         _simulation = simulation;
+        _units = units;
+        _unitItems = unitItems;
+        _ownership = ownership;
     }
 
     // A facility-assigned unit doesn't wander; an unassigned one keeps the local wandering heuristic.
@@ -32,21 +39,10 @@ public class UnitFactory
         Ownership owner,
         FacilityId? assignment = null)
     {
-        _simulation.ValidateOwnership(owner);
+        _ownership.Validate(owner);
 
         var id = new UnitId(_idCounter++);
-
-        var inventorySlots = type.Feature<InventoryUnitFeatureDefinition>()?.Slots ?? 0;
-
-        var equipmentFeature = type.Feature<EquipmentSlotsUnitFeatureDefinition>();
-
-        var equipmentSlots = equipmentFeature is null ?
-            FrozenSet<string>.Empty :
-            equipmentFeature.Slots;
-
-        var items = new UnitItems(
-            new Inventory(inventorySlots),
-            new Equipment(equipmentSlots));
+        var items = _unitItems.Create(type);
 
         var entity = assignment is { } facilityId ?
             _simulation.Entities.Create(
@@ -63,7 +59,7 @@ public class UnitFactory
                 new Navigation { Path = new NavPath() },
                 new Wandering());
 
-        _entitiesByUnitId.Add(id, entity);
+        _units.Add(id, entity);
         return id;
     }
 
@@ -75,30 +71,5 @@ public class UnitFactory
     {
         var charter = _simulation.Registries.Charters[owner];
         return Spawn(address, type, new Ownership(charter.Nation, charter.Id), assignment);
-    }
-
-    public Ownership OwnershipOf(UnitId id)
-    {
-        if (!TryGetEntity(id, out var entity))
-        {
-            throw new SimulationInvariantException($"Unknown unit id '{id}'.");
-        }
-
-        return _simulation.Entities.Get<Ownership>(entity);
-    }
-
-    public void Destroy(UnitId id)
-    {
-        if (!_entitiesByUnitId.Remove(id, out var entity))
-        {
-            throw new SimulationInvariantException($"Unknown unit id '{id}'.");
-        }
-
-        _simulation.Entities.Destroy(entity);
-    }
-
-    internal bool TryGetEntity(UnitId id, out Entity entity)
-    {
-        return _entitiesByUnitId.TryGetValue(id, out entity);
     }
 }

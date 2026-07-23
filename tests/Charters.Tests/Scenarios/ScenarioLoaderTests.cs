@@ -236,6 +236,30 @@ public sealed class ScenarioLoaderTests
     }
 
     [Fact]
+    public void FacilityStockOutsideItsRecipeUsesTheItemDefinitionFallback()
+    {
+        using ScenarioTestFixture fixture = new();
+        var path = fixture.WriteScenario(
+            ValidScenario.Replace(
+                "\"initialStock\": []",
+                "\"initialStock\": [{ \"item\": \"field-pack\", \"quantity\": 1 }]"));
+
+        var scenario = ScenarioLoader.Load(path, fixture.Definitions, fixture.MapTemplate, fixture.Map);
+
+        Assert.Equal("field-pack", Assert.Single(Assert.Single(scenario.Facilities).InitialStock).Item.Id);
+    }
+
+    [Fact]
+    public void FacilityStockAboveItsRecipeBufferIsRejected()
+    {
+        AssertRejects(
+            ValidScenario.Replace(
+                "\"initialStock\": []",
+                "\"initialStock\": [{ \"item\": \"ore\", \"quantity\": 25 }]"),
+            "stock item 'ore' exceeds its stockpile limit '24'");
+    }
+
+    [Fact]
     public void MismatchedAssignmentOwnerIsRejected()
     {
         AssertRejects(

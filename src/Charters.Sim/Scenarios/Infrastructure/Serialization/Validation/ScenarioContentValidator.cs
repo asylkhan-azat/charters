@@ -1,6 +1,7 @@
 using Charters.Sim.Core;
 using Charters.Sim.Core.Definitions;
 using Charters.Sim.Core.Infrastructure.Serialization;
+using Charters.Sim.Facilities.Definitions;
 using Charters.Sim.Items.Definitions;
 using Charters.Sim.Map;
 using Charters.Sim.Scenarios.Infrastructure.Serialization.Dto;
@@ -81,7 +82,8 @@ internal static class ScenarioContentValidator
                 continue;
             }
 
-            if (facility.Recipe is null || !definitions.Recipes.TryGet(facility.Recipe, out var recipe))
+            RecipeDefinition? recipe = null;
+            if (facility.Recipe is null || !definitions.Recipes.TryGet(facility.Recipe, out recipe))
             {
                 errors.Add($"{fileName}: facility '{displayId}' references unknown recipe '{facility.Recipe}'");
             }
@@ -91,14 +93,32 @@ internal static class ScenarioContentValidator
                     $"{fileName}: facility '{displayId}' recipe '{facility.Recipe}' is not allowed by facility type '{facility.Type}'");
             }
 
-            ValidateStock(
+            ValidateFacilityStock(
                 fileName,
-                "facility",
                 displayId,
                 facility.InitialStock,
+                facilityType,
                 definitions,
                 errors);
         }
+    }
+
+    private static void ValidateFacilityStock(
+        string fileName,
+        string facilityDisplayId,
+        IReadOnlyList<ItemQuantityDto>? stock,
+        FacilityTypeDefinition facilityType,
+        DefinitionSet definitions,
+        ValidationCollector errors)
+    {
+        ValidateStock(
+            fileName,
+            "facility",
+            facilityDisplayId,
+            stock,
+            definitions,
+            errors,
+            facilityType.StockpileLimitFor);
     }
 
     private static void ValidateDepots(
@@ -156,7 +176,8 @@ internal static class ScenarioContentValidator
         string ownerDisplayId,
         IReadOnlyList<ItemQuantityDto>? stock,
         DefinitionSet definitions,
-        ValidationCollector errors)
+        ValidationCollector errors,
+        Func<ItemDefinition, int>? limitFor = null)
     {
         HashSet<string> seenItems = new();
         foreach (var entry in stock ?? [])
@@ -176,10 +197,14 @@ internal static class ScenarioContentValidator
             {
                 errors.Add($"{fileName}: {kind} '{ownerDisplayId}' stock item '{entry.Item}' has non-positive quantity");
             }
-            else if (entry.Quantity > item.StockpileLimit)
+            else
             {
-                errors.Add(
-                    $"{fileName}: {kind} '{ownerDisplayId}' stock item '{entry.Item}' exceeds its stockpile limit");
+                var limit = limitFor?.Invoke(item) ?? item.StockpileLimit;
+                if (entry.Quantity > limit)
+                {
+                    errors.Add(
+                        $"{fileName}: {kind} '{ownerDisplayId}' stock item '{entry.Item}' exceeds its stockpile limit '{limit}'");
+                }
             }
         }
     }

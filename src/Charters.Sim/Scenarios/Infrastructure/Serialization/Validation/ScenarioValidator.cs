@@ -48,5 +48,6 @@ internal static class ScenarioValidator
         {
             errors.Add($"{fileName}: tuning.groundStockpileDecayTicks must be positive");
         }
+
     }
 }

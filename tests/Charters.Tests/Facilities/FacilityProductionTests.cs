@@ -166,17 +166,17 @@ public sealed class FacilityProductionTests
         var facility = simulation.Registries.Facilities[facilityId];
         var oreItem = simulation.Options.Definitions.Items["ore"];
 
-        // Stockpile limit is 200; leave room for only 2 of the 4 produced ore.
-        facility.Stockpile.Put(new ItemQuantity(oreItem, 198));
+        // The mine's ore limit is 60; leave room for only 2 of the 4 produced ore.
+        facility.Stockpile.Put(new ItemQuantity(oreItem, 58));
         SpawnWorkers(simulation, owner, facility.Location, facilityId, count: 2);
 
         // 1 tick to begin + 4 ticks of work (workRequired 8 / workerSlots 2) to complete the batch.
         simulation.Advance(5);
         Assert.Equal(FacilityStatus.OutputBlocked, facility.LastStatus);
-        Assert.Equal(198, facility.Stockpile.QuantityOf(oreItem));
+        Assert.Equal(58, facility.Stockpile.QuantityOf(oreItem));
         Assert.True(facility.HasCompletedBatch);
 
-        facility.Stockpile.Take(new ItemQuantity(oreItem, 198));
+        facility.Stockpile.Take(new ItemQuantity(oreItem, 58));
         simulation.Advance();
 
         Assert.Equal(FacilityStatus.Producing, facility.LastStatus);

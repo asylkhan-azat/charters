@@ -35,7 +35,7 @@ inter-depot, or delivery failure that the pain map, event feed, and decision tra
 *Implementation specification:
 [Iteration 1B — Depot-Driven Transport](../specs/iteration-1b-depot-driven-transport.md).*
 
-- Make facility buffers recipe-relative working space and assign each facility a sticky supporting
+- Give facility types small per-item stockpile limits and assign each facility a sticky supporting
   depot whose owner compartment is the normal consolidation point.
 - Add durable local demand and available-output signals. Managers interpret time-to-bite,
   suffering, consequence, route time, and policy; facts report changes but never become planning
@@ -147,9 +147,11 @@ reserved hauling capacity. Its normal cycle may load inputs at the depot, delive
 forecast output, collect a useful quantity, return to the depot, and repeat. A service may also run
 one direction when the recipe needs no inputs or has no output ready.
 
-Facility buffers remain smaller than depot compartments but must absorb a useful service interval.
-Their hard input and output limits are recipe-relative and authored in batch equivalents. The pickup
-threshold, maximum wait, and next input-starvation/output-blocking deadline are distinct values.
+Facility buffers remain smaller than depot compartments for the items they routinely handle, but
+must absorb a useful service interval. Facility types author per-item stockpile overrides; an item
+without an override uses its item-definition stockpile limit. Recipe choice does not resize storage.
+The pickup threshold, maximum wait, and next input-starvation/output-blocking deadline are distinct
+values.
 
 High-throughput facilities may retain a dedicated shuttle. Nearby lower-throughput facilities may
 later share a milk run; 1B needs only the data and boundaries that do not prevent that extension.

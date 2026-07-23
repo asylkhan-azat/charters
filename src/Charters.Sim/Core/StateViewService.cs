@@ -120,7 +120,7 @@ public sealed class StateViewService
         List<ItemQuantityView> result = [];
         foreach (var item in stockpile)
         {
-            result.Add(new ItemQuantityView(item.Item.Id, item.Quantity, item.Item.StockpileLimit));
+            result.Add(new ItemQuantityView(item.Item.Id, item.Quantity, stockpile.LimitFor(item.Item)));
         }
 
         return result.ToArray();

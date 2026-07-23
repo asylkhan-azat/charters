@@ -213,6 +213,19 @@ internal sealed class ConservationLedger
                     Add(item, equipped, Totals);
                 }
             }
+
+            if (unitItems.CargoHold is not { } cargo)
+            {
+                return;
+            }
+
+            for (var slot = 0; slot < cargo.SlotCount; slot++)
+            {
+                if (cargo[slot] is { } lot)
+                {
+                    Add(lot.Item, lot.Quantity, Totals);
+                }
+            }
         }
     }
 

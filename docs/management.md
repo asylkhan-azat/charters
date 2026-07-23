@@ -20,32 +20,25 @@ the [architecture](design/charter-ai-architecture.md), and
 [Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md) is complete: all eleven
 work packages have landed, and the migration note it added to the TDD has been removed.
 [Iteration 1B — Depot-Driven Transport](specs/iteration-1b-depot-driven-transport.md) is approved for
-implementation; no 1B package has landed yet.
+implementation; Package 1 (host capacity, endpoints, and title-preserving cargo) has landed.
 
 ## Progress
 
 This session completed:
 
-- Reworked Loop 1 logistics around high-capacity depot compartments, small recipe-relative facility
-  buffers, durable local demand/available-output signals, sticky supporting depots, private depot
-  plans and shipment orders, persistent facility services, deliberate truck standby, and same-
-  Charter direct facility bypass.
-- Replaced the former demand/request-to-own/transfer concept with public Aid Requests and concrete
-  Haul Jobs only. Ordinary goods retain Charter title through third-party carriage and change title
-  only on delivery into the requester depot compartment; direct national ownership remains limited
-  to genuinely charterless state.
-- Simplified living facility transfer: the new owner claims the active production state and every
-  item in the small embedded buffer with the facility. The former A1 ejection-to-ground behavior is
-  now an explicit 1B Package 1 migration; separately hosted goods retain the land-loop grace rule.
-- Separated physical configuration, diagnostic guardrails, and neutral AI policy tuning. Future
-  Leaders compile semantic posture into bounded effective Manager policy; active work snapshots its
-  terms. The 1B tuning plan now states the simulation effect of moving every value up or down.
-- Added the approved 1B implementation specification and synchronized the GDD, roadmap, active Loop
-  design, and Charter AI architecture. The TDD remains unchanged because it describes implemented
-  code and no 1B package has landed.
+- Established the 1B baseline and attachment map with the A1 proof protected.
+- Added facility-type-authored per-item stockpile limits with item-definition fallback. Facilities
+  reuse configured `Stockpile` instances, and production preflights output batches through them.
+- Replaced living-transfer ejection with an atomic claim of facility ownership, active recipe
+  progress, and buffered goods.
+- Added durable facility, depot-compartment, and ground-pile storage endpoints with host-derived
+  owner, location, container, and admission behavior.
+- Migrated truck-logists from twelve inventory slots to a twelve-slot cargo-hold feature. Cargo lots
+  preserve shipment, item, Charter title, and beneficiary independently from carrier affiliation.
+- Added atomic load, internal delivery, and aid-delivery primitives, including conservation coverage
+  for cargo and a delivery-time title-transition seam.
 
 ## Next
 
-- Begin [Iteration 1B — Depot-driven transport](specs/iteration-1b-depot-driven-transport.md) with
-  Package 0 (baseline and attachment map), then Package 1 (host capacity, endpoints, and
-  title-preserving cargo).
+- Continue [Iteration 1B — Depot-driven transport](specs/iteration-1b-depot-driven-transport.md) with
+  Package 2 (supporting depots and durable physical signals).

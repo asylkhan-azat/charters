@@ -6,26 +6,26 @@ namespace Charters.Sim.GroundStockpiles;
 public static class GroundStockpileExpirySystem
 {
     [ThreadStatic]
-    private static List<GroundStockpileId>? ExpiredCache;
+    private static ExpiryScratch? ThreadScratch;
 
     public static void Execute(Simulation simulation)
     {
-        ExpiredCache ??= [];
+        var expired = (ThreadScratch ??= new ExpiryScratch()).Expired;
 
         foreach (var pile in simulation.Registries.GroundStockpiles)
         {
             if (simulation.Tick >= pile.ExpiryTick)
             {
-                ExpiredCache.Add(pile.Id);
+                expired.Add(pile.Id);
             }
         }
 
-        if (ExpiredCache.Count == 0)
+        if (expired.Count == 0)
         {
             return;
         }
 
-        foreach (var id in ExpiredCache)
+        foreach (var id in expired)
         {
             var pile = simulation.Registries.GroundStockpiles[id];
 
@@ -33,6 +33,11 @@ public static class GroundStockpileExpirySystem
             simulation.Registries.GroundStockpiles.Remove(id);
         }
 
-        ExpiredCache.Clear();
+        expired.Clear();
+    }
+
+    private sealed class ExpiryScratch
+    {
+        public readonly List<GroundStockpileId> Expired = [];
     }
 }

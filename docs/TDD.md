@@ -63,6 +63,10 @@ Charters, facilities, depots, identified ground stockpiles, and every random-str
 that tick and those exact next random draws. It never invents campaign objects or resets random
 streams during construction.
 
+`Simulation` remains composition and clock orchestration rather than an invariant owner.
+`SimulationStateValidator` validates constructor-supplied options and campaign state, while the
+registry-bound `OwnershipValidator` is shared by runtime services that accept ownership.
+
 The simulation is a single-writer model. Only simulation systems and domain objects may mutate this
 state. A system coordinates a rule that crosses objects or storage models; an invariant-rich domain
 object owns its local valid transitions. Avoid both extremes: objects do not become unstructured
@@ -90,7 +94,7 @@ use; architectural symmetry is not a justification.
 | Depots | Plain sealed objects in a typed registry | Few nation-wide infrastructure objects with charterless national stock and Charter compartments. |
 | Ground stockpiles | Plain sealed objects in a typed registry | Identified but expected to remain low-count and transient. |
 | Hosted stationary stock | Host-owned `Stockpile` implementing `IItemContainer` | Storage has no lifecycle or identity apart from its facility, depot/Charter pair, or ground host. |
-| Unit inventory, equipment, and paths | Reusable `Inventory`, `Equipment`, and `NavPath` references reached from ECS components | Variable-sized state needs reference semantics but must not allocate during ordinary ticks. `Inventory` implements `IItemContainer`; equipment is a separate fixed-slot loadout. |
+| Unit inventory, equipment, cargo, and paths | Reusable `Inventory`, `Equipment`, `CargoHold`, and `NavPath` references reached from ECS components | Variable-sized state needs reference semantics but must not allocate during ordinary ticks. Inventory, equipment, and cargo are distinct authored features; cargo lots retain shipment, title-holder, and beneficiary identity. |
 | Map and hex state | Dense indexed arrays plus address lookup | Topology is dense, stable, and accessed by integer index in hot algorithms. |
 | Definitions | Immutable registries | Loaded once, validated once, and shared by reference. |
 | Goals, needs, requests, operations, and relationships | Plain domain objects and registries | Low-count, long-lived workflows linked by stable domain identity. |
@@ -108,10 +112,10 @@ The index is never exposed, serialized, or used as observable ordering.
 
 Use structs for small, self-contained ECS components with genuine value semantics. A struct must not
 hide shared mutable collections or depend on accidental copying behavior. Variable-sized state uses
-sealed owned containers such as `NavPath`, `Inventory`, and `Equipment`, allocated during loading or
+sealed owned containers such as `NavPath`, `Inventory`, `Equipment`, and `CargoHold`, allocated during loading or
 spawn and reused thereafter. A navigation path may retain grown capacity after an explicit cold-path
-resize. Inventory and equipment slot counts are fixed by the unit type at construction; routine tick
-logic does not replace these containers or allocate backing storage.
+resize. Inventory, equipment, and cargo-hold slot counts are fixed by the unit type at construction;
+routine tick logic does not replace these containers or allocate backing storage.
 
 This is not a prohibition on objects. A one-time allocation is cheaper than a pool, handle table, or
 unsafe buffer whose complexity has not been earned.
@@ -156,7 +160,9 @@ item-ID order when a stable order is needed. Capacity, insert, removal, and mult
 checks are methods on the stockpile and use a complete precheck before mutating so operations are
 atomic.
 
-- A facility owns exactly one stockpile.
+- A facility owns exactly one `Stockpile` configured with its facility type's per-item overrides.
+  Items without an override use `ItemDefinition.StockpileLimit`; recipe changes do not replace or
+  resize storage. Production preflights a complete output batch through the same stockpile contract.
 - A depot owns one national charterless stockpile plus one compartment per same-nation Charter; each
   compartment owns one stockpile.
 - A ground-stockpile object owns one stockpile and supplies its independent identity, owner,
@@ -164,9 +170,14 @@ atomic.
 - A unit owns a slot-based `Inventory`; it does not reuse stationary stockpile rules.
 - A unit separately owns fixed typed `Equipment` slots; installed items do not change its inventory
   slot count.
+- A logist unit may separately own a fixed-slot `CargoHold`. Its lots stack only when shipment, item,
+  title-holder, and beneficiary all match; carrier ownership never substitutes for cargo title.
 
 An owned mutable container is never copied to imply a transfer and is never shared between hosts.
 Item movement changes quantities through a domain operation owned by the participating hosts.
+Changing a living facility's owner claims its current recipe, batch progress, and complete embedded
+buffer in place as one aggregate transition. It creates no ground stockpile; Charter death retains
+its separate aggregate lifecycle behavior.
 
 ### Shared item-container contract
 
@@ -208,6 +219,19 @@ This interface guarantees one-`ItemQuantity` preflight. A multi-item recipe or l
 must preflight the entire batch against the concrete destination state before applying any mutation,
 because independently acceptable item quantities may compete for the same inventory slots.
 
+`StorageEndpoint` durably names one stationary facility, depot/owner compartment, or identified
+ground stockpile. `StorageEndpointResolver` derives its current owner, absolute address, configured
+stockpile, and host admission behavior; callers never persist a mutable container beside a claimed
+owner. Cargo holds are resolved through their assigned `UnitId`, not represented as stationary
+endpoints.
+
+`HaulingService` owns the atomic stationary-storage ↔ cargo-hold primitives. Loading preflights both
+sides and changes custody without changing title. Internal delivery requires the destination owner
+to match cargo title. Aid delivery is accepted only into the beneficiary's depot compartment, where
+removing the lot and inserting its quantity form the title-transition seam. Failed capacity or title
+checks leave both sides unchanged. Shipment, reservation, and fact orchestration wrap these
+primitives as those workflow packages land.
+
 ### Equipment and machine modules
 
 `Equipment` is not an `IItemContainer`. It is a fixed dictionary of unique typed slot IDs authored by
@@ -247,8 +271,9 @@ the offset is explicitly presentation-only data.
 
 Definition JSON keeps universal data as ordinary fields and represents optional, composable
 capabilities as a polymorphic `features` list using `System.Text.Json`'s `JsonPolymorphic` and
-`JsonDerivedType` support. Item stack and stockpile limits, for example, are universal item fields;
-being equippable is a feature.
+`JsonDerivedType` support. Item stack and fallback stockpile limits, for example, are universal item
+fields; facility types may override selected stockpile limits for their hosted storage. Being
+equippable is a feature.
 
 Authored discriminator values are stable kebab-case data tokens such as `equippable`, not serialized
 C# type names. Unknown discriminators, properties belonging to a
@@ -339,7 +364,9 @@ standalone properties that don't fit a group:
 - `Simulation.Services` (`SimulationServices`) groups game-logic services: identity-minting
   factories (`Services.CharterFactory`, `Services.DepotFactory`, `Services.FacilityFactory`,
   `Services.GroundStockpileFactory`, `Services.UnitFactory`), lifecycle services
-  (`Services.CharterLifecycle`), and shared runtime infrastructure such as `Services.Random`.
+  (`Services.CharterLifecycle`, `Services.UnitLifecycle`), storage/hauling coordination
+  (`Services.StorageEndpoints`, `Services.Hauling`), and shared runtime infrastructure such as
+  `Services.Random`.
 - `Simulation.Options` (`SimulationOptions`) groups immutable definitions and tuning values such as
   `Options.GroundStockpileDecayTicks`. Seed-derived state is resolved before construction; the map,
   current tick, campaign objects, and exact random-stream states arrive through `SimulationState`.

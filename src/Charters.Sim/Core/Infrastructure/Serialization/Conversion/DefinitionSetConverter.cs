@@ -15,7 +15,7 @@ internal static class DefinitionSetConverter
         var units = UnitDefinitionConverter.Convert(definitions.Units);
         var items = ItemDefinitionConverter.Convert(definitions.Items);
         var recipes = RecipeDefinitionConverter.Convert(definitions.Recipes, items);
-        var facilityTypes = FacilityTypeDefinitionConverter.Convert(definitions.FacilityTypes, recipes);
+        var facilityTypes = FacilityTypeDefinitionConverter.Convert(definitions.FacilityTypes, recipes, items);
         return new DefinitionSet(terrains, units, items, recipes, facilityTypes);
     }
 }

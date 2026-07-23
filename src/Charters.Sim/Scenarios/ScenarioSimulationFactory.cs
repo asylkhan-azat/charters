@@ -4,7 +4,6 @@ using Charters.Sim.Core.Definitions;
 using Charters.Sim.Facilities.Models;
 using Charters.Sim.Map;
 using Charters.Sim.Random;
-using Charters.Sim.Units.Components;
 
 namespace Charters.Sim.Scenarios;
 
@@ -25,7 +24,12 @@ public static class ScenarioSimulationFactory
         for (var i = 0; i < scenario.Facilities.Count; i++)
         {
             var resolved = scenario.Facilities[i];
-            var facility = new Facility(new FacilityId(i), resolved.Type, Owner(resolved.Owner, charterIds), resolved.Location, resolved.Recipe);
+            var facility = new Facility(
+                new FacilityId(i),
+                resolved.Type,
+                Owner(resolved.Owner, charterIds),
+                resolved.Location,
+                resolved.Recipe);
             foreach (var item in resolved.InitialStock)
             {
                 facility.Stockpile.Put(item);
@@ -36,15 +40,17 @@ public static class ScenarioSimulationFactory
         }
 
         var simulation = new Simulation(
-            new SimulationOptions(definitions, scenario.GroundStockpileDecayTicks, scenario.ConservationAuditCadence),
+            new SimulationOptions(
+                definitions,
+                scenario.GroundStockpileDecayTicks,
+                scenario.ConservationAuditCadence),
             new SimulationState(0, map, charters, facilities, depots, [], random.GetAllStates()));
 
         foreach (var resolved in scenario.Units)
         {
             FacilityId? assignment = resolved.Assignment is null ? null : facilityIds[resolved.Assignment];
             var unitId = simulation.Services.UnitFactory.Spawn(resolved.Location, resolved.Type, Owner(resolved.Owner, charterIds), assignment);
-            simulation.Services.UnitFactory.TryGetEntity(unitId, out var entity);
-            var items = simulation.Entities.Get<UnitItems>(entity);
+            var items = simulation.Services.UnitItems.Get(unitId);
             foreach (var slot in resolved.Inventory)
             {
                 if (slot.Item is not null)

@@ -18,7 +18,7 @@
     "id": "truck-logist",
     "name": "Truck Logist",
     "features": [
-      { "type": "inventory", "slots": 12 }
+      { "type": "cargo-hold", "slots": 12 }
     ]
   }
 ]

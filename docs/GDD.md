@@ -713,7 +713,8 @@ At campaign end — any ending — every charter receives a **fate card** genera
 - **Units:** General Infantry, Truck Logist, Worker — plus Recruits from the manpower tap. (No Crews, Builders, Researchers, or machines beyond trucks — infantry with rifles/grenades is the whole army.)
 - **Production:** tiers 1–3, 8 items: ore, sulfur, food → materials, refined sulfur → rifles, grenades,
   ammo. Carried inventories use a unit-type-authored, fixed number of homogeneous item slots with
-  per-item stack limits; stationary stockpiles use per-item limits. Rifles and grenades are physical
+  per-item stack limits; stationary stockpiles use the item limit unless their host type overrides
+  it for that item. Rifles and grenades are physical
   equipment installed one item per compatible infantry slot, while ammunition and food remain in
   carried inventory. Equipment never changes inventory capacity. The typed equipment-slot schema
   ships in MVP and later supports armor, helmets, secondary weapons, utility items, and machine

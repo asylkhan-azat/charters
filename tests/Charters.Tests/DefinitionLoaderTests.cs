@@ -1,4 +1,5 @@
 using Charters.Sim.Core.Infrastructure.Serialization;
+using Charters.Sim.Units.Definitions;
 
 namespace Charters.Tests;
 
@@ -15,6 +16,8 @@ public sealed class DefinitionLoaderTests
         Assert.Equal("Marsh", definitions.Terrains["marsh"].Name);
         Assert.Equal(["infantry", "worker", "truck-logist"],
             definitions.Units.Select(static unit => unit.Id));
+        Assert.Equal(12, definitions.Units["truck-logist"].Feature<CargoHoldUnitFeatureDefinition>()!.Slots);
+        Assert.Null(definitions.Units["truck-logist"].Feature<InventoryUnitFeatureDefinition>());
     }
 
     [Fact]

@@ -9,11 +9,13 @@ namespace Charters.Sim.Facilities;
 public sealed class FacilityFactory
 {
     private readonly Simulation _simulation;
+    private readonly OwnershipValidator _ownership;
     private long _idCounter;
 
-    internal FacilityFactory(Simulation simulation)
+    internal FacilityFactory(Simulation simulation, OwnershipValidator ownership)
     {
         _simulation = simulation;
+        _ownership = ownership;
         foreach (var facility in simulation.Registries.Facilities)
         {
             _idCounter = Math.Max(_idCounter, checked(facility.Id.Value + 1));
@@ -28,7 +30,7 @@ public sealed class FacilityFactory
     {
         ArgumentNullException.ThrowIfNull(type);
         ArgumentNullException.ThrowIfNull(recipe);
-        _simulation.ValidateOwnership(owner);
+        _ownership.Validate(owner);
 
         if (!type.AllowedRecipes.Contains(recipe))
         {
@@ -37,7 +39,12 @@ public sealed class FacilityFactory
         }
 
         var id = new FacilityId(_idCounter++);
-        var facility = new Facility(id, type, owner, location, recipe);
+        var facility = new Facility(
+            id,
+            type,
+            owner,
+            location,
+            recipe);
         _simulation.Registries.Facilities.Add(facility);
         return id;
     }

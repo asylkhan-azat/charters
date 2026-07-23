@@ -16,9 +16,11 @@ public sealed class A1ProofScenarioTests
         Assert.Equal(8, facilities.Count);
         Assert.All(facilities, facility => Assert.True(simulation.Views.Diagnostics.CompletedBatchesFor(facility.Id) > 0));
         Assert.Contains(facilities, facility => simulation.Views.Diagnostics.StatusTicksFor(facility.Id, FacilityStatus.MissingInputs) > 0);
-        Assert.True(
-            simulation.Views.Diagnostics.CompletedBatchesFor(facilities.Single(facility => facility.RecipeId == "produce-sulfur").Id) <
-            simulation.Views.Diagnostics.CompletedBatchesFor(facilities.Single(facility => facility.RecipeId == "produce-ore").Id));
+        var sulfurBatches = simulation.Views.Diagnostics.CompletedBatchesFor(
+            facilities.Single(facility => facility.RecipeId == "produce-sulfur").Id);
+        var oreBatches = simulation.Views.Diagnostics.CompletedBatchesFor(
+            facilities.Single(facility => facility.RecipeId == "produce-ore").Id);
+        Assert.True(sulfurBatches < oreBatches, $"Expected sulfur batches ({sulfurBatches}) below ore ({oreBatches}).");
         Assert.All(simulation.Options.Definitions.Items, item => Assert.Equal(0, simulation.Views.Diagnostics.ActualTotal(item) - simulation.Views.Diagnostics.ExpectedTotal(item)));
     }
 }

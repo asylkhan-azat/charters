@@ -24,18 +24,16 @@ public sealed class Simulation
 
     public Simulation(SimulationOptions options, SimulationState state)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.ConservationAuditCadence);
-
         Options = options;
         Tick = state.Tick;
         Map = state.Map;
         Registries = new SimulationRegistries(state);
-        ValidateStateOwnership();
         Entities = World.Create();
         Facts = new SimulationFacts();
         _diagnostics = new SimulationDiagnostics(this);
         Views = new SimulationViews(this, _diagnostics);
         Services = new SimulationServices(this, new RandomSet(state.RandomStreams));
+        SimulationStateValidator.Validate(options, Registries, Services.Ownership);
     }
 
     public long Tick { get; private set; }
@@ -81,54 +79,5 @@ public sealed class Simulation
     public void AuditConservation()
     {
         _diagnostics.Audit(this);
-    }
-
-    internal void ValidateOwnership(Ownership ownership)
-    {
-        if (!Enum.IsDefined(ownership.Nation))
-        {
-            throw new SimulationInvariantException($"Ownership references unknown nation '{ownership.Nation}'.");
-        }
-
-        if (ownership.CharterId is not { } charterId)
-        {
-            return;
-        }
-
-        if (!Registries.Charters.TryGet(charterId, out var charter) || charter.Nation != ownership.Nation)
-        {
-            throw new SimulationInvariantException(
-                $"Ownership '{ownership}' does not reference a Charter in the same nation.");
-        }
-    }
-
-    private void ValidateStateOwnership()
-    {
-        foreach (var charter in Registries.Charters)
-        {
-            if (!Enum.IsDefined(charter.Nation))
-            {
-                throw new SimulationInvariantException(
-                    $"Charter '{charter.Id}' references unknown nation '{charter.Nation}'.");
-            }
-        }
-
-        foreach (var facility in Registries.Facilities)
-        {
-            ValidateOwnership(facility.Owner);
-        }
-
-        foreach (var pile in Registries.GroundStockpiles)
-        {
-            ValidateOwnership(pile.Owner);
-        }
-
-        foreach (var depot in Registries.Depots)
-        {
-            foreach (var compartment in depot)
-            {
-                ValidateOwnership(new Ownership(depot.Nation, compartment.Owner));
-            }
-        }
     }
 }

@@ -207,7 +207,7 @@ public sealed class SimulationTests
             simulation.Options.Definitions.Units["infantry"],
             FirstCharterId(simulation));
 
-        simulation.Services.UnitFactory.Destroy(id);
+        simulation.Services.UnitLifecycle.Destroy(id);
 
         Assert.Equal(0, simulation.Views.Units.UnitCount);
     }
@@ -218,7 +218,7 @@ public sealed class SimulationTests
         var simulation = CreateSimulation();
 
         Assert.Throws<SimulationInvariantException>(
-            () => simulation.Services.UnitFactory.Destroy(new UnitId(12345)));
+            () => simulation.Services.UnitLifecycle.Destroy(new UnitId(12345)));
     }
 
     [Fact]

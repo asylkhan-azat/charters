@@ -13,12 +13,12 @@
   ],
   "facilities": [
     { "id": "ore-mine", "type": "mine", "owner": { "nation": "player", "charter": "ironworks" }, "location": { "region": "ironfields", "offset": { "q": -2, "r": 0 } }, "recipe": "produce-ore", "initialStock": [] },
-    { "id": "materials-refinery", "type": "refinery", "owner": { "nation": "player", "charter": "ironworks" }, "location": { "region": "ironfields", "offset": { "q": 0, "r": 0 } }, "recipe": "produce-materials", "initialStock": [{ "item": "ore", "quantity": 40 }] },
-    { "id": "rifle-factory", "type": "factory", "owner": { "nation": "player", "charter": "ironworks" }, "location": { "region": "ironfields", "offset": { "q": 2, "r": -1 } }, "recipe": "produce-rifle", "initialStock": [{ "item": "materials", "quantity": 20 }] },
+    { "id": "materials-refinery", "type": "refinery", "owner": { "nation": "player", "charter": "ironworks" }, "location": { "region": "ironfields", "offset": { "q": 0, "r": 0 } }, "recipe": "produce-materials", "initialStock": [{ "item": "ore", "quantity": 12 }] },
+    { "id": "rifle-factory", "type": "factory", "owner": { "nation": "player", "charter": "ironworks" }, "location": { "region": "ironfields", "offset": { "q": 2, "r": -1 } }, "recipe": "produce-rifle", "initialStock": [{ "item": "materials", "quantity": 6 }] },
     { "id": "sulfur-mine", "type": "mine", "owner": { "nation": "player", "charter": "brimstone" }, "location": { "region": "sulfur-flats", "offset": { "q": -2, "r": 0 } }, "recipe": "produce-sulfur", "initialStock": [] },
-    { "id": "sulfur-refinery", "type": "refinery", "owner": { "nation": "player", "charter": "brimstone" }, "location": { "region": "sulfur-flats", "offset": { "q": 0, "r": 0 } }, "recipe": "produce-refined-sulfur", "initialStock": [{ "item": "sulfur", "quantity": 32 }] },
-    { "id": "grenade-factory", "type": "factory", "owner": { "nation": "player", "charter": "brimstone" }, "location": { "region": "sulfur-flats", "offset": { "q": 2, "r": -1 } }, "recipe": "produce-grenades", "initialStock": [{ "item": "materials", "quantity": 8 }, { "item": "refined-sulfur", "quantity": 8 }] },
-    { "id": "ammunition-factory", "type": "factory", "owner": { "nation": "player", "charter": "brimstone" }, "location": { "region": "sulfur-flats", "offset": { "q": 1, "r": 1 } }, "recipe": "produce-ammunition", "initialStock": [{ "item": "materials", "quantity": 6 }, { "item": "refined-sulfur", "quantity": 6 }] },
+    { "id": "sulfur-refinery", "type": "refinery", "owner": { "nation": "player", "charter": "brimstone" }, "location": { "region": "sulfur-flats", "offset": { "q": 0, "r": 0 } }, "recipe": "produce-refined-sulfur", "initialStock": [{ "item": "sulfur", "quantity": 12 }] },
+    { "id": "grenade-factory", "type": "factory", "owner": { "nation": "player", "charter": "brimstone" }, "location": { "region": "sulfur-flats", "offset": { "q": 2, "r": -1 } }, "recipe": "produce-grenades", "initialStock": [{ "item": "materials", "quantity": 3 }, { "item": "refined-sulfur", "quantity": 3 }] },
+    { "id": "ammunition-factory", "type": "factory", "owner": { "nation": "player", "charter": "brimstone" }, "location": { "region": "sulfur-flats", "offset": { "q": 1, "r": 1 } }, "recipe": "produce-ammunition", "initialStock": [{ "item": "materials", "quantity": 3 }, { "item": "refined-sulfur", "quantity": 3 }] },
     { "id": "farm", "type": "farm", "owner": { "nation": "player", "charter": "greyline" }, "location": { "region": "central-works", "offset": { "q": -1, "r": 0 } }, "recipe": "produce-food", "initialStock": [] }
   ],
   "depots": [
@@ -38,8 +38,8 @@
     { "id": "grenade-worker", "type": "worker", "owner": { "nation": "player", "charter": "brimstone" }, "location": { "region": "sulfur-flats", "offset": { "q": 2, "r": -1 } }, "inventory": [null], "equipment": {}, "assignment": "grenade-factory" },
     { "id": "ammunition-worker", "type": "worker", "owner": { "nation": "player", "charter": "brimstone" }, "location": { "region": "sulfur-flats", "offset": { "q": 1, "r": 1 } }, "inventory": [null], "equipment": {}, "assignment": "ammunition-factory" },
     { "id": "farm-worker", "type": "worker", "owner": { "nation": "player", "charter": "greyline" }, "location": { "region": "central-works", "offset": { "q": -1, "r": 0 } }, "inventory": [null], "equipment": {}, "assignment": "farm" },
-    { "id": "greyline-truck-1", "type": "truck-logist", "owner": { "nation": "player", "charter": "greyline" }, "location": { "region": "central-works", "offset": { "q": 0, "r": 0 } }, "inventory": [null, null, null, null, null, null, null, null, null, null, null, null], "equipment": {} },
-    { "id": "greyline-truck-2", "type": "truck-logist", "owner": { "nation": "player", "charter": "greyline" }, "location": { "region": "central-works", "offset": { "q": 0, "r": 0 } }, "inventory": [null, null, null, null, null, null, null, null, null, null, null, null], "equipment": {} },
+    { "id": "greyline-truck-1", "type": "truck-logist", "owner": { "nation": "player", "charter": "greyline" }, "location": { "region": "central-works", "offset": { "q": 0, "r": 0 } }, "inventory": [], "equipment": {} },
+    { "id": "greyline-truck-2", "type": "truck-logist", "owner": { "nation": "player", "charter": "greyline" }, "location": { "region": "central-works", "offset": { "q": 0, "r": 0 } }, "inventory": [], "equipment": {} },
     { "id": "iron-infantry", "type": "infantry", "owner": { "nation": "player", "charter": "ironworks" }, "location": { "region": "ironfields", "offset": { "q": 0, "r": 1 } }, "inventory": [{ "item": "ammunition", "quantity": 20 }, { "item": "food", "quantity": 10 }], "equipment": { "main-weapon": "rifle", "grenade": "grenades" } }
   ],
   "roads": [

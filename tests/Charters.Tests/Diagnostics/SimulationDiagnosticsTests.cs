@@ -7,7 +7,6 @@ using Charters.Sim.Facilities.Models;
 using Charters.Sim.GroundStockpiles.Facts;
 using Charters.Sim.Hexes;
 using Charters.Sim.Items.Models;
-using Charters.Sim.Units.Components;
 
 namespace Charters.Tests.Diagnostics;
 
@@ -40,8 +39,7 @@ public sealed class SimulationDiagnosticsTests
             [new ItemQuantity(definitions.Items["materials"], 11)]);
 
         var unitId = simulation.Services.UnitFactory.Spawn(location, definitions.Units["infantry"], owner);
-        Assert.True(simulation.Services.UnitFactory.TryGetEntity(unitId, out var entity));
-        var unitItems = simulation.Entities.Get<UnitItems>(entity);
+        var unitItems = simulation.Services.UnitItems.Get(unitId);
         unitItems.Inventory.Put(new ItemQuantity(definitions.Items["ammunition"], 20));
         Assert.True(unitItems.Equipment.TryInstall("main-weapon", definitions.Items["rifle"]));
 

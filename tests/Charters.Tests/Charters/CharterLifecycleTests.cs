@@ -27,7 +27,7 @@ public sealed class CharterLifecycleTests
         simulation.Services.CharterLifecycle.Dissolve(charterId);
         Assert.Equal(
             TestData.Charterless(Nation.Player),
-            simulation.Services.UnitFactory.OwnershipOf(unitId));
+            simulation.Views.State.Units().Single(unit => unit.Id == unitId).Owner);
     }
 
     [Fact]

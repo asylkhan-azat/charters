@@ -12,11 +12,13 @@ namespace Charters.Sim.GroundStockpiles;
 public sealed class GroundStockpileFactory
 {
     private readonly Simulation _simulation;
+    private readonly OwnershipValidator _ownership;
     private long _idCounter;
 
-    internal GroundStockpileFactory(Simulation simulation)
+    internal GroundStockpileFactory(Simulation simulation, OwnershipValidator ownership)
     {
         _simulation = simulation;
+        _ownership = ownership;
         foreach (var pile in simulation.Registries.GroundStockpiles)
         {
             _idCounter = Math.Max(_idCounter, checked(pile.Id.Value + 1));
@@ -35,7 +37,7 @@ public sealed class GroundStockpileFactory
         IReadOnlyList<ItemQuantity> items)
     {
         ArgumentNullException.ThrowIfNull(items);
-        _simulation.ValidateOwnership(owner);
+        _ownership.Validate(owner);
 
         var pileCount = 0;
         for (var i = 0; i < items.Count; i++)

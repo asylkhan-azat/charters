@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using Charters.Sim.Core;
 using Charters.Sim.Items.Definitions;
 using Charters.Sim.Items.Models;
@@ -11,6 +12,17 @@ namespace Charters.Sim.Items;
 public sealed class Stockpile : IItemContainer
 {
     private readonly SortedDictionary<ItemDefinition, int> _contents = new(ItemIdComparer.Instance);
+    private readonly IReadOnlyDictionary<ItemDefinition, int> _limits;
+
+    public Stockpile()
+        : this(FrozenDictionary<ItemDefinition, int>.Empty)
+    {
+    }
+
+    public Stockpile(IReadOnlyDictionary<ItemDefinition, int> limits)
+    {
+        _limits = limits;
+    }
 
     public int Count => _contents.Count;
 
@@ -30,7 +42,7 @@ public sealed class Stockpile : IItemContainer
     public bool CanAccept(ItemQuantity itemQuantity)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(itemQuantity.Quantity);
-        return (long)QuantityOf(itemQuantity.Item) + itemQuantity.Quantity <= itemQuantity.Item.StockpileLimit;
+        return (long)QuantityOf(itemQuantity.Item) + itemQuantity.Quantity <= LimitFor(itemQuantity.Item);
     }
 
     /// <summary>
@@ -41,7 +53,13 @@ public sealed class Stockpile : IItemContainer
     public int AvailableCapacityFor(ItemDefinition item)
     {
         ArgumentNullException.ThrowIfNull(item);
-        return item.StockpileLimit - QuantityOf(item);
+        return LimitFor(item) - QuantityOf(item);
+    }
+
+    public int LimitFor(ItemDefinition item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        return _limits.GetValueOrDefault(item, item.StockpileLimit);
     }
 
     public void Put(ItemQuantity itemQuantity)
@@ -50,7 +68,7 @@ public sealed class Stockpile : IItemContainer
         {
             throw new SimulationInvariantException(
                 $"Stockpile cannot accept {itemQuantity.Quantity} of '{itemQuantity.Item.Id}': " +
-                $"stockpile limit {itemQuantity.Item.StockpileLimit} exceeded.");
+                $"stockpile limit {LimitFor(itemQuantity.Item)} exceeded.");
         }
 
         _contents[itemQuantity.Item] = QuantityOf(itemQuantity.Item) + itemQuantity.Quantity;
@@ -83,7 +101,7 @@ public sealed class Stockpile : IItemContainer
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(itemQuantity.Quantity);
 
             var requested = RequestedTotal(itemQuantities, itemQuantity.Item.Id);
-            if (QuantityOf(itemQuantity.Item) + requested > itemQuantity.Item.StockpileLimit)
+            if (QuantityOf(itemQuantity.Item) + requested > LimitFor(itemQuantity.Item))
             {
                 return false;
             }
