@@ -11,7 +11,7 @@ namespace Charters.Sim.GroundStockpiles;
 /// </summary>
 public sealed class GroundStockpile : IIdentifiable<GroundStockpileId>
 {
-    public GroundStockpile(GroundStockpileId id, HexAddress location, CharterId owner, long expiryTick)
+    public GroundStockpile(GroundStockpileId id, HexAddress location, Ownership owner, long expiryTick)
     {
         Id = id;
         Location = location;
@@ -24,14 +24,14 @@ public sealed class GroundStockpile : IIdentifiable<GroundStockpileId>
 
     public HexAddress Location { get; }
 
-    public CharterId Owner { get; private set; }
+    public Ownership Owner { get; private set; }
 
     /// <summary>The tick at which this pile expires. Fixed at creation; ownership changes never renew it.</summary>
     public long ExpiryTick { get; }
 
     public Stockpile Stockpile { get; }
 
-    internal void ChangeOwner(CharterId newOwner)
+    internal void ChangeOwner(Ownership newOwner)
     {
         Owner = newOwner;
     }

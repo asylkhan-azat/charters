@@ -88,7 +88,7 @@ use; architectural symmetry is not a justification.
 | Units | Arch ECS | Thousands of mobile actors are touched frequently by movement, combat, needs, logistics, morale, and AI. |
 | Charters | Plain sealed objects in a typed registry | Few, long-lived, relationship-heavy aggregates with policy and lifecycle behavior. |
 | Facilities | Plain sealed objects in a typed registry | Low-count, mostly stationary, cohesive production state. |
-| Depots | Plain sealed objects in a typed registry | Few nation-wide infrastructure objects with Charter compartments. |
+| Depots | Plain sealed objects in a typed registry | Few nation-wide infrastructure objects with charterless national stock and Charter compartments. |
 | Ground stockpiles | Plain sealed objects in a typed registry | Identified but expected to remain low-count and transient. |
 | Hosted stationary stock | Host-owned `Stockpile` implementing `IItemContainer` | Storage has no lifecycle or identity apart from its facility, depot/Charter pair, or ground host. |
 | Unit inventory, equipment, and paths | Reusable `Inventory`, `Equipment`, and `NavPath` references reached from ECS components | Variable-sized state needs reference semantics but must not allocate during ordinary ticks. `Inventory` implements `IItemContainer`; equipment is a separate fixed-slot loadout. |
@@ -130,6 +130,10 @@ through the simulation. The two sides are the `Nation` enum (`Player`, `Enemy`);
 `player`/`enemy` strings resolve to it at the loading boundary, and there is always exactly one of
 each — no array of nations, and no way to represent a wrong count.
 
+Mutable owned state carries one `Ownership` value: `Nation` is always present and `CharterId` is
+optional. A present Charter ID must resolve to a Charter in that nation; a missing ID is direct
+charterless national ownership, not a sentinel identity or domain object.
+
 Each plain-state registry:
 
 - exclusively owns its objects and their add/remove lifecycle;
@@ -154,7 +158,8 @@ checks are methods on the stockpile and use a complete precheck before mutating 
 atomic.
 
 - A facility owns exactly one stockpile.
-- A depot owns one compartment per same-nation Charter; each compartment owns one stockpile.
+- A depot owns one national charterless stockpile plus one compartment per same-nation Charter; each
+  compartment owns one stockpile.
 - A ground-stockpile object owns one stockpile and supplies its independent identity, owner,
   absolute address, and expiry.
 - A unit owns a slot-based `Inventory`; it does not reuse stationary stockpile rules.

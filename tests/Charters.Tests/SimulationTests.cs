@@ -5,7 +5,6 @@ using Charters.Sim.Facilities.Models;
 using Charters.Sim.GroundStockpiles;
 using Charters.Sim.Hexes;
 using Charters.Sim.Items.Models;
-using Charters.Sim.Map;
 using Charters.Sim.Random;
 using Charters.Sim.Units;
 
@@ -19,15 +18,16 @@ public sealed class SimulationTests
         var initial = CreateSimulation();
         var definitions = initial.Options.Definitions;
         var charter = new Charter(new CharterId(10), Nation.Player, "Ironworks");
+        var owner = new Ownership(charter.Nation, charter.Id);
         var facility = new Facility(
             new FacilityId(12),
             definitions.FacilityTypes["mine"],
-            charter.Id,
+            owner,
             initial.Map.HexAt(0).Address,
             definitions.Recipes["produce-ore"]);
         var depot = new Depot(new DepotId(14), Nation.Player, initial.Map.HexAt(1).Address);
         depot.AddCompartment(charter.Id);
-        var pile = new GroundStockpile(new GroundStockpileId(16), initial.Map.HexAt(2).Address, charter.Id, 6);
+        var pile = new GroundStockpile(new GroundStockpileId(16), initial.Map.HexAt(2).Address, owner, 6);
         pile.Stockpile.Put(new ItemQuantity(definitions.Items["ore"], 1));
         var state = new SimulationState(
             5,
@@ -71,7 +71,7 @@ public sealed class SimulationTests
     }
 
     [Fact]
-    public void RuntimeFactoriesContinueAfterHighestSuppliedIds()
+    public void ConstructorRejectsOwnershipWhoseCharterBelongsToAnotherNation()
     {
         var initial = CreateSimulation();
         var definitions = initial.Options.Definitions;
@@ -79,12 +79,37 @@ public sealed class SimulationTests
         var facility = new Facility(
             new FacilityId(12),
             definitions.FacilityTypes["mine"],
-            charter.Id,
+            new Ownership(Nation.Enemy, charter.Id),
+            initial.Map.HexAt(0).Address,
+            definitions.Recipes["produce-ore"]);
+        var state = new SimulationState(
+            0,
+            initial.Map,
+            [charter],
+            [facility],
+            [],
+            [],
+            initial.Services.Random.GetAllStates());
+
+        Assert.Throws<SimulationInvariantException>(() => new Simulation(initial.Options, state));
+    }
+
+    [Fact]
+    public void RuntimeFactoriesContinueAfterHighestSuppliedIds()
+    {
+        var initial = CreateSimulation();
+        var definitions = initial.Options.Definitions;
+        var charter = new Charter(new CharterId(10), Nation.Player, "Ironworks");
+        var owner = new Ownership(charter.Nation, charter.Id);
+        var facility = new Facility(
+            new FacilityId(12),
+            definitions.FacilityTypes["mine"],
+            owner,
             initial.Map.HexAt(0).Address,
             definitions.Recipes["produce-ore"]);
         var depot = new Depot(new DepotId(14), Nation.Player, initial.Map.HexAt(1).Address);
         depot.AddCompartment(charter.Id);
-        var pile = new GroundStockpile(new GroundStockpileId(16), initial.Map.HexAt(2).Address, charter.Id, 100);
+        var pile = new GroundStockpile(new GroundStockpileId(16), initial.Map.HexAt(2).Address, owner, 100);
         var state = new SimulationState(
             0,
             initial.Map,

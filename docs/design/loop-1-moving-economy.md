@@ -19,15 +19,16 @@ the pain map, event feed, and decision traces explain.
 
 *Implementation specification: [Iteration 1A — Owned Production](../specs/iteration-1a-owned-production.md).*
 
-- Add static, authored Charter identities plus the immortal Commons system Charter that owns
-  charterless units and goods. Leaders, relationships, land rulings, and politics are dormant; named
-  Charters run the same neutral Manager policy while Commons retains charterless local heuristics.
+- Add static, authored Charter identities while representing charterless units and goods directly
+  as national ownership without a Charter. Leaders, relationships, land rulings, and politics are
+  dormant; named Charters run the same neutral Manager policy while charterless units retain local
+  heuristics.
 - Give units and facilities stable owners. Facility buffers are embedded and owned with their
   facility; national depots embed one anonymous compartment per Charter; only decaying ground
   stockpiles have independent identities.
 - Implement explicit Charter/depot spawn synchronization and Charter-death cleanup: ownership
-  changes in place outside depots, while depot overflow fills Commons, then other Charters, then
-  capped Commons ground piles.
+  changes in place outside depots, while depot overflow fills national charterless stock, then other
+  Charters, then capped charterless ground piles.
 - Load the eight MVP items, recipes, facility definitions, fixed unit inventory capacity, and typed
   equipment-slot schema from data. An equipped item occupies one compatible slot at quantity one and
   never changes inventory capacity. Group-targeted requests remain schema-only.

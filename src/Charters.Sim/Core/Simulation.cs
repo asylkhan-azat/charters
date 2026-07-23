@@ -12,7 +12,7 @@ namespace Charters.Sim.Core;
 
 public sealed class Simulation
 {
-    private readonly ISimulationPhase[] _phases =
+    private static readonly ISimulationPhase[] Phases =
     [
         new AiSimulationPhase(),
         new MovementSimulationPhase(),
@@ -23,14 +23,11 @@ public sealed class Simulation
 
     public Simulation(SimulationOptions options, SimulationState state)
     {
-        ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(state);
-        ArgumentOutOfRangeException.ThrowIfNegative(state.Tick);
-
         Options = options;
         Tick = state.Tick;
         Map = state.Map;
         Registries = new SimulationRegistries(state);
+        ValidateStateOwnership();
         Entities = World.Create();
         Facts = new SimulationFacts();
         Views = new SimulationViews(this);
@@ -60,11 +57,60 @@ public sealed class Simulation
     {
         Tick++;
 
-        foreach (var phase in _phases)
+        foreach (var phase in Phases)
         {
             if (Tick % phase.Cadence == 0)
             {
                 phase.Execute(this);
+            }
+        }
+    }
+
+    internal void ValidateOwnership(Ownership ownership)
+    {
+        if (!Enum.IsDefined(ownership.Nation))
+        {
+            throw new SimulationInvariantException($"Ownership references unknown nation '{ownership.Nation}'.");
+        }
+
+        if (ownership.CharterId is not { } charterId)
+        {
+            return;
+        }
+
+        if (!Registries.Charters.TryGet(charterId, out var charter) || charter.Nation != ownership.Nation)
+        {
+            throw new SimulationInvariantException(
+                $"Ownership '{ownership}' does not reference a Charter in the same nation.");
+        }
+    }
+
+    private void ValidateStateOwnership()
+    {
+        foreach (var charter in Registries.Charters)
+        {
+            if (!Enum.IsDefined(charter.Nation))
+            {
+                throw new SimulationInvariantException(
+                    $"Charter '{charter.Id}' references unknown nation '{charter.Nation}'.");
+            }
+        }
+
+        foreach (var facility in Registries.Facilities)
+        {
+            ValidateOwnership(facility.Owner);
+        }
+
+        foreach (var pile in Registries.GroundStockpiles)
+        {
+            ValidateOwnership(pile.Owner);
+        }
+
+        foreach (var depot in Registries.Depots)
+        {
+            foreach (var compartment in depot)
+            {
+                ValidateOwnership(new Ownership(depot.Nation, compartment.Owner));
             }
         }
     }

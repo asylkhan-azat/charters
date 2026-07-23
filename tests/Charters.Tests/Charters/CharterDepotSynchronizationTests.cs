@@ -19,21 +19,20 @@ public sealed class CharterDepotSynchronizationTests
             charters.Add(charter);
         }
 
-        Assert.All(charters, c => Assert.Equal("Commons", c.Name));
+        Assert.Contains(charters, c => c.Name == "Player Charter");
+        Assert.Contains(charters, c => c.Name == "Enemy Charter");
         Assert.Contains(charters, c => c.Nation == Nation.Player);
         Assert.Contains(charters, c => c.Nation == Nation.Enemy);
     }
 
     [Fact]
-    public void ExistingCharterOwnsANewDepotCompartment()
+    public void NewDepotAlwaysHasCharterlessNationalStock()
     {
         var simulation = CreateSimulation();
         var depotId = simulation.Services.DepotFactory.Register(Nation.Player, new HexAddress(0, 0));
 
         var depot = simulation.Registries.Depots[depotId];
-        var commons = TestData.CommonsFor(simulation, Nation.Player);
-
-        Assert.True(depot.HasCompartment(commons.Id));
+        Assert.True(depot.CharterlessStockpile.IsEmpty);
     }
 
     [Fact]
@@ -57,8 +56,7 @@ public sealed class CharterDepotSynchronizationTests
         var depotId = simulation.Services.DepotFactory.Register(Nation.Player, new HexAddress(0, 0));
 
         var depot = simulation.Registries.Depots[depotId];
-        var commons = TestData.CommonsFor(simulation, Nation.Player);
-        Assert.True(depot.HasCompartment(commons.Id));
+        Assert.True(depot.HasCompartment(new CharterId(0)));
         Assert.True(depot.HasCompartment(charterId));
     }
 
@@ -76,9 +74,9 @@ public sealed class CharterDepotSynchronizationTests
         var charterFirstDepot = charterFirst.Registries.Depots[charterFirstDepotId];
         var depotFirstDepot = depotFirst.Registries.Depots[depotFirstDepotId];
 
-        Assert.True(charterFirstDepot.HasCompartment(TestData.CommonsFor(charterFirst, Nation.Player).Id));
+        Assert.True(charterFirstDepot.HasCompartment(new CharterId(0)));
         Assert.True(charterFirstDepot.HasCompartment(charterFirstCharterId));
-        Assert.True(depotFirstDepot.HasCompartment(TestData.CommonsFor(depotFirst, Nation.Player).Id));
+        Assert.True(depotFirstDepot.HasCompartment(new CharterId(0)));
         Assert.True(depotFirstDepot.HasCompartment(depotFirstCharterId));
     }
 

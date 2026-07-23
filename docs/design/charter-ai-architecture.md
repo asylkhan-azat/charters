@@ -72,10 +72,11 @@ Units execute assigned operations and make immediate local decisions: path follo
 loading, unloading, target selection, cover, retreat, and emergency reactions. They do not choose
 Charter strategy or discard commitments because another goal has a slightly higher score.
 
-The simulation represents charterless units and goods through each nation's immortal Commons system
-Charter. Commons is an ownership identity, not a political actor: it has no Leader, relationships,
-grants, petitions, or strategic Manager. Its units use the same physical systems with simple local
-heuristics and lack coordinated forecasts, protected reserves, and multi-step plans.
+The simulation represents charterless units and goods directly as national ownership with no
+`CharterId`. There is no placeholder political actor: charterless state has no Leader,
+relationships, grants, petitions, or strategic Manager. Its units use the same physical systems
+with simple local heuristics and lack coordinated forecasts, protected reserves, and multi-step
+plans.
 
 ## Work model
 

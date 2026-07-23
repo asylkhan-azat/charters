@@ -12,7 +12,7 @@ public sealed class GroundStockpileFactoryTests
         var simulation = CreateSimulation();
 
         var ids = simulation.Services.GroundStockpileFactory.Create(
-            new HexAddress(0, 0), TestData.CommonsFor(simulation, Nation.Player).Id, 180, []);
+            new HexAddress(0, 0), TestData.Charterless(Nation.Player), 180, []);
 
         Assert.Empty(ids);
         Assert.Equal(0, simulation.Registries.GroundStockpiles.Count);
@@ -25,7 +25,7 @@ public sealed class GroundStockpileFactoryTests
         var ore = simulation.Options.Definitions.Items["ore"];
 
         var ids = simulation.Services.GroundStockpileFactory.Create(
-            new HexAddress(0, 0), TestData.CommonsFor(simulation, Nation.Player).Id, 180, [new ItemQuantity(ore, 150)]);
+            new HexAddress(0, 0), TestData.Charterless(Nation.Player), 180, [new ItemQuantity(ore, 150)]);
 
         Assert.Single(ids);
         var pile = simulation.Registries.GroundStockpiles[ids[0]];
@@ -39,7 +39,7 @@ public sealed class GroundStockpileFactoryTests
         var ore = simulation.Options.Definitions.Items["ore"]; // stockpile limit 200
 
         var ids = simulation.Services.GroundStockpileFactory.Create(
-            new HexAddress(0, 0), TestData.CommonsFor(simulation, Nation.Player).Id, 180, [new ItemQuantity(ore, 250)]);
+            new HexAddress(0, 0), TestData.Charterless(Nation.Player), 180, [new ItemQuantity(ore, 250)]);
 
         Assert.Equal(2, ids.Count);
         var first = simulation.Registries.GroundStockpiles[ids[0]];
@@ -57,7 +57,7 @@ public sealed class GroundStockpileFactoryTests
 
         var ids = simulation.Services.GroundStockpileFactory.Create(
             new HexAddress(0, 0),
-            TestData.CommonsFor(simulation, Nation.Player).Id,
+            TestData.Charterless(Nation.Player),
             180,
             [new ItemQuantity(ore, 350), new ItemQuantity(food, 40)]);
 
@@ -77,7 +77,7 @@ public sealed class GroundStockpileFactoryTests
         var simulation = CreateSimulation();
         var ore = simulation.Options.Definitions.Items["ore"];
         var ids = simulation.Services.GroundStockpileFactory.Create(
-            new HexAddress(0, 0), TestData.CommonsFor(simulation, Nation.Player).Id, 180, [new ItemQuantity(ore, 10)]);
+            new HexAddress(0, 0), TestData.Charterless(Nation.Player), 180, [new ItemQuantity(ore, 10)]);
         var pile = simulation.Registries.GroundStockpiles[ids[0]];
 
         simulation.Services.GroundStockpileFactory.Take(pile, new ItemQuantity(ore, 10));
@@ -91,7 +91,7 @@ public sealed class GroundStockpileFactoryTests
         var simulation = CreateSimulation();
         var ore = simulation.Options.Definitions.Items["ore"];
         var ids = simulation.Services.GroundStockpileFactory.Create(
-            new HexAddress(0, 0), TestData.CommonsFor(simulation, Nation.Player).Id, 180, [new ItemQuantity(ore, 10)]);
+            new HexAddress(0, 0), TestData.Charterless(Nation.Player), 180, [new ItemQuantity(ore, 10)]);
         var pile = simulation.Registries.GroundStockpiles[ids[0]];
 
         simulation.Services.GroundStockpileFactory.Take(pile, new ItemQuantity(ore, 4));
@@ -106,7 +106,7 @@ public sealed class GroundStockpileFactoryTests
         var simulation = CreateSimulation();
         var ore = simulation.Options.Definitions.Items["ore"];
         var ids = simulation.Services.GroundStockpileFactory.Create(
-            new HexAddress(0, 0), TestData.CommonsFor(simulation, Nation.Player).Id, 180, [new ItemQuantity(ore, 10)]);
+            new HexAddress(0, 0), TestData.Charterless(Nation.Player), 180, [new ItemQuantity(ore, 10)]);
 
         simulation.Advance(179);
         Assert.True(simulation.Registries.GroundStockpiles.TryGet(ids[0], out _));
@@ -121,7 +121,7 @@ public sealed class GroundStockpileFactoryTests
         var simulation = CreateSimulation();
         var ore = simulation.Options.Definitions.Items["ore"];
         var ids = simulation.Services.GroundStockpileFactory.Create(
-            new HexAddress(0, 0), TestData.CommonsFor(simulation, Nation.Player).Id, 2, [new ItemQuantity(ore, 10)]);
+            new HexAddress(0, 0), TestData.Charterless(Nation.Player), 2, [new ItemQuantity(ore, 10)]);
 
         simulation.Advance(2);
 
@@ -140,11 +140,11 @@ public sealed class GroundStockpileFactoryTests
             new HexAddress(0, 0), otherCharter, 5, [new ItemQuantity(ore, 10)]);
         var pile = simulation.Registries.GroundStockpiles[ids[0]];
 
-        var commons = TestData.CommonsFor(simulation, Nation.Player);
-        simulation.Services.CharterLifecycle.Dissolve(otherCharter, commons.Id);
+        var charterless = TestData.Charterless(Nation.Player);
+        simulation.Services.CharterLifecycle.Dissolve(otherCharter);
 
         Assert.Equal(5, pile.ExpiryTick);
-        Assert.Equal(commons.Id, pile.Owner);
+        Assert.Equal(charterless, pile.Owner);
     }
 
     private static Simulation CreateSimulation()

@@ -27,9 +27,9 @@ internal static class ScenarioContentValidator
     {
         ValidateCharters(fileName, dto.Charters, errors);
         ValidateDeposits(fileName, dto.Deposits, definitions, errors);
-        ValidateFacilities(fileName, dto.Facilities, definitions, identities, errors);
-        ValidateDepots(fileName, dto.Depots, definitions, identities, errors);
-        ValidateUnits(fileName, dto, definitions, map, regionRadius, errors);
+        ValidateFacilities(fileName, dto.Facilities, dto.Charters, definitions, identities, errors);
+        ValidateDepots(fileName, dto.Depots, dto.Charters, definitions, identities, errors);
+        ValidateUnits(fileName, dto, definitions, map, regionRadius, identities, errors);
     }
 
     private static void ValidateCharters(
@@ -64,6 +64,7 @@ internal static class ScenarioContentValidator
     private static void ValidateFacilities(
         string fileName,
         IReadOnlyList<ScenarioFacilityDto>? facilities,
+        IReadOnlyList<ScenarioCharterDto>? charters,
         DefinitionSet definitions,
         ScenarioIdentitySets identities,
         ValidationCollector errors)
@@ -72,10 +73,7 @@ internal static class ScenarioContentValidator
         {
             var displayId = DisplayId(facility.Id);
 
-            if (facility.Owner is null || !identities.CharterIds.Contains(facility.Owner))
-            {
-                errors.Add($"{fileName}: facility '{displayId}' references unknown owner '{facility.Owner}'");
-            }
+            ValidateOwnership(fileName, "facility", displayId, facility.Owner, charters, identities, errors);
 
             if (facility.Type is null || !definitions.FacilityTypes.TryGet(facility.Type, out var facilityType))
             {
@@ -106,6 +104,7 @@ internal static class ScenarioContentValidator
     private static void ValidateDepots(
         string fileName,
         IReadOnlyList<ScenarioDepotDto>? depots,
+        IReadOnlyList<ScenarioCharterDto>? charters,
         DefinitionSet definitions,
         ScenarioIdentitySets identities,
         ValidationCollector errors)
@@ -114,16 +113,36 @@ internal static class ScenarioContentValidator
         {
             var displayId = DisplayId(depot.Id);
 
-            if (!NationParser.TryParse(depot.Nation, out _))
+            var hasDepotNation = NationParser.TryParse(depot.Nation, out var depotNation);
+            if (!hasDepotNation)
             {
                 errors.Add($"{fileName}: depot '{displayId}' references unknown nation '{depot.Nation}'");
             }
+
+            ValidateStock(
+                fileName,
+                "depot",
+                displayId,
+                depot.CharterlessStock,
+                definitions,
+                errors);
 
             foreach (var (charterId, stock) in depot.InitialStock ?? new Dictionary<string, IReadOnlyList<ItemQuantityDto>>())
             {
                 if (!identities.CharterIds.Contains(charterId))
                 {
                     errors.Add($"{fileName}: depot '{displayId}' references unknown compartment owner '{charterId}'");
+                }
+                else
+                {
+                    var charter = (charters ?? []).First(candidate => candidate.Id == charterId);
+                    if (hasDepotNation &&
+                        NationParser.TryParse(charter.Nation, out var charterNation) &&
+                        depotNation != charterNation)
+                    {
+                        errors.Add(
+                            $"{fileName}: depot '{displayId}' compartment owner '{charterId}' belongs to a different nation");
+                    }
                 }
 
                 ValidateStock(fileName, "depot", displayId, stock, definitions, errors);
@@ -171,16 +190,14 @@ internal static class ScenarioContentValidator
         DefinitionSet definitions,
         WorldMap map,
         int regionRadius,
+        ScenarioIdentitySets identities,
         ValidationCollector errors)
     {
         foreach (var unit in dto.Units ?? [])
         {
             var displayId = DisplayId(unit.Id);
 
-            if (unit.Owner is null)
-            {
-                errors.Add($"{fileName}: unit '{displayId}' is missing owner");
-            }
+            ValidateOwnership(fileName, "unit", displayId, unit.Owner, dto.Charters, identities, errors);
 
             if (unit.Type is null || !definitions.Units.TryGet(unit.Type, out var unitType))
             {
@@ -294,7 +311,7 @@ internal static class ScenarioContentValidator
         if (unit.Owner != facility.Owner)
         {
             errors.Add(
-                $"{fileName}: unit '{displayId}' is assigned to facility '{unit.Assignment}' owned by a different charter");
+                $"{fileName}: unit '{displayId}' is assigned to facility '{unit.Assignment}' with different ownership");
         }
 
         if (unit.Location is null || facility.Location is null)
@@ -312,6 +329,48 @@ internal static class ScenarioContentValidator
         {
             errors.Add(
                 $"{fileName}: unit '{displayId}' is assigned to facility '{unit.Assignment}' at a different location");
+        }
+    }
+
+    private static void ValidateOwnership(
+        string fileName,
+        string kind,
+        string displayId,
+        ScenarioOwnershipDto? owner,
+        IReadOnlyList<ScenarioCharterDto>? charters,
+        ScenarioIdentitySets identities,
+        ValidationCollector errors)
+    {
+        if (owner is null)
+        {
+            errors.Add($"{fileName}: {kind} '{displayId}' is missing owner");
+            return;
+        }
+
+        var hasOwnerNation = NationParser.TryParse(owner.Nation, out var ownerNation);
+        if (!hasOwnerNation)
+        {
+            errors.Add($"{fileName}: {kind} '{displayId}' references unknown owner nation '{owner.Nation}'");
+        }
+
+        if (owner.Charter is null)
+        {
+            return;
+        }
+
+        if (!identities.CharterIds.Contains(owner.Charter))
+        {
+            errors.Add($"{fileName}: {kind} '{displayId}' references unknown owner Charter '{owner.Charter}'");
+            return;
+        }
+
+        var charter = (charters ?? []).First(candidate => candidate.Id == owner.Charter);
+        if (hasOwnerNation &&
+            NationParser.TryParse(charter.Nation, out var charterNation) &&
+            ownerNation != charterNation)
+        {
+            errors.Add(
+                $"{fileName}: {kind} '{displayId}' owner Charter '{owner.Charter}' belongs to a different nation");
         }
     }
 

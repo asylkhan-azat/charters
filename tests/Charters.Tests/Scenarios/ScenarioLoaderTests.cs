@@ -1,5 +1,7 @@
+using Charters.Sim.Core;
 using Charters.Sim.Core.Infrastructure.Serialization;
 using Charters.Sim.Hexes;
+using Charters.Sim.Scenarios;
 using Charters.Sim.Scenarios.Infrastructure.Serialization;
 
 namespace Charters.Tests.Scenarios;
@@ -20,7 +22,7 @@ public sealed class ScenarioLoaderTests
           ],
           "facilities": [
             {
-              "id": "mine-1", "type": "mine", "owner": "ironworks",
+              "id": "mine-1", "type": "mine", "owner": { "nation": "player", "charter": "ironworks" },
               "location": { "region": "north", "offset": { "q": 1, "r": 0 } },
               "recipe": "produce-ore",
               "initialStock": []
@@ -30,12 +32,13 @@ public sealed class ScenarioLoaderTests
             {
               "id": "depot-1", "nation": "player",
               "location": { "region": "north", "offset": { "q": -1, "r": 0 } },
+              "charterlessStock": [{ "item": "ore", "quantity": 5 }],
               "initialStock": { "ironworks": [{ "item": "ore", "quantity": 10 }] }
             }
           ],
           "units": [
             {
-              "id": "worker-1", "type": "infantry", "owner": "ironworks",
+              "id": "worker-1", "type": "infantry", "owner": { "nation": "player", "charter": "ironworks" },
               "location": { "region": "north", "offset": { "q": 1, "r": 0 } },
               "inventory": [null, null],
               "equipment": {},
@@ -67,12 +70,13 @@ public sealed class ScenarioLoaderTests
 
         var facility = Assert.Single(scenario.Facilities);
         Assert.Equal("mine", facility.Type.Id);
-        Assert.Equal("ironworks", facility.Owner);
+        Assert.Equal(new ResolvedOwnership(Nation.Player, "ironworks"), facility.Owner);
         Assert.Equal(north.Center + new HexAddress(1, 0), facility.Location);
         Assert.Equal("produce-ore", facility.Recipe.Id);
 
         var depot = Assert.Single(scenario.Depots);
         Assert.Equal(north.Center + new HexAddress(-1, 0), depot.Location);
+        Assert.Equal(5, depot.CharterlessStock.Single().Quantity);
         Assert.Equal(10, depot.InitialStock["ironworks"].Single().Quantity);
 
         var unit = Assert.Single(scenario.Units);
@@ -95,6 +99,22 @@ public sealed class ScenarioLoaderTests
         var second = ScenarioLoader.Load(path, fixture.Definitions, fixture.MapTemplate, fixture.Map);
 
         Assert.Equivalent(first, second, strict: true);
+    }
+
+    [Fact]
+    public void CharterlessOwnershipRetainsNationWithoutACharterReference()
+    {
+        using ScenarioTestFixture fixture = new();
+        var json = ValidScenario.Replace(
+            "\"owner\": { \"nation\": \"player\", \"charter\": \"ironworks\" }",
+            "\"owner\": { \"nation\": \"player\" }");
+        var path = fixture.WriteScenario(json);
+
+        var scenario = ScenarioLoader.Load(path, fixture.Definitions, fixture.MapTemplate, fixture.Map);
+
+        var expected = new ResolvedOwnership(Nation.Player, null);
+        Assert.Equal(expected, Assert.Single(scenario.Facilities).Owner);
+        Assert.Equal(expected, Assert.Single(scenario.Units).Owner);
     }
 
     [Fact]
@@ -143,8 +163,18 @@ public sealed class ScenarioLoaderTests
     public void UnknownOwnerIsRejected()
     {
         AssertRejects(
-            ValidScenario.Replace("\"owner\": \"ironworks\"", "\"owner\": \"unknown-charter\""),
-            "references unknown owner 'unknown-charter'");
+            ValidScenario.Replace("\"charter\": \"ironworks\"", "\"charter\": \"unknown-charter\""),
+            "references unknown owner Charter 'unknown-charter'");
+    }
+
+    [Fact]
+    public void OwnerCharterFromAnotherNationIsRejected()
+    {
+        AssertRejects(
+            ValidScenario.Replace(
+                "\"name\": \"Ironworks\", \"nation\": \"player\"",
+                "\"name\": \"Ironworks\", \"nation\": \"enemy\""),
+            "owner Charter 'ironworks' belongs to a different nation");
     }
 
     [Fact]
@@ -214,9 +244,9 @@ public sealed class ScenarioLoaderTests
                     "\"charters\": [",
                     "\"charters\": [{ \"id\": \"otherco\", \"name\": \"Otherco\", \"nation\": \"player\" },")
                 .Replace(
-                    "\"id\": \"worker-1\", \"type\": \"infantry\", \"owner\": \"ironworks\",",
-                    "\"id\": \"worker-1\", \"type\": \"infantry\", \"owner\": \"otherco\","),
-            "assigned to facility 'mine-1' owned by a different charter");
+                    "\"id\": \"worker-1\", \"type\": \"infantry\", \"owner\": { \"nation\": \"player\", \"charter\": \"ironworks\" },",
+                    "\"id\": \"worker-1\", \"type\": \"infantry\", \"owner\": { \"nation\": \"player\", \"charter\": \"otherco\" },"),
+            "assigned to facility 'mine-1' with different ownership");
     }
 
     [Fact]
@@ -224,8 +254,8 @@ public sealed class ScenarioLoaderTests
     {
         AssertRejects(
             ValidScenario.Replace(
-                "\"type\": \"infantry\", \"owner\": \"ironworks\",\n      \"location\": { \"region\": \"north\", \"offset\": { \"q\": 1, \"r\": 0 } },",
-                "\"type\": \"infantry\", \"owner\": \"ironworks\",\n      \"location\": { \"region\": \"north\", \"offset\": { \"q\": 0, \"r\": 0 } },"),
+                "\"type\": \"infantry\", \"owner\": { \"nation\": \"player\", \"charter\": \"ironworks\" },\n      \"location\": { \"region\": \"north\", \"offset\": { \"q\": 1, \"r\": 0 } },",
+                "\"type\": \"infantry\", \"owner\": { \"nation\": \"player\", \"charter\": \"ironworks\" },\n      \"location\": { \"region\": \"north\", \"offset\": { \"q\": 0, \"r\": 0 } },"),
             "assigned to facility 'mine-1' at a different location");
     }
 
@@ -250,7 +280,7 @@ public sealed class ScenarioLoaderTests
     private const string DuplicateMineFacility =
         """
         {
-              "id": "mine-1", "type": "mine", "owner": "ironworks",
+              "id": "mine-1", "type": "mine", "owner": { "nation": "player", "charter": "ironworks" },
               "location": { "region": "south", "offset": { "q": 0, "r": 0 } },
               "recipe": "produce-ore",
               "initialStock": []

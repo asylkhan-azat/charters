@@ -10,5 +10,7 @@ internal sealed class ScenarioDepotDto
 
     public GeneratedLocationDto? Location { get; init; }
 
+    public IReadOnlyList<ItemQuantityDto>? CharterlessStock { get; init; }
+
     public IReadOnlyDictionary<string, IReadOnlyList<ItemQuantityDto>>? InitialStock { get; init; }
 }

@@ -155,13 +155,13 @@ Medical scarcity thus converts directly into permanent casualties — another pl
 
 ### 5.4 Charterless units
 
-Each nation has an immortal, non-political **Commons Charter** that owns everything presented to the
-player as charterless. Commons has no Leader, land grants, petitions, relationships, or strategic
-Manager; its units keep their type categories and use simple local heuristics — e.g., a worker asks
+Charterless units and goods belong to their nation without belonging to a Charter. This is direct
+ownership state, not an immortal placeholder faction: no Leader, land grant, petition, relationship,
+or strategic Manager exists. Charterless units keep their type categories and use simple local
+heuristics — e.g., a worker asks
 *"is there a free facility near me? If yes, work it; if not, do something doable even if it's
 inefficient."* They have **no request-board sympathy, no charter-mate priority, and no leader issuing
-goals.** Commons is an ownership identity for the nation's "raw human material," not one of its 3–5
-political Charters:
+goals.** They are the nation's "raw human material," outside its 3–5 political Charters:
 
 - Charters **recruit** from charterless units in and near their territory (rate modified by charter reputation, supply level, and recent victories).
 - Charterless units left unsupplied or near defeats desert or scatter.
@@ -212,9 +212,9 @@ Three sources:
 - **Capacity cap:** each charter has a maximum size, determined by the *lowest* of: leader charisma, charter reputation, a player-imposed cap (set via Direct Order), and a global hard cap. Growth is not unbounded — a mediocre leader simply cannot hold a large host together.
 - **Split:** internal tension (leader trait conflicts, over-size, a lieutenant's ambition) can fork a charter into two — the splinter petitions for its own land.
 - **Death:** military annihilation, or dissolution when loyalty/supply collapses — units, facilities,
-  and their in-place goods pass to the nation's Commons Charter, while land reverts to ungranted.
-  Depot goods fill Commons storage first, then surviving Charters; any remainder
-  becomes Commons-owned, decaying ground stock.
+  and their in-place goods become charterless within their nation, while land reverts to ungranted.
+  Depot goods fill national charterless storage first, then surviving Charters; any remainder
+  becomes charterless decaying ground stock.
 - **Merge:** allied charters with compatible leaders may merge (rare; leader egos usually prevent it).
 
 ### 6.4 Leaders
@@ -276,7 +276,7 @@ Setup also offers **scenario seeds** (post-MVP): distinct geographies — river 
   Whatever remains when the window closes changes owners with the land. An eviction becomes a
   *logistics event*: a visible convoy exodus, and a real question of whether the evicted Charter's
   logists can clear the ground stock in time. *(Grace window length: tuning value.)* Charter death is
-  different: the facility and its contents pass together to Commons (§10.3).
+  different: the facility and its contents become charterless together (§10.3).
 - **Homeland attachment.** Land held long enough becomes a charter's **homeland**: defending it grants a morale bonus, grants adjacent to it are valued extra, and revoking it is a category-worse insult than revoking ordinary land. One counter per charter-region, and land gains *memory* — late-game maps aren't zones, they're places somebody is from. It also creates the game's hardest decision: the only defensible line runs through someone's homeland.
 - **The liberation rule.** **Grants survive occupation** — enemy-captured land stays on its charter's books, and retaking their homeland is their war. But when a *different* charter liberates it, the liberator gains a moral claim and may petition for the land — forcing exactly the ruling this game is about: reward the charter that bled for it, or restore the dispossessed. Without this rule, every counteroffensive is undefined behavior.
 - **Grants can be refused.** A leader may decline a grant — rare, loyalty-dependent, and mildly embarrassing for the player ("the Ironclads want no swamp"). This gives subjective land value behavioral teeth: pushing bad land on proud people teaches the player something, publicly.
@@ -383,12 +383,13 @@ Consequences: specialization is sticky, quota demands have visible costs, the Sh
 
 - Logists move goods with vehicles: trucks (roads, flexible), trains (rail, huge capacity, fixed lines), barges (rivers/coast, cheap and slow). Vehicles are themselves tier-3 products that consume fuel — **logistics consumes logistics**.
 - **Stockpiles are ownership.** Goods everywhere — depot compartments, truck beds, facility buffers,
-  ground piles, a squad's packs — belong to one Charter. Facility buffers and carried inventories are
-  part of their host; every national depot holds a separate anonymous compartment for each Charter;
-  only decaying ground stockpiles have their own durable identity. **Moving goods never changes whose
-  they are; only politics does:** a consented hand-over, capture, eviction, or Charter death. Commons
-  owns charterless goods and absorbs dead-Charter property in place. At each depot, death overflow
-  passes to other same-nation Charters before capped Commons ground piles are created. Ground piles
+  ground piles, a squad's packs — belong to a nation and may additionally belong to one Charter.
+  Facility buffers and carried inventories are part of their host; every national depot holds a
+  dedicated charterless stockpile plus a separate anonymous compartment for each Charter; only
+  decaying ground stockpiles have their own durable identity. **Moving goods never changes whose they
+  are; only politics does:** a consented hand-over, capture, eviction, or Charter death. Dead-Charter
+  property becomes charterless in place. At each depot, death overflow passes to other same-nation
+  Charters before capped charterless ground piles are created. Ground piles
   remain physical, located goods and decay if nobody recovers them.
 - **Physical needs and the Request Board.** Facilities, storages, and units generate scoped needs from real local deficits. A Charter's manager resolves what it can on-site; any unmet need requiring title consent or hauling becomes a public Request Board record (§6.5). The original need remains the causal record, including while unpublished, and feeds the pain map (§3.3). The player never routes a truck — they shape the network by land grants, quota demands, and infrastructure priorities. Three request kinds ride the board:
   - **Demand** — "we need 400 shells at Hill 12, critical." Fulfillment takes two consents, each relationship-weighted: a *donor* willing to give (a visible, recorded act of aid — friends send convoys, feuding neighbors let you starve) and a *hauler* willing to carry. Ownership passes to the requester at pickup.

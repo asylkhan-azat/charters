@@ -7,7 +7,7 @@ namespace Charters.Sim.Scenarios;
 public sealed record ResolvedFacility(
     string Id,
     FacilityTypeDefinition Type,
-    string Owner,
+    ResolvedOwnership Owner,
     HexAddress Location,
     RecipeDefinition Recipe,
     IReadOnlyList<ItemQuantity> InitialStock);

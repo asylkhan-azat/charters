@@ -90,7 +90,7 @@ internal static class ScenarioConverter
                 new ResolvedFacility(
                     facility.Id!,
                     definitions.FacilityTypes[facility.Type!],
-                    facility.Owner!,
+                    ConvertOwnership(facility.Owner!),
                     address,
                     definitions.Recipes[facility.Recipe!],
                     ConvertStock(facility.InitialStock, definitions)));
@@ -118,7 +118,12 @@ internal static class ScenarioConverter
                 compartments[charterId] = ConvertStock(stock, definitions);
             }
 
-            results.Add(new ResolvedDepot(depot.Id!, NationParser.Parse(depot.Nation), address, compartments));
+            results.Add(new ResolvedDepot(
+                depot.Id!,
+                NationParser.Parse(depot.Nation),
+                address,
+                ConvertStock(depot.CharterlessStock, definitions),
+                compartments));
         }
 
         return (results, addresses);
@@ -152,7 +157,14 @@ internal static class ScenarioConverter
             }
 
             results.Add(
-                new ResolvedUnit(unit.Id!, unitType, unit.Owner!, address, inventory, equipment, unit.Assignment));
+                new ResolvedUnit(
+                    unit.Id!,
+                    unitType,
+                    ConvertOwnership(unit.Owner!),
+                    address,
+                    inventory,
+                    equipment,
+                    unit.Assignment));
         }
 
         return results;
@@ -184,6 +196,11 @@ internal static class ScenarioConverter
         }
 
         return results;
+    }
+
+    private static ResolvedOwnership ConvertOwnership(ScenarioOwnershipDto owner)
+    {
+        return new ResolvedOwnership(NationParser.Parse(owner.Nation), owner.Charter);
     }
 
     private static HexAddress ResolveLocation(GeneratedLocationDto location, WorldMap map, int regionRadius)

@@ -6,6 +6,6 @@ namespace Charters.Sim.Facilities.Facts;
 
 public readonly record struct FacilityOwnershipChangedFact(
     FacilityId FacilityId,
-    CharterId FormerOwner,
-    CharterId NewOwner,
+    Ownership FormerOwner,
+    Ownership NewOwner,
     IReadOnlyList<GroundStockpileId> GroundStockpiles);

@@ -9,12 +9,12 @@
 ## Goal and acceptance outcome
 
 Iteration 1A replaces the dormant production prototype with a complete, data-authored slice for
-Charter-owned goods. It establishes the schemas, ownership identities, storage hosts, production
-state, and Charter lifecycle foundation that Iteration 1B will transport.
+national goods with optional Charter ownership. It establishes the schemas, ownership state,
+storage hosts, production state, and Charter lifecycle foundation that Iteration 1B will transport.
 
 The iteration is accepted when the dedicated scenario:
 
-- loads three named Charters plus the player nation's authored Commons Charter, eight items and
+- loads three named Charters, direct national charterless ownership, eight items and
   recipes, absolute map deposits, roads, facilities, national depots, assigned workers, bundled
   truck-logists, equipment, and initial goods from authored generation data;
 - runs every recipe and attributes every non-producing tick to staffing, inputs, or output capacity;
@@ -27,7 +27,7 @@ The iteration is accepted when the dedicated scenario:
 
 ## Scope boundaries
 
-A1 includes static named Charters, authored Commons identity, physical ownership, hosted storage,
+A1 includes static named Charters, direct charterless national ownership, hosted storage,
 bounded carried and stationary storage, fixed typed equipment slots, staffed production,
 Charter/depot spawn synchronization, Charter-death cleanup, identified decaying ground storage, the
 authored proof scenario, conservation diagnostics, headless metrics, and the minimal view needed to
@@ -43,7 +43,7 @@ be reserved in 1B.
 
 ## How to use this specification
 
-This document is the implementation handoff for A1. A fresh-context implementer should work in this
+This document is the implementation handoff for A1. A fresh-context simplementer should work in this
 order:
 
 1. Read the [technical architecture](../TDD.md), especially the ECS admission, ownership, runtime
@@ -69,7 +69,7 @@ These are review blockers, not implementation suggestions:
 | ECS boundary | Units are the only Arch entities; facilities, Charters, depots, and ground piles are registry-owned domain objects. |
 | Identity | Cross-domain references use typed stable IDs. Arch handles and authored strings do not escape their owning boundary. |
 | Position | Generation may be region-relative; every runtime position is an absolute world `HexAddress`. |
-| Ownership | Every item and unit has a Charter owner. “Charterless” means owned by the nation's Commons Charter. |
+| Ownership | Every item and unit belongs to a nation and may additionally reference one Charter in that nation. A missing `CharterId` is genuinely charterless. |
 | Storage | `Stockpile` and carried `Inventory` share the narrow `IItemContainer` behavior; hosted stock remains anonymous and only a ground stockpile has independent identity. |
 | Equipment | Every equipped item occupies exactly one compatible typed slot at quantity one. Equipment is physical unit storage but never changes inventory capacity. |
 | Depot role | A depot is ownerless national infrastructure, never a facility or Charter property. Its compartments are Charter-owned. |
@@ -134,23 +134,16 @@ creating simulation state.
 - Resource deposits resolve into absolute hex data stored on `WorldMap`.
 - Region IDs and local offsets never appear in runtime objects, ECS components, facts, or metrics.
 
-### Commons
+### Ownership
 
-The authored/loaded initial state contains exactly one Commons Charter for every nation alongside
-the named Charters. `Simulation` does not create, identify, or otherwise treat it specially while
-constructing the aggregate.
+`Ownership` always carries a `Nation` and carries a `CharterId` only when title belongs to a Charter.
+The referenced Charter must exist in the same nation. A missing `CharterId` represents charterless
+state directly; there is no placeholder Charter, reserved ID, name convention, or boolean flag.
 
-- Its display name is `Commons`. It has an authored/resolved Charter ID like any other Charter —
-  there is no reserved identifier, stored "is Commons" flag, or special Charter registry. A command
-  or lifecycle operation that needs the Commons identity receives its typed ID explicitly.
-- Commons carries no color or other presentation state. Charterless rendering is a host concern
-  resolved from a palette keyed by identity.
-- Commons is immortal and cannot receive land grants, Leaders, relationships, petitions, political
-  goals, or a strategic Manager.
-- Units owned by Commons are presented as charterless and execute the existing simple local
-  heuristics.
-- Commons owns charterless goods and is the first recipient of a dead Charter's property.
-- Commons does not count toward the MVP's 3–5 political Charters per nation.
+- Charterless units use the existing simple local heuristics and have no political actor or Manager.
+- Charterless facilities and ground stockpiles retain their national identity.
+- Every depot owns one national charterless stockpile alongside its per-Charter compartments.
+- Charter death changes owned state to charterless without inventing another owner object.
 
 ### Hosted item state
 
@@ -326,12 +319,14 @@ The scenario document contains:
 - `map`: relative path to its map template;
 - `diagnostics.conservationAuditCadence`: `10`;
 - `tuning.groundStockpileDecayTicks`: `180`;
-- Charters with ID, name, and nation, including the nation's `Commons` entry;
+- named Charters with ID, name, and nation;
 - deposits with ID, item, and generated location;
-- facilities with ID, type, owner, generated location, current recipe, and initial stock;
-- depots with ID, nation, generated location, and optional initial stock keyed by Charter ID;
-- units with ID, type, owner, generated location, ordered inventory slots, equipped items, and
-  optional facility assignment; and
+- facilities with ID, type, ownership (`nation` plus optional `charter`), generated location, current
+  recipe, and initial stock;
+- depots with ID, nation, generated location, optional `charterlessStock`, and optional initial stock
+  keyed by Charter ID;
+- units with ID, type, ownership (`nation` plus optional `charter`), generated location, ordered
+  inventory slots, equipped items, and optional facility assignment; and
 - road segments expressed as pairs of facility or depot endpoint IDs. Each segment expands to the
   deterministic axial line between the resolved absolute endpoint positions.
 
@@ -390,7 +385,7 @@ Create a dedicated radius-4 map with one player nation and three contiguous regi
 | Sulfur Flats | `(1, 0)` | Sulfur, refined sulfur, grenades, ammunition |
 | Central Works | `(0, 1)` | Food and the shared national road/depot junction |
 
-The scenario declares the player nation's Commons Charter plus three neutral-policy named Charters:
+The scenario declares three neutral-policy named Charters:
 
 - `ironworks`: owns the Ironfields facilities, workers, and one infantry unit;
 - `brimstone`: owns the Sulfur Flats facilities and workers; and
@@ -419,7 +414,7 @@ truck-logists start at the Central Works depot. One Ironworks infantry unit star
 depot with one rifle in its `main-weapon` slot, one grenade in its `grenade` slot, 20 ammunition in
 its first inventory slot, and 10 food in its second; this proves fixed inventory and physical
 equipment in the authored scenario without adding combat. Every depot begins with empty compartments
-for Commons, Ironworks, Brimstone, and Greyline.
+for charterless national stock, Ironworks, Brimstone, and Greyline.
 
 Author road segments from each mine to its regional depot, each productive facility to its regional
 depot, and both industrial depots to the Central Works depot. The lower staffing and smaller input
@@ -475,7 +470,8 @@ one status per production tick.
 Charter registration and depot creation share one invariant: every active Charter has exactly one
 compartment in every depot of its nation.
 
-- Initial-state loading supplies Commons alongside the other Charters before depot construction.
+- Every depot constructs its charterless national stockpile and its supplied Charter compartments
+  before starting stock is applied.
 - Registering a named Charter adds one empty compartment to every existing same-nation depot in
   depot registry order.
 - Creating a depot adds one empty compartment for every active same-nation Charter in Charter
@@ -484,26 +480,23 @@ compartment in every depot of its nation.
 
 ### Charter death
 
-The caller supplies Commons as the same-nation fallback owner when dissolving another Charter.
-Dissolution rejects an unknown fallback, a cross-nation fallback, or using the dying Charter as its
-own fallback. The ordered lifecycle sequence is otherwise unchanged; independent objects inside a
-step use their native in-place iteration:
+The ordered lifecycle sequence uses the dissolved Charter's nation directly; independent objects
+inside a step use their native in-place iteration:
 
-1. Resolve the dying and fallback Charters; reject unknown, already-dead, self-fallback, or
-   cross-nation IDs.
-2. Query the dead Charter's units once and change them to Commons in place. Inventory and equipment
+1. Resolve the dying Charter; reject unknown or already-dead IDs.
+2. Query the dead Charter's units once and make them charterless in place. Inventory and equipment
    remain on each unit at the same absolute address; append aggregated ownership changes for their
    goods. Unit order does not affect the result.
-3. Iterate the facility registry and change each owned facility and its embedded stock to Commons in
+3. Iterate the facility registry and make each owned facility and its embedded stock charterless in
    place; append ownership changes for its goods. Do not eject or empty the facility.
-4. Iterate the ground-stockpile registry and change each owned pile to Commons in place. Preserve its
-   ID, absolute position, contents, and original expiry tick.
+4. Iterate the ground-stockpile registry and make each owned pile charterless in place. Preserve its
+   ID, absolute position, contents, nation, and original expiry tick.
 5. Process same-nation depots in registry order. For every present item in the dead Charter's
    compartment, in ordinal item-ID order:
-   - insert as much as fits into the Commons compartment;
-   - then insert as much as fits into each active, non-Common, non-dying Charter compartment in
+   - insert as much as fits into the depot's national charterless stockpile;
+   - then insert as much as fits into each active, non-dying Charter compartment in
      Charter registry order; and
-   - place the remainder into newly created Commons-owned ground stockpiles at the depot's absolute
+   - place the remainder into newly created charterless ground stockpiles at the depot's absolute
      address.
 6. Remove the dead Charter's now-empty compartment from every depot, then remove the Charter from the
    active registry. Land reversion is owned by the later land loop and is not represented in A1.
@@ -519,10 +512,10 @@ can hold, calculate the required pile count from all remaining items, allocate s
 fill each item in ordinal item-ID order across those piles in creation order. A pile may hold every
 item up to each item's independent cap.
 
-New piles are Commons-owned and expire at `currentTick + 180`. Existing piles do not renew their
-expiry when ownership changes. Removing the last item destroys an empty pile immediately. At expiry,
-emit a `GroundStockpileExpired` fact containing the remaining goods before removing the object from
-the ground-stockpile registry.
+New overflow piles are charterless in the depot's nation and expire at `currentTick + 180`.
+Existing piles do not renew their expiry when ownership changes. Removing the last item destroys an
+empty pile immediately. At expiry, emit a `GroundStockpileExpired` fact containing the remaining
+goods before removing the object from the ground-stockpile registry.
 
 ### Living facility ownership change
 
@@ -593,7 +586,7 @@ The JSON object contains:
 - conservation rows ordered by item: initial, produced, consumed, destroyed, expected, actual, and
   discrepancy.
 
-Extend the digest with ordered Commons and named Charter state, roads, absolute deposits, facilities,
+Extend the digest with ordered named Charter and charterless state, roads, absolute deposits, facilities,
 embedded stock, depots and compartments, recipe progress, assignments, equipment, unit inventories,
 ground piles, and decay deadlines. Headless obtains this state through `Simulation.Views` and
 `Simulation.Map`. Metrics collection consumes the buffered fact journal and must not be read back by
@@ -607,7 +600,7 @@ Godot and headless boot through the same scenario loader and consume `Simulation
 - shared roads as neutral gray map infrastructure;
 - facilities with type-distinct markers tinted by owning Charter;
 - depots with a distinct nation-infrastructure marker and no Charter tint;
-- units tinted by their owner, with charterless (Commons-owned) units using the neutral entry; and
+- units tinted by their owner, with charterless units using the neutral entry; and
 - ground stockpiles with a distinct marker tinted by their owner when any exist.
 
 The simulation carries no colors. Every tint is a host palette lookup keyed by domain identity —
@@ -716,18 +709,18 @@ hosts.
 **Gate:** conversion tests prove the expected absolute addresses and rejected authoring cases, and a
 minimal scenario produces the same initialized simulation state on repeated loads.
 
-### Package 5 — Commons, Charters, and national depots
+### Package 5 — Ownership, Charters, and national depots
 
 **Outcome:** ownership and depot compartments are valid immediately after any supported initialization
 order.
 
-- Load exactly one authored Commons Charter per nation in the same Charter array as named scenario
-  Charters; simulation construction performs no implicit Charter creation.
+- Represent ownership as nation plus an optional same-nation Charter ID; a missing ID is
+  charterless and simulation construction creates no placeholder Charter.
 - Register named Charters as plain domain objects and create the missing same-nation compartment in
   every existing depot.
-- Register each ownerless national depot with an empty compartment for every active same-nation
-  Charter, including Commons. Apply authored starting compartment contents only after the complete
-  compartment set exists.
+- Register each ownerless national depot with a dedicated charterless stockpile and an empty
+  compartment for every active same-nation Charter. Apply authored starting contents only after the
+  complete storage set exists.
 - Centralize Charter/depot synchronization so scenario loading, tests, and later runtime creation
   cannot establish different invariants.
 
@@ -763,8 +756,9 @@ overflow where required.
   immediate empty removal, and expiry with a concrete fact carrying the ground ID and destroyed goods.
 - Implement living facility ownership changes through the eviction bridge, preserving the former
   owner on ejected ground goods and giving the new owner an empty embedded stockpile.
-- Implement the full Charter-death sequence in [Charter death](#charter-death): in-place Commons
-  transfer outside depots, registry-order local depot redistribution, overflow piles, compartment
+- Implement the full Charter-death sequence in [Charter death](#charter-death): make state
+  charterless in place outside depots, then perform registry-order local depot redistribution,
+  overflow piles, compartment
   removal, then Charter removal.
 - Keep location and ownership semantics distinct: same-hex rehosting is not physical transfer, and
   ownership change does not renew an existing ground expiry.
@@ -799,7 +793,7 @@ state access.
   the existing digest-only default and optional map override.
 - Produce every row through `Simulation.Views`/`Simulation.Map` projections, sorting copied rows into the specified output order
   and absolute locations. Do not query Arch or registries directly from the host.
-- Extend the complete digest to all A1 authoritative state, including Commons, ownership, hosted
+- Extend the complete digest to all A1 authoritative state, including charterless ownership, hosted
   stock, production progress, compartments, equipment, assignments, ground expiry, and random state.
 - Keep JSON and digest bytes stable for the same captured read state and emit no incidental prose on
   metrics stdout. Do not require two separately advanced simulations to reach byte-identical state.
@@ -811,7 +805,7 @@ report-boundary conservation audits run even when the regular ten-tick cadence h
 
 **Outcome:** the same authored scenario proves A1 headlessly and visibly.
 
-- Author the radius-4 map, three regions, three named Charters, Commons, facilities,
+- Author the radius-4 map, three regions, three named Charters, charterless national state, facilities,
   depots, roads, workers, truck-logists, one equipped infantry unit, and initial goods from
   [Proof map and scenario](#proof-map-and-scenario).
 - Preserve the intentional sulfur-side staffing/input bottleneck and seed transformation facilities
@@ -878,16 +872,15 @@ or focused lifecycle test, and no deferred 1B behavior was introduced to make A1
   hand-off; blocked-output retention; and legal recipe switches.
 - Exercise every shipped recipe and assert its exact inputs, outputs, work, and capacity data.
 
-### Commons, depots, and lifecycle
+### Ownership, depots, and lifecycle
 
-- Verify one Commons per nation in authored initial state, its reserved `Commons` name, exclusion
-  from political Charter counts, and charterless unit behavior without a stored flag or special
-  registry.
+- Verify charterless ownership retains nation with no Charter ID and needs no placeholder Charter,
+  reserved name, flag, or special registry.
 - Verify Charter-first and depot-first creation produce the same complete set of compartments and
   reject duplicates or omissions.
 - Dissolve a Charter owning units, equipment, facilities, depot goods, and existing ground piles;
-  assert all non-depot goods change to Commons in place and existing decay deadlines remain unchanged.
-- Fill Commons and recipient depot compartments to force registry-order redistribution and enough
+  assert all non-depot goods become charterless in place and existing decay deadlines remain unchanged.
+- Fill charterless and recipient depot storage to force registry-order redistribution and enough
   overflow for multiple capped ground piles; assert no item changes absolute location during cleanup.
 - Verify a living facility transfer rehosts former stock into ground piles while Charter death keeps
   facility stock embedded.
@@ -926,8 +919,8 @@ or focused lifecycle test, and no deferred 1B behavior was introduced to make A1
 
 A1 is complete only when the authored scenario, not test-only construction, proves the eight-item
 production slice; runtime positions are absolute; recipes contain only inputs, outputs, and work;
-Commons owns charterless state; depots are national infrastructure with complete Charter
-compartments; facility and depot stockpiles have no independent identity; ground stockpiles alone are
+charterless state belongs directly to a nation; depots are national infrastructure with charterless
+stock plus complete Charter compartments; facility and depot stockpiles have no independent identity; ground stockpiles alone are
 identified and decay explicitly; only units use ECS; independent work runs in place without canonical
 sorting; contested behavior has an explicit rule; mutable Arch and domain state stay behind the
 `Simulation.Views`/`Simulation.Map` read-only surface; lifecycle cleanup conserves every item; idle production is attributable; and the

@@ -1,5 +1,4 @@
 using Charters.Sim.Charters;
-using Charters.Sim.Core;
 using Charters.Sim.Depots;
 
 namespace Charters.Sim.Scenarios;
@@ -42,6 +41,11 @@ public static class ScenarioCharterDepotLoader
 
         for (var i = 0; i < scenario.Depots.Count; i++)
         {
+            foreach (var itemQuantity in scenario.Depots[i].CharterlessStock)
+            {
+                depots[i].CharterlessStockpile.Put(itemQuantity);
+            }
+
             foreach (var (charterId, quantities) in scenario.Depots[i].InitialStock)
             {
                 var compartment = depots[i].CompartmentFor(charterIds[charterId]);

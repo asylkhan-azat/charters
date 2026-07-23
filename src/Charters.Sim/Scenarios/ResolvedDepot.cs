@@ -4,9 +4,12 @@ using Charters.Sim.Items.Models;
 
 namespace Charters.Sim.Scenarios;
 
-/// <summary>Initial stock is keyed by the authored Charter id owning that compartment.</summary>
+/// <summary>
+/// Charterless national stock is separate from compartment stock keyed by authored Charter ID.
+/// </summary>
 public sealed record ResolvedDepot(
     string Id,
     Nation Nation,
     HexAddress Location,
+    IReadOnlyList<ItemQuantity> CharterlessStock,
     IReadOnlyDictionary<string, IReadOnlyList<ItemQuantity>> InitialStock);

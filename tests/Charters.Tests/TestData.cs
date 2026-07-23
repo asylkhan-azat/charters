@@ -32,24 +32,16 @@ internal static class TestData
         var map = WorldGenerator.Generate(definitions, random, LoadShippedMap(definitions));
         Charter[] charters =
         [
-            new(new CharterId(0), Nation.Player, "Commons"),
-            new(new CharterId(1), Nation.Enemy, "Commons"),
+            new(new CharterId(0), Nation.Player, "Player Charter"),
+            new(new CharterId(1), Nation.Enemy, "Enemy Charter"),
         ];
         var state = new SimulationState(0, map, charters, [], [], [], random.GetAllStates());
         return new Simulation(new SimulationOptions(definitions), state);
     }
 
-    public static Charter CommonsFor(Simulation simulation, Nation nation)
+    public static Ownership Charterless(Nation nation)
     {
-        foreach (var charter in simulation.Registries.Charters)
-        {
-            if (charter.Nation == nation && charter.Name == "Commons")
-            {
-                return charter;
-            }
-        }
-
-        throw new InvalidOperationException($"Test simulation has no Commons Charter for {nation}.");
+        return new Ownership(nation);
     }
 
     public static DefinitionSet LoadShippedDefinitions()

@@ -8,7 +8,7 @@ internal sealed class ScenarioFacilityDto
 
     public string? Type { get; init; }
 
-    public string? Owner { get; init; }
+    public ScenarioOwnershipDto? Owner { get; init; }
 
     public GeneratedLocationDto? Location { get; init; }
 

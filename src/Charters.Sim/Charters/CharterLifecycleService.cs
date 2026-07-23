@@ -2,15 +2,13 @@ using Arch.Core;
 using Charters.Sim.Charters.Facts;
 using Charters.Sim.Core;
 using Charters.Sim.Items.Models;
-using Charters.Sim.Units.Components;
 
 namespace Charters.Sim.Charters;
 
 /// <summary>
-/// Implements the Charter-death lifecycle: units and living facilities keep their goods embedded
-/// under the supplied fallback owner, ground piles keep their original expiry, and depot
-/// compartments redistribute to that owner first, then other active Charters, then fallback-owned
-/// ground overflow, before the dead Charter's compartments and registry entry are removed.
+/// Implements the Charter-death lifecycle: units, facilities, and ground piles become charterless
+/// in their nation; depot goods move to national charterless stock first, then other active
+/// Charters, then charterless ground overflow.
 /// </summary>
 public sealed class CharterLifecycleService
 {
@@ -21,88 +19,73 @@ public sealed class CharterLifecycleService
         _simulation = simulation;
     }
 
-    public void Dissolve(CharterId charterId, CharterId fallbackOwnerId)
+    public void Dissolve(CharterId charterId)
     {
         if (!_simulation.Registries.Charters.TryGet(charterId, out var deadCharter))
         {
             throw new SimulationInvariantException($"Cannot dissolve unknown Charter '{charterId}'.");
         }
 
-        if (!_simulation.Registries.Charters.TryGet(fallbackOwnerId, out var fallbackOwner))
-        {
-            throw new SimulationInvariantException(
-                $"Cannot transfer dissolved Charter '{charterId}' to unknown Charter '{fallbackOwnerId}'.");
-        }
-
-        if (deadCharter.Id == fallbackOwner.Id)
-        {
-            throw new SimulationInvariantException("A dissolved Charter cannot be its own fallback owner.");
-        }
-
-        if (deadCharter.Nation != fallbackOwner.Nation)
-        {
-            throw new SimulationInvariantException("A dissolved Charter's fallback owner must belong to the same nation.");
-        }
-
-        ReassignUnits(deadCharter, fallbackOwner);
-        ReassignFacilities(deadCharter, fallbackOwner);
-        ReassignGroundStockpiles(deadCharter, fallbackOwner);
-        RedistributeDepots(deadCharter, fallbackOwner);
+        var charterless = new Ownership(deadCharter.Nation);
+        ReassignUnits(deadCharter, charterless);
+        ReassignFacilities(deadCharter, charterless);
+        ReassignGroundStockpiles(deadCharter, charterless);
+        RedistributeDepots(deadCharter, charterless);
 
         _simulation.Registries.Charters.Remove(deadCharter.Id);
 
         _simulation.Facts.CharterDissolved.Append(
-            new CharterDissolvedFact(deadCharter.Id, fallbackOwner.Id, deadCharter.Nation));
+            new CharterDissolvedFact(deadCharter.Id, deadCharter.Nation));
     }
 
-    private void ReassignUnits(Charter deadCharter, Charter fallbackOwner)
+    private void ReassignUnits(Charter deadCharter, Ownership charterless)
     {
-        var query = new QueryDescription().WithAll<Owner>();
+        var query = new QueryDescription().WithAll<Ownership>();
         var state = new ReassignOwnerState
         {
             DeadCharterId = deadCharter.Id,
-            FallbackOwnerId = fallbackOwner.Id,
+            Charterless = charterless,
         };
-        _simulation.Entities.InlineQuery<ReassignOwnerState, Owner>(in query, ref state);
+        _simulation.Entities.InlineQuery<ReassignOwnerState, Ownership>(in query, ref state);
     }
 
-    private struct ReassignOwnerState : IForEach<Owner>
+    private struct ReassignOwnerState : IForEach<Ownership>
     {
         public required CharterId DeadCharterId;
-        public required CharterId FallbackOwnerId;
+        public required Ownership Charterless;
 
-        public void Update(ref Owner owner)
+        public void Update(ref Ownership owner)
         {
             if (owner.CharterId == DeadCharterId)
             {
-                owner = new Owner(FallbackOwnerId);
+                owner = Charterless;
             }
         }
     }
 
-    private void ReassignFacilities(Charter deadCharter, Charter fallbackOwner)
+    private void ReassignFacilities(Charter deadCharter, Ownership charterless)
     {
         foreach (var facility in _simulation.Registries.Facilities)
         {
-            if (facility.Owner == deadCharter.Id)
+            if (facility.Owner.CharterId == deadCharter.Id)
             {
-                facility.ChangeOwner(fallbackOwner.Id);
+                facility.ChangeOwner(charterless);
             }
         }
     }
 
-    private void ReassignGroundStockpiles(Charter deadCharter, Charter fallbackOwner)
+    private void ReassignGroundStockpiles(Charter deadCharter, Ownership charterless)
     {
         foreach (var pile in _simulation.Registries.GroundStockpiles)
         {
-            if (pile.Owner == deadCharter.Id)
+            if (pile.Owner.CharterId == deadCharter.Id)
             {
-                pile.ChangeOwner(fallbackOwner.Id);
+                pile.ChangeOwner(charterless);
             }
         }
     }
 
-    private void RedistributeDepots(Charter deadCharter, Charter fallbackOwner)
+    private void RedistributeDepots(Charter deadCharter, Ownership charterless)
     {
         foreach (var depot in _simulation.Registries.Depots)
         {
@@ -112,7 +95,6 @@ public sealed class CharterLifecycleService
             }
 
             var deadCompartment = depot.CompartmentFor(deadCharter.Id);
-            var fallbackCompartment = depot.CompartmentFor(fallbackOwner.Id);
 
             List<ItemQuantity> overflow = [];
 
@@ -121,11 +103,13 @@ public sealed class CharterLifecycleService
                 var item = itemQuantity.Item;
                 var remaining = itemQuantity.Quantity;
 
-                var toFallback = Math.Min(remaining, fallbackCompartment.Stockpile.AvailableCapacityFor(item));
-                if (toFallback > 0)
+                var toCharterless = Math.Min(
+                    remaining,
+                    depot.CharterlessStockpile.AvailableCapacityFor(item));
+                if (toCharterless > 0)
                 {
-                    fallbackCompartment.Stockpile.Put(new ItemQuantity(item, toFallback));
-                    remaining -= toFallback;
+                    depot.CharterlessStockpile.Put(new ItemQuantity(item, toCharterless));
+                    remaining -= toCharterless;
                 }
 
                 foreach (var charter in _simulation.Registries.Charters)
@@ -135,8 +119,7 @@ public sealed class CharterLifecycleService
                         break;
                     }
 
-                    if (charter.Id == fallbackOwner.Id ||
-                        charter.Id == deadCharter.Id ||
+                    if (charter.Id == deadCharter.Id ||
                         charter.Nation != depot.Nation)
                     {
                         continue;
@@ -161,7 +144,7 @@ public sealed class CharterLifecycleService
             {
                 _simulation.Services.GroundStockpileFactory.Create(
                     depot.Location,
-                    fallbackOwner.Id,
+                    charterless,
                     _simulation.Tick + _simulation.Options.GroundStockpileDecayTicks,
                     overflow);
             }

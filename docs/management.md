@@ -23,7 +23,7 @@ the [architecture](design/charter-ai-architecture.md), and
 ## Progress
 
 Packages 0–5 (baseline protection, authored item/recipe/facility-type definitions, typed-ID
-registries, `IItemContainer`/`Stockpile`/`Inventory` storage, scenario loading, and Commons/Charter/
+registries, `IItemContainer`/`Stockpile`/`Inventory` storage, scenario loading, and Charter/
 depot lifecycle) landed in prior sessions — see the spec's
 [work packages](specs/iteration-1a-owned-production.md#implementation-work-packages) for what each
 covers; implementation detail from those sessions is not repeated here.
@@ -49,12 +49,12 @@ This session completed:
   spec's [Production execution](specs/iteration-1a-owned-production.md#production-execution) section
   was rewritten to match this shape.
 
-159 tests pass; `scripts/check.ps1` is green.
+184 tests pass; `scripts/check.ps1` is green.
 
 ## Next
 
 - Continue [Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md) with
   **Package 7 — Ownership changes and ground-stockpile lifecycle**: ground-stockpile creation with
   stable IDs, capped multi-pile overflow splitting and expiry, the living-facility-transfer eviction
-  bridge, and the full Charter-death sequence (in-place Commons transfer, registry-order depot
+  bridge, and the full Charter-death sequence (in-place charterless transfer, registry-order depot
   redistribution, overflow piles, compartment removal).

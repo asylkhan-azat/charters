@@ -25,8 +25,9 @@ public sealed class FacilityOwnershipService
         _simulation = simulation;
     }
 
-    public void ChangeOwner(FacilityId facilityId, CharterId newOwner)
+    public void ChangeOwner(FacilityId facilityId, Ownership newOwner)
     {
+        _simulation.ValidateOwnership(newOwner);
         var facility = _simulation.Registries.Facilities[facilityId];
         var formerOwner = facility.Owner;
 
@@ -41,7 +42,13 @@ public sealed class FacilityOwnershipService
             groundStockpiles));
     }
 
-    private IReadOnlyList<GroundStockpileId> EvictGoods(Facility facility, CharterId formerOwner)
+    public void ChangeOwner(FacilityId facilityId, CharterId newOwner)
+    {
+        var charter = _simulation.Registries.Charters[newOwner];
+        ChangeOwner(facilityId, new Ownership(charter.Nation, charter.Id));
+    }
+
+    private IReadOnlyList<GroundStockpileId> EvictGoods(Facility facility, Ownership formerOwner)
     {
         if (facility.Stockpile.IsEmpty)
         {

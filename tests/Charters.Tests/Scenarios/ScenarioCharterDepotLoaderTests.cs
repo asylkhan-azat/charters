@@ -21,7 +21,7 @@ public sealed class ScenarioCharterDepotLoaderTests
           ],
           "facilities": [
             {
-              "id": "mine-1", "type": "mine", "owner": "ironworks",
+              "id": "mine-1", "type": "mine", "owner": { "nation": "player", "charter": "ironworks" },
               "location": { "region": "north", "offset": { "q": 1, "r": 0 } },
               "recipe": "produce-ore",
               "initialStock": []
@@ -31,12 +31,13 @@ public sealed class ScenarioCharterDepotLoaderTests
             {
               "id": "depot-1", "nation": "player",
               "location": { "region": "north", "offset": { "q": -1, "r": 0 } },
+              "charterlessStock": [{ "item": "ore", "quantity": 5 }],
               "initialStock": { "ironworks": [{ "item": "ore", "quantity": 10 }] }
             }
           ],
           "units": [
             {
-              "id": "worker-1", "type": "infantry", "owner": "ironworks",
+              "id": "worker-1", "type": "infantry", "owner": { "nation": "player", "charter": "ironworks" },
               "location": { "region": "north", "offset": { "q": 1, "r": 0 } },
               "inventory": [null, null],
               "equipment": {},
@@ -81,6 +82,7 @@ public sealed class ScenarioCharterDepotLoaderTests
         }
 
         Assert.NotNull(depot);
+        Assert.Equal(5, depot!.CharterlessStockpile.QuantityOf(fixture.Definitions.Items["ore"]));
         var compartment = depot!.CompartmentFor(ironworks.Id);
         Assert.Equal(10, compartment.Stockpile.QuantityOf(fixture.Definitions.Items["ore"]));
     }

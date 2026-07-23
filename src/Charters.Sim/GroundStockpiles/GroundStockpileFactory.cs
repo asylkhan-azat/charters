@@ -30,11 +30,12 @@ public sealed class GroundStockpileFactory
     /// </summary>
     public IReadOnlyList<GroundStockpileId> Create(
         HexAddress location,
-        CharterId owner,
+        Ownership owner,
         long expiryTick,
         IReadOnlyList<ItemQuantity> items)
     {
         ArgumentNullException.ThrowIfNull(items);
+        _simulation.ValidateOwnership(owner);
 
         var pileCount = 0;
         for (var i = 0; i < items.Count; i++)
@@ -79,6 +80,16 @@ public sealed class GroundStockpileFactory
         }
 
         return ids;
+    }
+
+    public IReadOnlyList<GroundStockpileId> Create(
+        HexAddress location,
+        CharterId owner,
+        long expiryTick,
+        IReadOnlyList<ItemQuantity> items)
+    {
+        var charter = _simulation.Registries.Charters[owner];
+        return Create(location, new Ownership(charter.Nation, charter.Id), expiryTick, items);
     }
 
     /// <summary>Removes a quantity from a pile's contents, destroying the pile immediately if left empty.</summary>

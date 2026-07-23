@@ -50,8 +50,8 @@ deadlocking, oscillating, or hiding the cause of shortages?
 
 *Implementation specification: [Iteration 1A — Owned Production](specs/iteration-1a-owned-production.md).*
 
-- Add static, pre-authored Charters plus one non-political Commons Charter per nation as the durable
-  owner identity used by units, facilities, and goods. Politics and player actions remain dormant.
+- Add static, pre-authored Charters and direct national charterless ownership for units, facilities,
+  and goods that do not belong to a Charter. Politics and player actions remain dormant.
 - Implement the MVP item, recipe, facility, worker-staffing, inventory, and equipment-slot schemas
   from [GDD §14](GDD.md#in-mvp): inventory capacity is fixed by unit type, while equipment occupies
   separate typed slots at one item per slot.

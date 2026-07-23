@@ -24,13 +24,13 @@ public sealed class FacilityOwnershipTests
 
         simulation.Services.FacilityOwnershipService.ChangeOwner(facilityId, newOwner);
 
-        Assert.Equal(newOwner, facility.Owner);
+        Assert.Equal(OwnedBy(newOwner), facility.Owner);
         Assert.Equal(0, facility.Stockpile.QuantityOf(ore));
 
         Assert.Equal(1, simulation.Registries.GroundStockpiles.Count);
         GroundPileAt(simulation, out var pile);
         Assert.Equal(facility.Location, pile.Location);
-        Assert.Equal(formerOwner, pile.Owner);
+        Assert.Equal(OwnedBy(formerOwner), pile.Owner);
         Assert.Equal(40, pile.Stockpile.QuantityOf(ore));
         Assert.Equal(simulation.Tick + simulation.Options.GroundStockpileDecayTicks, pile.ExpiryTick);
     }
@@ -55,8 +55,8 @@ public sealed class FacilityOwnershipTests
         Assert.Equal(1, simulation.Facts.FacilityOwnershipChanged.Count);
         var fact = simulation.Facts.FacilityOwnershipChanged[0];
         Assert.Equal(facilityId, fact.FacilityId);
-        Assert.Equal(formerOwner, fact.FormerOwner);
-        Assert.Equal(newOwner, fact.NewOwner);
+        Assert.Equal(OwnedBy(formerOwner), fact.FormerOwner);
+        Assert.Equal(OwnedBy(newOwner), fact.NewOwner);
 
         var pileId = Assert.Single(fact.GroundStockpiles);
         var pile = simulation.Registries.GroundStockpiles[pileId];
@@ -78,7 +78,7 @@ public sealed class FacilityOwnershipTests
         simulation.Services.FacilityOwnershipService.ChangeOwner(facilityId, newOwner);
 
         Assert.Equal(0, simulation.Registries.GroundStockpiles.Count);
-        Assert.Equal(newOwner, simulation.Registries.Facilities[facilityId].Owner);
+        Assert.Equal(OwnedBy(newOwner), simulation.Registries.Facilities[facilityId].Owner);
     }
 
     private static void GroundPileAt(Simulation simulation, out GroundStockpile pile)
@@ -95,6 +95,11 @@ public sealed class FacilityOwnershipTests
     private static CharterId RegisterCharter(Simulation simulation, string name)
     {
         return simulation.Services.CharterFactory.Register(Nation.Player, name);
+    }
+
+    private static Ownership OwnedBy(CharterId charterId)
+    {
+        return new Ownership(Nation.Player, charterId);
     }
 
     private static Simulation CreateSimulation()

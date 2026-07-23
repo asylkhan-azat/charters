@@ -22,12 +22,13 @@ public sealed class FacilityFactory
 
     public FacilityId Register(
         FacilityTypeDefinition type,
-        CharterId owner,
+        Ownership owner,
         HexAddress location,
         RecipeDefinition recipe)
     {
         ArgumentNullException.ThrowIfNull(type);
         ArgumentNullException.ThrowIfNull(recipe);
+        _simulation.ValidateOwnership(owner);
 
         if (!type.AllowedRecipes.Contains(recipe))
         {
@@ -39,5 +40,15 @@ public sealed class FacilityFactory
         var facility = new Facility(id, type, owner, location, recipe);
         _simulation.Registries.Facilities.Add(facility);
         return id;
+    }
+
+    public FacilityId Register(
+        FacilityTypeDefinition type,
+        CharterId owner,
+        HexAddress location,
+        RecipeDefinition recipe)
+    {
+        var charter = _simulation.Registries.Charters[owner];
+        return Register(type, new Ownership(charter.Nation, charter.Id), location, recipe);
     }
 }

@@ -27,21 +27,22 @@ public class UnitFactory
     public UnitId Spawn(
         HexAddress address,
         UnitDefinition type,
-        CharterId owner,
+        Ownership owner,
         FacilityId? assignment = null)
     {
+        _simulation.ValidateOwnership(owner);
         var id = new UnitId(_idCounter++);
 
         var entity = assignment is { } facilityId
             ? _simulation.Entities.Create(
                 new UnitIdentity(id, type),
                 new Position { Address = address },
-                new Owner(owner),
+                owner,
                 new FacilityAssignment(facilityId))
             : _simulation.Entities.Create(
                 new UnitIdentity(id, type),
                 new Position { Address = address },
-                new Owner(owner),
+                owner,
                 new Navigation { Path = new NavPath() },
                 new Wandering());
 
@@ -49,14 +50,24 @@ public class UnitFactory
         return id;
     }
 
-    public CharterId OwnerOf(UnitId id)
+    public UnitId Spawn(
+        HexAddress address,
+        UnitDefinition type,
+        CharterId owner,
+        FacilityId? assignment = null)
+    {
+        var charter = _simulation.Registries.Charters[owner];
+        return Spawn(address, type, new Ownership(charter.Nation, charter.Id), assignment);
+    }
+
+    public Ownership OwnershipOf(UnitId id)
     {
         if (!TryGetEntity(id, out var entity))
         {
             throw new SimulationInvariantException($"Unknown unit id '{id}'.");
         }
 
-        return _simulation.Entities.Get<Owner>(entity).CharterId;
+        return _simulation.Entities.Get<Ownership>(entity);
     }
 
     public void Destroy(UnitId id)

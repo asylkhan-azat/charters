@@ -349,6 +349,17 @@ public sealed class FacilityProductionTests
         FacilityId facilityId,
         int count)
     {
+        var charter = simulation.Registries.Charters[owner];
+        SpawnWorkers(simulation, new Ownership(charter.Nation, charter.Id), location, facilityId, count);
+    }
+
+    private static void SpawnWorkers(
+        Simulation simulation,
+        Ownership owner,
+        HexAddress location,
+        FacilityId facilityId,
+        int count)
+    {
         for (var i = 0; i < count; i++)
         {
             simulation.Services.UnitFactory.Spawn(location, simulation.Options.Definitions.Units["worker"], owner, facilityId);

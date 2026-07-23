@@ -7,7 +7,7 @@ namespace Charters.Sim.Scenarios;
 public sealed record ResolvedUnit(
     string Id,
     UnitDefinition Type,
-    string Owner,
+    ResolvedOwnership Owner,
     HexAddress Location,
     IReadOnlyList<ResolvedInventorySlot> Inventory,
     IReadOnlyDictionary<string, ItemDefinition> Equipment,

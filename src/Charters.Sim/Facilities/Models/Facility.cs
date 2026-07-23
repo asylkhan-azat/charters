@@ -13,7 +13,7 @@ public sealed class Facility : IIdentifiable<FacilityId>
     public Facility(
         FacilityId id,
         FacilityTypeDefinition type,
-        CharterId owner,
+        Ownership owner,
         HexAddress location,
         RecipeDefinition recipe)
     {
@@ -32,7 +32,7 @@ public sealed class Facility : IIdentifiable<FacilityId>
 
     public FacilityTypeDefinition Type { get; }
 
-    public CharterId Owner { get; private set; }
+    public Ownership Owner { get; private set; }
 
     public HexAddress Location { get; }
 
@@ -54,7 +54,7 @@ public sealed class Facility : IIdentifiable<FacilityId>
     internal int ClaimedSpots { get; private set; }
 
     /// <summary>Changes the owner in place. Callers decide whether the embedded stock stays or is evicted first.</summary>
-    internal void ChangeOwner(CharterId newOwner)
+    internal void ChangeOwner(Ownership newOwner)
     {
         Owner = newOwner;
     }

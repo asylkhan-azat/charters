@@ -18,19 +18,18 @@ internal static class SimulationBootstrapper
         var template = MapTemplateLoader.Load(Path.Combine(dataDirectory, "maps", "mvp.json"), definitions);
         var randomSet = new RandomSet(Seed);
         var map = WorldGenerator.Generate(definitions, randomSet, template);
-        Charter[] charters = [new(new CharterId(0), Nation.Player, "Commons")];
-        var state = new SimulationState(0, map, charters, [], [], [], randomSet.GetAllStates());
+        var state = new SimulationState(0, map, [], [], [], [], randomSet.GetAllStates());
         var simulation = new Simulation(new SimulationOptions(definitions), state);
 
         var random = simulation.Services.Random.Get(RandomStreamType.WorldGen);
         var unitDefs = definitions.Units.ToList();
 
-        var commonsId = charters[0].Id;
+        var charterless = new Ownership(Nation.Player);
 
         for (var i = 0; i < 10; i++)
         {
             var hex = simulation.Map.HexAt(random.NextInt(simulation.Map.Count)).Address;
-            simulation.Services.UnitFactory.Spawn(hex, unitDefs[random.NextInt(unitDefs.Count)], commonsId);
+            simulation.Services.UnitFactory.Spawn(hex, unitDefs[random.NextInt(unitDefs.Count)], charterless);
         }
 
         return simulation;

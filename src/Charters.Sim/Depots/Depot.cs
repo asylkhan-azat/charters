@@ -1,6 +1,7 @@
 using Charters.Sim.Charters;
 using Charters.Sim.Core;
 using Charters.Sim.Hexes;
+using Charters.Sim.Items;
 
 namespace Charters.Sim.Depots;
 
@@ -17,6 +18,7 @@ public sealed class Depot : IIdentifiable<DepotId>
         Id = id;
         Nation = nation;
         Location = location;
+        CharterlessStockpile = new Stockpile();
     }
 
     public DepotId Id { get; }
@@ -24,6 +26,9 @@ public sealed class Depot : IIdentifiable<DepotId>
     public Nation Nation { get; }
 
     public HexAddress Location { get; }
+
+    /// <summary>National stock not attributed to any Charter.</summary>
+    public Stockpile CharterlessStockpile { get; }
 
     public bool HasCompartment(CharterId charterId)
     {

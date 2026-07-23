@@ -5,7 +5,8 @@ namespace Charters.Sim.Depots;
 
 /// <summary>
 /// Mints stable depot identities and centralizes Charter-compartment synchronization: registering a
-/// depot creates one compartment for every active same-nation Charter, including Commons.
+/// depot creates one compartment for every active same-nation Charter. Charterless national stock
+/// lives in the depot's dedicated stockpile.
 /// </summary>
 public sealed class DepotFactory
 {
