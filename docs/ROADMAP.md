@@ -68,11 +68,14 @@ deadlocking, oscillating, or hiding the cause of shortages?
 [Iteration 1B — Depot-Driven Transport](specs/iteration-1b-depot-driven-transport.md).*
 
 - Give facility types small per-item stockpile overrides and facilities sticky supporting depots.
-  Add durable local demand and available-output signals, and have each neutral Manager aggregate
-  them into Charter-scoped depot plans without treating diagnostics facts as control flow.
+  Rebuild allocation-free consumption and supply snapshots each logistics phase, preserving only
+  minimal source impairment history, and aggregate contributors into Charter-scoped depot plans.
+- Compile desired stock targets and protected stock goals from policy cover and standing objectives.
+  Keep Soft/Hard stock access independent from Planned/Reserved commitment, with exact source and
+  destination-capacity reservations.
 - Implement persistent depot↔facility services, deliberate truck standby, input/output backhauls,
-  private shipment orders, same-Charter direct facility bypass, road-aware routing, and cargo lots
-  whose title is independent from the carrier.
+  parent shipment orders with one-item legs, deliberate parallelism, partial pickup and delivery,
+  same-Charter direct facility bypass, road-aware routing, and title-preserving cargo lots.
 - Publish only unresolved inter-Charter cooperation: Aid Requests for goods delivered to a receiving
   depot and concrete Haul Jobs for identified shipments. Add hard goods/carriage reservations,
   neutral policy at the future Leader boundary, and title transfer only on successful delivery.
@@ -87,15 +90,17 @@ keep nearby facilities running; Greyline convoys carry accepted aid to a remote 
 link produces an upstream, local-service, inter-depot, or last-mile failure that is distinct on the
 map and in the feed.
 
-**Tune now:** facility-type stockpile limits, depot targets and protected reserves, pickup
-thresholds, service commitment and standby windows, truck capacity and cooldowns, direct-bypass
-threshold, neutral demand/aid/haul weights, re-planning cadence, and time-to-bite thresholds.
+**Tune now:** facility-type stockpile limits, target cover, protected-goal fraction, Soft/Hard access
+policy, execution bands, parallel-leg cap, pickup and top-up windows, service commitment and standby
+windows, truck capacity and cooldowns, supporting-depot reassessment, direct-bypass threshold,
+neutral aid/haul weights, planning cadence, and time-to-bite thresholds.
 
 **Exit gate:** A healthy scenario reaches stable throughput without forcing every matched local flow
 through a depot; standing facility services survive ordinary higher-scored spot work; each
 disruption fails in a distinct, diagnosable way; Charter title survives third-party carriage and
-changes only at agreed delivery; goods and hauling capacity are never duplicated, promised twice, or
-silently reassigned.
+changes only on the admitted portion of agreed delivery; partial execution leaves exact physical
+remainders; goods, destination capacity, and hauling capacity are never duplicated, promised twice,
+or silently reassigned.
 
 ## Loop 2 — Land is command
 
@@ -149,9 +154,12 @@ supply, terrain, and autonomous decisions?
 
 ### Iteration 3B — The supplied front
 
-- Connect infantry food, equipped rifles and grenades, and carried ammunition to durable local
-  demand signals and sticky supporting depots. Managers create last-mile shipments from those depots
-  and escalate only uncovered depot requirements to the public Request Board.
+- Add stationary national resupply points with Charter-separated compartments; ordinary depots are
+  valid points. Units visit their assigned point for local Soft-only transfers and are never
+  shipment destinations.
+- Connect infantry food, equipped rifles and grenades, and carried ammunition to rebuilt
+  consumption flows aggregated through those points. Managers replenish target-above-goal working
+  stock and escalate only uncovered point requirements to the public Request Board.
 - Add capture of hexes, facilities, and stock; apply land claims and liberation rules to the result.
 - Run one enemy Charter through the same physical production, transport, and combat systems, driven
   by a single authored offensive goal.
@@ -179,7 +187,7 @@ rather than arbitrary modifiers?
 
 - Add the MVP leader traits, doctrine biases, competence, loyalty, and simple friend/feud pairs.
 - Apply those factors to land valuation, operation choice, Aid Request donation, Haul Job priority,
-  reserve sacrifice, and petition generation.
+  stock-goal sacrifice, and petition generation.
 - Surface reasons for refusals and priority changes in council text and the event feed.
 
 ### Iteration 4B — Trust and coercion

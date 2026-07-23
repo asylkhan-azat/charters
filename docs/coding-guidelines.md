@@ -45,6 +45,18 @@ the slice is reshaped, not appended to. Systems must never become the sum of the
   per `Simulation` and reached through `Services`, even when it holds no fields of its own today. A
   `static class` implicitly assumes one `Simulation` per process and can't own per-simulation scratch
   state; it never earns that assumption just because it happens to be stateless now.
+- **A system is scheduled iteration, not a service.** A system is a static class called by a phase;
+  it iterates the relevant simulation state and performs one named tick-time job. Supporting-depot
+  assignment, reassignment, physical-flow projection, and similar scheduled reconciliation belong
+  in systems shaped like `MovementSystem`, not in `Simulation.Services`. Services are for
+  request-driven operations that need an explicit caller, such as changing ownership or hauling
+  cargo atomically.
+- **One aggregate workflow gets one cohesive service.** Creation, lifecycle, and other explicit
+  operations over the same aggregate should share a domain service when they use the same state and
+  invariants. Do not grow parallel `Factory`, `LifecycleService`, and coordinator classes around one
+  aggregate. When the Charter slice is next touched, consolidate `CharterFactory` and
+  `CharterLifecycleService` into `CharterService`; apply the same judgment to other slices rather
+  than copying names mechanically.
 - **Behavior lives with the data it belongs to.** A local invariant belongs on its component or
   domain object. A rule spanning several components, objects, or registries belongs in a coordinating
   system. What matters is one obvious home, not whether the home is called a helper or aggregate.
@@ -56,6 +68,12 @@ the slice is reshaped, not appended to. Systems must never become the sum of the
 - **Structs for small ECS values with real value semantics.** Use an owned class where identity,
   reference semantics, or reusable variable-size storage earns it (`NavPath`, `Inventory`). A
   struct must not conceal a shared mutable collection.
+- **Prefer allocation-free tagged value structs for small closed unions.** When alternatives share
+  one compact payload shape—such as a source kind plus stable ID—use a discriminator and payload
+  with validated constructors and kind-specific accessors instead of an abstract hierarchy and one
+  heap object per value. Keep invalid combinations unrepresentable or explicitly rejected. Do not
+  require explicit CLR field layout merely to imitate a discriminated union; use it only when
+  measurement proves the ordinary layout matters.
 - **Trust static contracts.** Inside typed runtime code, trust nullable analysis and established
   construction invariants; do not add runtime null checks for non-nullable values or guards against
   states the types cannot represent. Validate untrusted data at its loading or host boundary. When
@@ -80,5 +98,8 @@ the slice is reshaped, not appended to. Systems must never become the sum of the
   boundary ends; loading and tooling do not need simulation-loop ceremony.
 - **Resolve authored string ids at the loading boundary**; runtime state stores typed definition
   references.
+- **Prefer namespace imports over fully qualified type names.** Add a `using` statement when it makes
+  the code readable and unambiguous. Use a fully qualified type name only to resolve a real naming
+  collision or when the qualification itself communicates useful context.
 - **Vocabulary.** Clear domain names (`Position`, `FacilitySystem`); sub-phases are verbs
   (`ApplyMovement`, `ProduceItems`).

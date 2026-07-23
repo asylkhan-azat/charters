@@ -1,6 +1,6 @@
 # Iteration 1B Specification — Depot-Driven Transport
 
-- **Status:** Approved for implementation
+- **Status:** Package 1 implemented; Package 2 design approved and ready for implementation
 - **Roadmap:** [Iteration 1B — Depot-Driven Transport](../ROADMAP.md#iteration-1b--depot-driven-transport)
 - **Loop design:** [Loop 1 — The Moving Economy](../design/loop-1-moving-economy.md)
 - **AI boundaries:** [Charter AI Architecture](../design/charter-ai-architecture.md)
@@ -9,156 +9,134 @@
 ## Goal and acceptance outcome
 
 Iteration 1B makes the 1A economy move without turning the nation into one inventory or every
-shortage into public board traffic. Facilities use small working buffers and sticky supporting
-depots; Managers aggregate durable physical signals, preserve standing facility service, and create
-private shipments before escalating missing goods or carriage through the future Leader boundary.
-The public Request Board contains only inter-Charter Aid Requests and concrete Haul Jobs.
+shortage into public board traffic. Facilities expose factual item-flow snapshots, Managers compile
+those facts and standing objectives into depot stock plans, and shipment execution tolerates
+ordinary uncertainty without promising goods that do not exist.
 
 The iteration is accepted when the dedicated scenario:
 
-- assigns every participating facility a reachable supporting depot and uses its owner's compartment
-  as the normal consolidation point;
-- runs raw extraction, refinement, and finished-goods production from empty transformation-facility
-  inputs through physical collection and delivery;
-- keeps productive facility services stable across ordinary replanning, including a truck that
-  deliberately waits for forecast output while a distant spot job remains open;
-- uses a same-Charter direct facility shipment when it avoids a redundant depot round trip;
-- publishes unresolved depot-level goods shortages as Aid Requests and identified external carriage
-  work as Haul Jobs, never as internal transfer or request-to-own modes;
-- carries another Charter's cargo without changing title at pickup, then transfers title atomically
-  when aid reaches the requester compartment;
-- changes a facility owner by atomically claiming its active production state and small embedded
-  buffer for the new owner, without ejecting goods into ground piles;
-- distinguishes source shortage, depot shortage, service-capacity failure, invalid standby, blocked
-  route, stalled cargo, and public refusal in diagnostics;
-- reconciles every item and owner across buffers, depot compartments, reservations, cargo,
-  delivery, production, consumption, and explicit destruction; and
-- exposes the running economy through canonical headless output, the pain map, service/convoy state,
-  and the event feed.
+- assigns each participating facility a reachable supporting depot and keeps that assignment stable;
+- moves real raw materials, intermediate goods, and finished goods through working facility buffers;
+- rebuilds truthful consumption and supply flows without persistent signal objects;
+- distinguishes current stock, desired target, protected stock goal, reservations, and traffic;
+- keeps productive facility services stable, including credible standby for future output;
+- permits direct same-Charter facility transfers and deliberate parallel shipment legs;
+- permits useful partial pickups and deliveries while preserving exact physical accounting;
+- publishes only inter-Charter Aid Requests and concrete, reserved Haul Jobs;
+- preserves cargo title through third-party carriage and transfers it only on agreed delivery;
+- diagnoses source, depot, service, reservation, route, pickup, and delivery failures distinctly;
+- reconciles every item and owner across storage, reservations, cargo, production, consumption,
+  delivery, and explicit destruction; and
+- exposes the running economy through headless output, the pain map, service/convoy state, and the
+  event feed.
 
 ## Scope boundaries
 
 1B includes facility-type per-item stockpile limits; aggregate facility-and-buffer ownership
-transfer; sticky supporting-depot assignment for facilities; durable demand and available-output
-signals; Charter/depot/item planning; private shipment orders; same-Charter direct facility bypass;
-persistent facility services; deliberate standby; truck cargo whose title is independent from the
-carrier; pickup, routing, and delivery; public Aid Requests, supply commitments, Haul Jobs, and haul
-commitments; hard goods and carriage reservations; neutral decisions at the future Leader boundary;
-attributed failure; conservation; headless diagnostics; the first pain-map overlay; and
+transfer; stationary storage endpoints; title-preserving cargo; sticky supporting-depot assignment
+for facilities; rebuilt facility item flows; Charter/depot/item stock plans; standing stock
+objectives; Soft and Hard stock access; Planned and Reserved commitment; private shipment orders and
+one-item legs; deliberate parallel legs; same-Charter direct facility bypass; persistent facility
+services; deliberate standby; partial pickup and delivery; public Aid Requests and concrete Haul
+Jobs; goods, destination-capacity, and carriage reservations; neutral decisions at the future
+Leader boundary; attributed failure; conservation; headless diagnostics; a pain-map overlay; and
 convoy/service events.
 
 1B does not include personality, relationships, a concrete Leader domain object, council petitions,
-Direct Order UI, public standing contracts, group-target selection, unit consumption or unit
-supporting-depot assignment, trains, barges, fuel, escorts, combat capture, route interdiction,
-construction, markets, prices, or automatic milk-run optimization. Loop 3 adds unit demand and
-last-mile supply through the same signal and depot-plan boundary. Loop 4 replaces the neutral
-cooperation policy with real Leader choices and relationship weights.
+Direct Order UI, public standing contracts, item-group requests, unit consumption, resupply-point
+runtime state, trains, barges, fuel, escorts, combat capture, route danger, route confidence,
+interdiction, risk-weighted allocation, construction, markets, prices, or automatic milk-run
+optimization. Loop 3 adds stationary resupply points and unit consumption through the flow contract
+without making units shipment destinations. Loop 4 replaces neutral policy with real Leader choices.
 
 Charterless units and goods remain direct national state with simple local heuristics. They gain no
 Manager, depot plan, Aid Request, Haul Job, or strategic coordination in 1B.
 
 ## How to use this specification
 
-This document is the implementation handoff for 1B. A fresh-context implementer should:
+This document is the implementation handoff for 1B:
 
 1. Read the [technical architecture](../TDD.md), especially ownership, hosted storage, tick ordering,
-   fact journals, diagnostics, and the host boundary.
+   fact journals, diagnostics, and host boundaries. It describes implemented code only.
 2. Read the [Loop 1 design](../design/loop-1-moving-economy.md) and
    [AI boundaries](../design/charter-ai-architecture.md); this specification narrows those rules to
    the concrete 1B cut.
-3. Implement the [work packages](#implementation-work-packages) in dependency order, landing each
-   package's focused tests with its behavior.
-4. Keep the 1A proof scenario runnable while adding a sibling 1B scenario. A required 1B migration
-   may update shared schemas and 1A authored data, but may not silently remove a 1A acceptance
+3. Implement the remaining work packages in order, landing each package's focused tests with its
    behavior.
+4. Keep the 1A proof scenario runnable while adding a sibling 1B scenario.
 5. Use [Validation and tests](#validation-and-tests) as the acceptance matrix and the
    [Completion gate](#completion-gate) as the final definition of done.
 
 When documents disagree, the GDD owns player-facing mechanics, the TDD owns code that already
 exists, the Loop design owns cross-iteration behavior, and this specification owns the 1B
-implementation cut. Update the TDD only when implementation makes a new technical fact true.
+implementation cut. Update the TDD only after implementation makes a technical statement true.
 
 ### Non-negotiable 1B invariants
 
 | Area | Invariant |
 |---|---|
-| Charter title | Ordinary goods retain their Charter title. Direct national ownership represents genuinely charterless state only; no Manager plan, depot aggregation, shipment, or board operation silently nationalizes goods. |
-| Custody | A carrier does not become cargo owner. Each cargo lot retains an explicit title-holder and beneficiary independent from the logist's affiliation. |
-| Delivery transfer | Pickup changes custody only. Aid title changes exactly once, atomically with insertion into the requester depot compartment. Internal delivery never changes title. |
-| Depot role | A depot is national infrastructure with high-capacity owner compartments. It is the logical aggregation and inter-Charter hand-over boundary, not a mandatory waypoint for same-Charter local flow. |
-| Facility role | A facility buffer is one configured stockpile, with facility-type item limits and item-definition fallback. Authored working-item overrides keep it smaller than depot storage, and it cannot host foreign-owned goods. Changing facility owner atomically claims its production state and every buffered item for the new owner; no eviction pile is created. |
-| Signal authority | Durable demand and available-output signals describe current physical state. Facts announce changes but never become the Manager's source of truth. |
-| Local completion | Stock at a supporting depot can cover a plan but does not satisfy a facility signal until physically delivered to that facility. |
-| Private/public split | Internal signals, depot plans, facility services, and shipment orders are private. Only Aid Requests, accepted pledges, Haul Jobs, and their declared progress are public. |
-| Service stability | An active facility service, including valid standby, reserves its hauling capacity. An ordinary higher score cannot reclaim it. |
-| Post-pickup state | A timer may diagnose stalled cargo but cannot free its truck, duplicate its goods, or return its quantity to a source by bookkeeping. |
-| Reservation | Accepted commitments reserve goods or hauling capacity before execution. No stock, truck, or cargo slot is promised twice. |
-| Determinism | Each Charter decides against one phase snapshot and its own resources. Contested acceptance uses explicit rules and stable domain IDs only for exact ties. |
-| Boundary | Signals, depot plans, board records, services, shipment orders, shipments, and reservations are simulation-domain state. Hosts read projections only. |
-| Conservation | Production and explicit destruction are the only quantity changes. Movement, reservation, custody change, and title change conserve physical totals atomically. |
+| Charter title | Ordinary goods retain Charter title. Direct national ownership represents genuinely charterless state only. |
+| Custody | A carrier does not become cargo owner. Every cargo lot keeps title-holder and beneficiary independent from carrier affiliation. |
+| Delivery transfer | Pickup changes custody only. Aid title changes exactly once, with admitted delivery into the requester compartment. |
+| Depot role | A depot is a logical aggregation and inter-Charter hand-over boundary, not a mandatory waypoint for same-Charter local flow. |
+| Facility role | A facility owns one configured stockpile and cannot host foreign-owned goods. Ownership change atomically claims production state and buffered goods. |
+| Flow authority | Current flows are rebuilt value snapshots of physical state. Facts report transitions and never drive planning. |
+| Planning | Managers plan only on their fixed cadence. Execution failures are diagnosed immediately but do not trigger an extra planning pass. |
+| Gross state | Flow stock and capacity are gross physical facts. Reservations and traffic are separate planning/execution state. |
+| Stock access | Soft work uses only stock above exact reservations and `StockGoalQuantity`. Hard work may enter goal-protected stock only through an exact reservation. |
+| Commitment | Planned work has no exact goods promise. Reserved work protects an exact quantity. Access and commitment are independent axes. |
+| Service stability | Active facility service, including valid standby, reserves hauling capacity. Ordinary rescoring cannot reclaim it. |
+| Partial execution | Short pickup reopens the parent remainder. Undelivered cargo remains physical cargo; bookkeeping never returns it to stock. |
+| Public work | Accepted aid reserves concrete goods. Public Haul Jobs expose only concrete, reserved cargo work. |
+| Determinism | Each Charter decides against one completed phase snapshot. Stable IDs resolve exact ties. Random mistakes are not injected. |
+| Conservation | Production and explicit destruction are the only quantity changes. Movement, reservation, custody, and title transitions conserve totals. |
 
 ### 1B state and fact flow
 
 ```text
-facility production state + depot compartments + authored demand points
-    → durable local demand / available-output signals
-    → per-Charter Manager planning
-        → sticky supporting-depot assignment
-        → Charter/depot/item plan with source contributors and deadlines
-        → private matching, facility service, direct bypass, or inter-depot shipment order
-        → unresolved conflict through neutral Leader-policy boundary
-            → Aid Request and accepted supply commitment
-            → concrete Haul Job when external carriage is required
-    → hard goods / service / haul reservations
-    → shipment execution
-        → go to origin → load → haul → deliver
-        → deliberate service standby when forecast output is not ready
-    → buffered facts for diagnostics and presentation
-    → conservation + canonical metrics + decision traces
-    → Simulation.Views / Simulation.Map
-    → headless report + Godot pain map, service state, and convoy feed
+movement
+    → facility staffing and production
+    → ground-stockpile expiry
+    → logistics execution
+        → advance existing endpoint, service, and shipment work
+        → validate supporting depots
+        → rebuild facility ItemConsumptionFlow / ItemSupplyFlow buffers
+        → run due Managers on their fixed planning cadence
+            → compile target and stock goal
+            → preserve commitments and match private work
+            → create parent orders and one-item shipment legs
+            → escalate unresolved title or carriage through neutral Leader policy
+                → Aid Request / accepted supply commitment
+                → concrete Haul Job when external carriage is needed
+    → newly planned movement may start on the next tick
+    → transition facts, diagnostics, views, and conservation
 ```
 
-Physical state and durable planning records are authoritative. Facts, metrics, pain-map projections,
-and presentation history never feed back into planning.
+Every consumer in a tick reads the same completed flow buffers. Physical state and durable planning
+records are authoritative. Facts, metrics, pain-map projections, and presentation history never feed
+back into planning.
 
-## Storage and title model
+## Storage, title, and endpoints
 
 ### Facility buffers and depot capacity
 
-The existing embedded facility stockpile remains owned by its facility. A facility type may override
-the stockpile limit for any item; an item without an override uses
-`ItemDefinition.StockpileLimit`. The facility constructs one configured `Stockpile` and uses its
-ordinary atomic admission contract. Recipe choice does not replace the stockpile, resize it, or make
-unrelated physical goods disappear.
+The implemented Package 1 facility stockpile remains owned by its facility. A facility type may
+override the stockpile limit for an item; an item without an override uses
+`ItemDefinition.StockpileLimit`. Recipe choice does not replace or resize the stockpile, and
+unrelated goods left by a recipe change remain physical.
 
 Every limit used by an allowed recipe must hold at least one complete atomic input or output batch.
-Production preflights the complete output batch through the configured stockpile before completing
-it. Routine logistics resolves that same stockpile through the facility endpoint rather than
-reimplementing capacity rules.
+Production preflights the whole output batch before completing it. Facility ownership change
+preserves recipe, work progress, and buffered goods while claiming the aggregate for the new owner;
+it does not create an eviction pile.
 
-The buffer and production state are inseparable from facility control. A living ownership change
-preserves the active recipe and work progress, changes the facility and every buffered item to the
-new owner atomically, and emits one attributed aggregate transition. It does not clear the buffer,
-copy the stockpile, or create ground piles. Inputs already consumed by an active batch remain
-represented only by that inherited work progress; outputs completed afterward belong to the new
-owner.
-
-Depot compartments retain item-definition stationary limits. Proof content gives facility types
-smaller overrides for every item their recipes handle; validation ensures those limits can hold an
-atomic recipe batch. Ground-stockpile capacity and decay retain the 1A rules.
-
-Facility-type stockpile limits are authored physical configuration. Desired input cover, pickup
-thresholds, and depot targets are neutral policy defaults rather than code constants. "Smaller
-buffer" does not mean less than one useful pickup or less than one service interval.
+Depot compartments retain item-definition stationary limits. Desired stocking levels are policy,
+not physical capacity.
 
 ### Cargo hold
 
-1B introduces a logist cargo hold distinct from ordinary unit inventory and equipment. The
-`truck-logist` definition migrates its twelve transport slots to a cargo-hold feature; the 1A proof
-data is migrated without changing its visible empty-truck outcome.
-
-A cargo hold owns physical slots and contains cargo lots:
+The implemented Package 1 cargo hold is distinct from ordinary unit inventory and equipment. Cargo
+lots contain:
 
 ```text
 CargoLot
@@ -169,833 +147,916 @@ CargoLot
     Beneficiary CharterId
 ```
 
-Lots stack only when shipment, item, title-holder, and beneficiary all match. The cargo hold never
-merges lots merely because their item matches. Capacity uses the existing item stack rules.
-
-Loading and delivery go through the hauling operation, which atomically mutates source/destination
-storage, cargo lots, reservations, shipment state, ownership journals, and conservation attribution.
-The generic transfer coordinator remains quantity-only and does not infer title from the carrier.
+Lots stack only when shipment, item, title-holder, and beneficiary match. Loading and delivery
+atomically update source or destination storage, cargo lots, reservations, shipment state, ownership
+journals, and conservation attribution.
 
 ### Storage endpoints
 
-`StorageEndpoint` is a durable value naming exactly one stationary host:
+`StorageEndpoint` identifies one stationary host:
 
 - a facility by `FacilityId`;
 - a depot compartment by `(DepotId, Ownership)`; or
 - a ground stockpile by `GroundStockpileId`.
 
-Resolution derives container behavior, owner, absolute address, and host-specific admission policy
-from the named host. It never accepts a caller-supplied owner/container pairing. A cargo hold is
-reached through its shipment's assigned `UnitId`, not represented as a stationary endpoint.
+Resolution derives owner, address, container, and admission behavior from the host. A cargo hold is
+reached through its assigned logist and shipment, not represented as a stationary endpoint.
 
-Unit resupply endpoints remain deferred to Loop 3.
+Flows address fulfillment through a `StorageEndpoint`. A source with no supported stationary node
+uses the endpoint's existing invalid/none representation. Future resupply points must become
+stationary endpoints before they participate; units themselves never do.
 
-## Supporting depots and physical signals
+## Supporting depots and physical flows
 
 ### Supporting-depot assignment
 
-Every living Charter-owned facility receives one supporting `DepotId`. The initial Manager
-assignment selects the reachable same-nation depot with the lowest road-aware route cost; exact ties
-use `DepotId`. The facility always addresses its current owner's compartment at that depot.
+Every living Charter-owned facility receives one supporting `DepotId` when a reachable same-nation
+depot exists. Initial selection uses lowest road-aware route cost with `DepotId` as the exact tie
+breaker. The facility uses its owner's compartment there.
 
-The assignment is sticky. In 1B it changes only when:
+An invalid assignment is cleared or replaced during the next logistics validation. A valid
+assignment is reconsidered at most once every 60 ticks and changes only when another depot saves at
+least 2 route ticks. The facility stores the current depot and reassessment tick, not a challenger
+identity. If none is reachable, its flows remain visible with no supporting endpoint and an
+attributed unreachable-support condition.
 
-- the depot or required owner compartment disappears;
-- ownership changes to another nation;
-- the route becomes infeasible; or
-- another depot remains materially better for the authored reassignment duration and improvement
-  threshold.
+### Source representation
 
-An ordinary score fluctuation never moves the assignment. Reassignment cancels unpicked service work
-with attribution, preserves already-carried cargo, and creates a new plan only after the old physical
-state is resolved.
+Flows are allocation-free value snapshots. `FlowSourceRef` is a tagged value struct with a
+discriminator and shared stable-ID payload. Package 2 implements facility sources. Its representation
+must leave room for later unit-compatible sources without adding a unit variant that can be
+constructed before its runtime state exists.
 
-### Demand signals
+Do not use an abstract source hierarchy or allocate one object per flow. Do not force explicit CLR
+field layout unless measurement later shows that ordinary sequential layout is insufficient.
 
-One live `DemandSignal` exists per source, item, and cause. It records:
+Episode history is minimal source-owned state keyed by source, item, and direction. The flow
+snapshots themselves have no stable IDs or lifecycles. Current buffers are simulation-owned and
+reused each tick.
 
-- stable `DemandSignalId`;
-- requesting `CharterId`;
-- source endpoint or authored demand-point ID and absolute location;
-- supporting `DepotId`;
-- item and demand kind;
-- target quantity, present physical quantity, and physical shortage quantity;
-- `BitesAtTick`, when the source first becomes mechanically impaired if nothing arrives;
-- nullable `SufferingSinceTick`;
-- `OpenedTick`; and
-- current state: forecast, suffering, recovered, or closed.
+### Consumption flows
 
-For a facility input, the target is the active recipe's input quantity multiplied by the Manager's
-effective desired-input policy, capped by physical capacity. `BitesAtTick` follows actual buffered
-batches, current production progress, and staffing; it is not a guessed arbitrary age threshold.
-Missing staffing produces a separate production diagnosis and makes the replenishment forecast
-non-urgent until staffing can consume the input.
+One `ItemConsumptionFlow` reports:
 
-The physical shortage excludes planned inbound. The Manager accounts for reservations and inbound
-once in the depot plan; the source does not make promised goods physically present.
+```text
+ItemConsumptionFlow
+    Source
+    CharterId
+    SupportingEndpoint
+    Item
+    BatchQuantity
+    EffectiveIntervalTicks?       // absent while unstaffed
+    GrossStoredQuantity
+    NextCredibleConsumptionTick?
+    CredibleStarvationTick?
+    StarvationEpisodeStartedTick?
+```
 
-An authored depot demand point emits the same signal contract with the depot compartment as both
-source and supporting hub. Unit signals use this contract beginning in Loop 3.
+`BatchQuantity` is the recipe quantity and remains visible while unstaffed.
+`EffectiveIntervalTicks` is the resumable cadence under current staffing, not nominal recipe speed;
+it is absent while unstaffed. Rates remain integer batch quantities over integer intervals.
 
-### Available-output signals
+`NextCredibleConsumptionTick` is published only when current staffing and batch state make the next
+consumption transition physically credible. `CredibleStarvationTick` is published only when
+uninterrupted current operation can actually reach input starvation. If output blockage or another
+unresolved condition would stop operation first, starvation is a conditional Manager forecast and
+the flow deadline is absent.
 
-One live `SupplySignal` exists per facility output item. It records:
+### Supply flows
 
-- stable `SupplySignalId`;
-- owning `CharterId`;
-- source facility and supporting `DepotId`;
-- item and physically removable quantity;
-- `MustClearByTick`, when forecast production next blocks without collection;
-- nullable `BlockedSinceTick`;
-- `OpenedTick`; and
-- current state: available, blocking soon, blocked, or closed.
+One `ItemSupplyFlow` reports:
 
-The signal never calls output a deficit. A mine with output and no consumer is still a supply source;
-the Manager may consolidate it at the supporting depot even when no downstream demand is presently
-open.
+```text
+ItemSupplyFlow
+    Source
+    CharterId
+    SupportingEndpoint
+    Item
+    ProducedBatchQuantity?        // absent for leftover-only stock
+    EffectiveIntervalTicks?       // absent while unstaffed or non-producing
+    GrossStoredQuantity
+    PhysicalFreeCapacity
+    NextCredibleProductionTick?
+    CredibleBlockageTick?
+    BlockageEpisodeStartedTick?
+```
 
-### Signal updates and facts
+Production cadence has the same current-staffing meaning as consumption cadence. A recipe switch may
+leave unrelated stock in the facility. That stock remains an available supply flow with gross
+quantity and free capacity, but with no produced-batch quantity, cadence, or production forecast.
 
-Signals update on production threshold crossings, deliveries, pickups, recipe/ownership/lifecycle
-changes, and the authored validation cadence. Material changes emit immutable facts:
+`CredibleBlockageTick` is published only when uninterrupted current operation can reach output
+blockage. If missing input or another unresolved condition would stop first, the conditional
+blockage forecast belongs to Manager planning and the physical deadline is absent.
 
-- demand opened, changed, began suffering, recovered, and closed;
-- supply opened, changed, began blocking, recovered, and closed; and
-- supporting depot assigned or changed.
+### Impairment history
 
-The Manager reads signals and physical storage directly during its planning phase. It never consumes
-these facts as commands or reconstructs present state from the journals.
+Starvation or blockage begins only when a staffed batch transition is actually prevented. An
+approaching deadline is not an active episode. Once begun, the episode retains its original start
+through:
 
-## Manager depot planning
+- a delivery or pickup too small to allow the blocked transition;
+- a changed credible deadline;
+- a later co-blocker; or
+- an unstaffed interval after the physical failure has occurred.
 
-### Depot plan lines
+The episode closes only when the previously prevented transition succeeds. If a recipe switch removes
+the relevant direction or item flow, that old episode closes rather than attaching to unrelated
+leftover stock. Facts record episode start, material change, successful recovery, and source loss;
+there are no mutable signal-open/signal-close objects.
 
-Each Manager maintains one plan line per `(CharterId, DepotId, ItemDefinition)` with:
+### Rebuild and aggregation
 
-- current compartment stock and protected reserve;
-- ordered demand contributors with their shortage, `BitesAtTick`, and suffering state;
-- ordered supply contributors with removable quantity and `MustClearByTick`;
-- hard-reserved inbound and outbound quantities;
-- shipment quantities already in transit;
-- target stock over the authored planning horizon; and
-- uncovered quantity by required tick.
+The flow system rebuilds the completed buffers after current-tick movement, production, and expiry.
+Grouping uses `(Charter, supporting endpoint, item, direction)` while retaining source contributors,
+their cadences, deadlines, and impairment ages. Different intervals are compared with exact integer
+arithmetic; consumption and supply are never collapsed into one net rate.
 
-Contributor identity remains attached after aggregation so completion and failure return to the
-correct local source. The plan is private state. Its diagnostics projection may expose exact values
-to developer/headless surfaces while the ordinary player view exposes only permitted pressure.
+Reservations, inbound movement, and outbound work are not flow fields. A hard reservation may affect
+what a physical transition can consume, but the Manager explains that result by overlaying the
+reservation registry on gross flow state.
 
-Stock present at the depot may cover a facility requirement in the plan, but the source signal stays
-open until last-mile delivery. Conversely, aid delivered to the agreed receiving compartment
-completes the donor's public commitment even if the requester later fails its own last mile.
+## Manager stock planning
 
-### Interpretation and matching
+### Plan lines
 
-The neutral Manager evaluates one planning snapshot and preserves live services, supply
-commitments, haul commitments, and shipments first. It ranks remaining work using:
+Each Charter/depot/item line stores:
 
-- whether suffering or blockage is already occurring;
-- time until `BitesAtTick` or `MustClearByTick`;
-- authored consequence-kind weight;
-- accepted strategic or public commitment;
-- useful quantity;
-- route and handling time;
-- protected-reserve effect; and
-- disruption to existing work.
+```text
+DepotPlanLine
+    CharterId
+    DepotId
+    Item
+    TargetQuantity
+    StockGoalQuantity
+    PhysicalQuantity
+    ExactSourceReservations
+    ExactDestinationCapacityReservations
+    PlannedInbound
+    PlannedOutbound
+    consumption contributors
+    supply contributors
+    standing stock objectives
+    attributed shortfalls
+```
 
-The Manager then:
+`TargetQuantity` is the desired stocking level. `StockGoalQuantity` is the protected access floor.
+Both are concrete quantities compiled on the Manager's fixed planning pass and remain unchanged
+until the next pass.
 
-1. subtracts valid committed inbound from uncovered plan quantity;
-2. matches same-Charter supply and demand assigned to the same depot;
-3. creates or refreshes facility service work to collect output or deliver depot stock;
-4. selects direct facility bypass when eligible;
-5. creates inter-depot shipment orders for its own title;
-6. assigns only uncommitted internal logists; and
-7. raises remaining goods or carriage conflicts through the neutral Leader-policy boundary.
+### Target compilation
 
-Scores are explainability data, not a national auction. Each Manager budgets only its own resources
-and never emits overlapping offers or claims from one local snapshot.
+The neutral policy target is:
 
-### Direct facility bypass
+```text
+policy cover =
+    credible gross consumption within the 60-tick target horizon
 
-A same-Charter supply may ship directly to a facility consumer when:
+uncapped target =
+    max(policy cover, each standing explicit stock objective)
 
-- both facilities use the same supporting depot;
-- the destination demand accepts the exact item;
-- source stock is physically present and unreserved;
-- both endpoint routes are feasible;
-- direct travel and handling beats source→depot→destination by the authored savings threshold; and
-- the choice does not invalidate a live facility service or accepted commitment.
+TargetQuantity =
+    min(uncapped target, physical item capacity)
+```
 
-The shipment remains private and title does not change. The depot plan marks the matched contributor
-quantities as committed so it cannot also promise them through storage. Inter-Charter direct
-facility delivery is excluded from 1B.
+An objective records its target, reason, provenance, and optional desired-by tick. It remains active
+after physical attainment until explicitly changed or withdrawn. An objective or policy requirement
+above capacity produces an attributed capacity shortfall; it does not expand storage or disappear
+silently.
 
-### Neutral Leader-policy boundary
+Greyline's authored finished-goods needs are standing stock objectives, not invented physical
+consumption flows.
 
-The Manager cannot unilaterally request another Charter's title or make a politically meaningful
-promise outside delegated carriage policy. It submits an escalation proposal containing the
-uncovered depot plan line, considered internal remedies, protected reserve conflict, required-by
-tick, and consequence.
+### Stock-goal compilation
 
-1B implements a deterministic neutral policy, not Leader identity or personality:
+The neutral goal is half the target:
 
-- approve an Aid Request when no own-title plan can arrive before the required tick;
-- approve a Haul Job when a concrete shipment has no eligible internal logist;
-- never breach a protected reserve or abandon an accepted commitment;
-- reject duplicate public coverage already supplied by valid commitments; and
-- record the decision and factors.
+```text
+fraction goal =
+    clamp(round_policy(TargetQuantity × 0.5), 0, TargetQuantity)
 
-Loop 4 replaces the neutral decision with Leader doctrine, loyalty, relationships, reliability, and
-political consequences without changing the Manager's proposal contract.
+StockGoalQuantity =
+    clamp(max(fraction goal, explicit objective minimum), 0, TargetQuantity)
+```
+
+Rounding is deterministic and defined with the authored policy value. A cautious future Leader may
+increase the cover horizon, goal fraction, or objective minimum through semantic policy compilation.
+The Manager still snapshots a literal target and goal; downstream execution never consults a live
+personality score.
+
+### Stock partitions
+
+For physical quantity `P`, exact source reservations `R`, and goal `G`:
+
+```text
+reserved stock       = min(P, R)
+unreserved stock     = max(0, P - R)
+goal-protected stock = min(unreserved stock, G)
+soft stock           = max(0, unreserved stock - G)
+```
+
+Reservations have identity and quantity. Goal protection is a policy access boundary, not a
+reservation duplicated across plan lines.
+
+### Access and commitment
+
+Stock access and commitment strength are orthogonal:
+
+| Axis | Value | Meaning |
+|---|---|---|
+| Access | `Soft` | May claim only current soft stock above exact reservations and the stock goal. |
+| Access | `Hard` | May reserve into goal-protected unreserved stock. |
+| Commitment | `Planned` | No exact goods are promised. |
+| Commitment | `Reserved` | A named exact quantity is protected at a source. |
+
+Ordinary internal Soft legs remain Planned and unreserved. Important internal work may be Hard with
+a partial reservation. Accepted aid is Soft plus fully Reserved by default: it cannot consume below
+the donor's goal, but accepted goods cannot be taken by later local work. Only an explicit Leader
+policy decision may approve Hard aid.
+
+Local facility consumption and future unit resupply cannot consume exact shipment-reserved goods.
+
+### Planning cadence and interpretation
+
+Managers plan only on the authored fixed cadence. They rank current flows and objectives using
+credible time-to-bite, impairment age, consequence, route time, existing commitments, target/goal
+shortfall, and the compiled policy. They preserve live commitments before creating new work.
+
+A short load, missed forecast, newly unreachable endpoint, or capacity loss is diagnosed on the
+tick it occurs. It changes physical and execution state immediately but does not trigger a Manager
+planning pass. The parent remainder or failure waits until the next scheduled pass. This staleness,
+Soft-stock competition, and real travel uncertainty create ordinary planning errors; no random
+mistake injection is allowed.
+
+The Manager attempts, in order:
+
+1. preserve and account for exact commitments;
+2. cover facility service and standing objectives inside the service area;
+3. use eligible same-Charter direct facility bypass;
+4. rebalance the Charter's depot stock;
+5. allocate uncommitted internal carriage; and
+6. escalate missing title or external carriage through the neutral Leader boundary.
 
 ## Facility services
 
-### Service record
+A facility service is persistent Manager work linking one facility, its supporting depot, and
+committed hauling capacity. It may deliver inputs, collect output, combine both directions, or run a
+single useful direction. Its ordinary phases are:
 
-A `FacilityService` is durable private work keyed by `FacilityServiceId` and records:
+```text
+AcquireCycle
+    → TravelToInputOrigin
+    → DeliverInputs
+    → StandbyForOutput
+    → CollectOutput
+    → ReturnOrDirectDeliver
+    → RenewOrRelease
+```
 
-- beneficiary `CharterId`, facility, and supporting depot;
-- desired input quantities and pickup-eligible output quantities;
-- next input-starvation and output-blocking deadlines;
-- assigned `UnitId`, if covered internally;
-- reservation and minimum-commitment expiry;
-- expected output-ready tick and forecast-valid-until tick;
-- pickup threshold and maximum standby deadline;
-- effective-policy version and the service terms snapshotted from it;
-- current phase, cycle count, and decision trace; and
-- terminal or recoverable failure reason.
+`StandbyForOutput` is deliberate work. It is valid only while staffing, inputs, progress, and output
+space support a credible ready tick within the maximum wait. Facility-output standby may load
+produced output incrementally while waiting because doing so frees the facility buffer. This is
+separate from depot-origin Hard top-up, whose goods remain reserved at the source until one departure
+load.
 
-One facility has at most one live service in 1B. It may carry several input/output item lines on the
-same truck subject to cargo capacity. Automatic multi-facility milk runs are deferred, but the model
-does not make a truck or cargo lot facility-specific outside this service.
+An assigned service truck is unavailable to ordinary work. Forecast invalidation, route loss,
+ownership incompatibility, or maximum-wait expiry releases or replans unpicked work with attribution.
 
-### Service phases
+## Shipment planning and execution
 
-The normal cycle is:
+### Parent orders and legs
 
-1. **At depot / load inputs** — reserve and load useful input lines from the owner compartment.
-2. **Go to facility** — use road-aware routing.
-3. **Deliver inputs** — insert up to the configured facility stockpile limit.
-4. **Collect ready output** — reserve and load output that already clears the pickup rule.
-5. **Standby for output** — when collection is forecast soon and leaving would miss the service
-   deadline, wait without exposing the truck as idle.
-6. **Return to depot** — carry output back by the chosen route.
-7. **Unload output** — insert into the owner compartment and complete the cycle.
-8. **Renew or release** — continue while the service remains viable and its minimum commitment or
-   forecast justifies another cycle.
+A `ShipmentOrder` states the intended item movement and owns its outstanding remainder. It creates
+one-item `ShipmentLeg` records beneath it. A service may group compatible legs on one truck, but a
+leg never mixes item types.
 
-A raw extractor may begin at go-to-facility with no inputs. A consumer with no output ready may end
-after delivery. Direct-bypass work may replace the depot return destination for an output line.
+The Manager may deliberately create multiple parallel live legs even when one truck could
+theoretically carry the target. The neutral cap is three live legs per order. Splitting is a
+throughput and resilience decision, not only a fallback for insufficient truck capacity.
 
-### Deliberate standby
+Each leg snapshots `ShipmentExecutionTerms`:
 
-Standby is valid only while:
+```text
+ShipmentExecutionTerms
+    TargetQuantity
+    MinimumDepartureQuantity
+    StockAccess                 // Soft | Hard
+    Commitment                  // Planned | Reserved
+    ReservedQuantity
+    PickupDeadlineTick
+    TopUpBehavior
+    FallbackBehavior
+    PolicyVersion
+```
 
-- an active or fully supplied next batch will produce pickup-eligible output;
-- staffing remains sufficient for the forecast;
-- expected output will be ready before the maximum standby deadline;
-- the facility route remains feasible; and
-- another candidate job cannot complete and return before output readiness plus the authored safety
-  margin.
+Terms are compiled from stable importance bands:
 
-The service's hauler remains hard-reserved. Public allocation sees no available capacity. Production
-progress or a stable forecast validates the wait; fake heartbeats do not.
+| Band | Terms |
+|---|---|
+| Routine | Soft / Planned; depart as soon as the target is available, or at the 20-tick deadline with at least 50%; otherwise close the leg and reopen its quantity. |
+| Important | Hard; create with 80% initially reserved, top up for at most 20 ticks, then depart with at least 80%. |
+| Critical | Hard; reserve the full target where possible and depart immediately after securing any positive useful load. |
 
-Standby ends when the pickup threshold is reached, the output-blocking deadline requires a partial
-pickup, maximum wait expires, the forecast slips beyond tolerance, staffing/input disappears, the
-route fails, or a permitted emergency preempts the service. Every exit records why the truck waited,
-departed, or became available.
+The terms are concrete and do not change when Leader policy changes later. Renewal or a new leg may
+snapshot newer policy.
 
-The service snapshots its commitment, pickup, standby, forecast, and safety terms when created or
-renewed. A later policy change applies at renewal unless an existing permitted break condition fires;
-it never makes the assigned truck ordinary free capacity mid-cycle.
+### Pickup and top-up
 
-### Service capacity and selective degradation
+A Soft leg holds no goods reservation while waiting. At pickup it atomically acquires source goods
+above the stock goal and matching destination capacity. It may short-load if at least its minimum
+departure quantity is available. A 90% load on a Routine target is an ordinary successful departure;
+the parent order reopens the missing 10% for the next planning pass.
 
-Managers reserve facility-service capacity before inter-depot and public spot work. If available
-haulers cannot cover all next-service deadlines, the Manager leaves the lowest-ranked service
-explicitly uncovered and records the predicted input starvation or output blockage. It never
-half-reserves the same truck across several facilities or churns every service on each cadence.
+A Hard depot-origin leg retains accumulated top-up goods as exact source reservations. It loads once
+when departing. For example, an Important target of 100 may reserve 80 immediately, wait up to 20
+ticks for new stock to reach 100, then depart with 100; if no more arrives, it may depart with the
+reserved 80 at the deadline. Cancellation before pickup releases the reservation cleanly.
 
-High-throughput dedicated service is the implemented 1B behavior. One-cycle spot collection is
-allowed. Shared scheduled milk runs are a later optimization after metrics demonstrate the need.
+Every exact source reservation is mirrored by destination-capacity reservation. A destination change
+or capacity loss may reduce admission only through explicit execution/failure rules; it never
+silently overbooks storage.
 
-## Shipments and the public Request Board
+### Delivery and remainder
 
-### Private shipment orders
+Partial destination admission is legal. The admitted portion updates storage, delivered quantity,
+public commitment arithmetic, and any aid title transition atomically. The remainder stays in cargo.
+It must wait, return, be recovered, be captured, or be explicitly lost. It is not restored to the
+origin or order remainder by bookkeeping.
 
-A `ShipmentOrder` records:
+A parent order's unpicked quantity may be replanned into new legs. Already loaded cargo is not
+duplicated into that remainder. Exact arithmetic separately tracks target, reserved at source,
+loaded, delivered, cargo remainder, cancelled, recovered, and explicitly lost quantities.
 
-- stable `ShipmentOrderId`;
-- coordinating Charter, beneficiary Charter, and current title-holder;
-- origin and destination `StorageEndpoint`;
-- item lines and quantities;
-- required-by tick and originating plan/signal/service links;
-- whether it is internal, direct-bypass, accepted aid, or service-cycle work; and
-- reserved, assigned, picked-up, delivered, and remaining quantities.
+### Public cooperation
 
-Those labels describe provenance; they are not public request modes. One order may split only when no
-single hauler can carry its full useful quantity. Each split becomes a separately reserved shipment.
+Internal flows, plans, services, orders, and uncertain Soft legs remain private.
 
-The title-holder coordinates its own internal order. The requester coordinates an accepted aid
-order: it may assign one of its own logists or publish a Haul Job, while the donor may claim that job
-like any other eligible carrier. Coordination grants no title and no access beyond the accepted
-goods reservation.
+- An **Aid Request** declares item, quantity, requester, receiving depot compartment, required-by
+  tick, and reason. Accepted donor portions become Soft-access, fully Reserved supply commitments
+  unless Leader policy explicitly approves Hard access. Multiple donors may cover portions.
+- A **Haul Job** declares concrete reserved goods with title-holder, beneficiary, origin,
+  destination, quantity, required-by tick, and linked shipment leg. Uncertain internal Soft work is
+  never posted publicly.
 
-### Aid Requests and supply commitments
+Accepted portions cannot exceed public or parent-order remainder. Pickup changes custody only.
+Delivery of the admitted aid portion into the requester compartment transfers exact title and awards
+credit. Undelivered cargo retains donor title and remains physically accounted for.
 
-An `AidRequest` is public and records:
-
-- stable `AidRequestId`;
-- requester Charter;
-- receiving `(DepotId, requester Ownership)` compartment;
-- exact item, declared quantity, required-by tick, and public consequence;
-- requested, committed, delivered, withdrawn, and remaining quantities;
-- publication tick and linked private escalation; and
-- ordered supply-commitment history.
-
-Donor Managers evaluate requests against their own depot availability, protected reserves, inbound
-commitments, required-by time, and neutral policy. An accepted `SupplyCommitment` records donor,
-concrete donor depot compartment, item, quantity, goods reservation, expiry before pickup, decision
-trace, and terminal reason.
-
-Donations originate from donor depot compartments in 1B. A donor facility must first reach its own
-depot through private service. A same-depot commitment performs a zero-distance delivery between
-compartments. A remote commitment creates a shipment order to the requester compartment.
-
-Aid Requests are not one-to-one mirrors of local signals. One request may aggregate several private
-contributors at the receiving depot, while internal shipments cover other portions. The public
-remaining quantity subtracts accepted commitments and delivered goods exactly once.
-
-### Haul Jobs and haul commitments
-
-A `HaulJob` is public only after a concrete shipment order lacks eligible coordinator carriage. It
-records:
-
-- stable `HaulJobId`;
-- publishing Charter and beneficiary;
-- cargo title-holder;
-- exact origin, destination, item lines, and quantity;
-- required-by tick and route-feasibility snapshot;
-- linked shipment order;
-- claimed, picked-up, delivered, failed, and remaining quantities; and
-- ordered haul-commitment history.
-
-A hauler Manager may claim only with an uncommitted logist whose cargo hold fits a useful portion and
-whose route is feasible. An accepted `HaulCommitment` records carrier Charter, `UnitId`, quantity,
-hard capacity reservation, decision trace, and pre-pickup expiry. Existing facility service,
-shipment, or haul commitments make the logist ineligible.
-
-Pure logist Charters can claim several jobs with different trucks. Claiming a job never changes
-cargo title.
-
-### Public acceptance order
-
-Allocation uses explicit phases:
-
-1. Managers update private plans and escalation proposals from one start-of-phase snapshot.
-2. Donor Managers rank open Aid Requests against their own non-overlapping available stock and emit
-   offers.
-3. Requesters accept useful offers by promised arrival, useful quantity, and neutral reliability;
-   exact ties use donor Charter then source endpoint ID.
-4. Accepted supply commitments create requester-coordinated shipment orders and any missing Haul
-   Jobs.
-5. Hauler Managers rank open jobs against their own uncommitted units and emit non-overlapping
-   claims.
-6. Publishers accept useful claims by arrival estimate and capacity fit; exact ties use carrier
-   Charter then `UnitId`.
-
-The board caps every acceptance against the remaining public quantity and hard-reserves immediately.
-It does not compare donor self-scores or hauler self-scores as though different Leaders shared one
-utility scale.
-
-### Shipment execution
-
-An accepted internal assignment or Haul Commitment creates a `Shipment` with stable `ShipmentId`.
-The logistics phase advances:
-
-1. **Go to origin.**
-2. **Load** — verify reservation and source; move the reserved quantity into matching cargo lots.
-   Pickup changes custody only.
-3. **Haul** — follow the road-preferred route with authored off-road cooldown.
-4. **Deliver** — verify destination capacity and transfer cargo.
-   - Internal delivery preserves title.
-   - Aid delivery into the requester compartment changes title atomically and credits both the
-     shipment and Supply Commitment.
-5. **Complete or retain remainder** — partial capacity is never assumed; an order is split before
-   execution or the delivery records a recoverable full-destination failure with cargo retained.
-
-The movement system owns position and cooldown. The logistics operation owns cargo, storage
-mutation, title transition, shipment state, and facts.
+Route confidence, danger, escorts, loss probability, and risk-weighted allocation are deferred until
+actual route hazards exist. Current reachable routes carry no fabricated confidence number.
 
 ## Reservation, failure, and lifecycle rules
 
-### Goods and capacity reservation
-
-Stationary hosts track hard reserved quantity per item and commitment/order. The sum of live
-reservations never exceeds present stock. Reserved goods are unavailable to ordinary production
-input selection, another plan, another Aid Request, and another shipment.
-
-A logist is hard-reserved by at most one live facility service, shipment, or Haul Commitment. Cargo
-capacity is reserved against the exact item lines that will load. An assigned but valid standby
-truck remains reserved even with an empty cargo hold.
-
-### Pre-pickup expiry
-
-Supply and haul commitments may expire before pickup if no measurable preparation or route progress
-occurs by their authored deadline. Expiry releases physical reservations, records responsibility and
-avoidability, and returns only the still-useful public quantity to the board.
-
-Facility standby does not use this generic expiry. Its forecast and maximum-wait rules own release.
-
-### Post-pickup stall
-
-After loading, the shipment owns physical cargo and its logist remains assigned. Forward route
-progress updates a stall deadline. Expiry of that deadline marks the shipment stalled and raises a
-failure diagnosis; it does not release the truck, recreate goods at origin, or mark the public
-quantity available for another delivery.
-
-Stalled cargo reaches a terminal physical disposition only through:
-
-- resumed delivery;
-- an explicit return shipment;
-- unload to an eligible ground stockpile or depot compartment;
-- capture;
-- or explicit destruction/loss.
-
-Only delivery credits fulfillment. Loop 1 needs resumed delivery, return, and explicit destruction
-test seams; combat capture arrives later.
-
-### Withdrawal and preemption
-
-Pre-pickup voluntary withdrawal releases reservations and increments the responsible Charter's
-pledge or carriage reliability counter. Post-pickup abandonment cannot be a bookkeeping withdrawal;
-it must choose a physical cargo disposition.
-
-Only a simulated immediate survival emergency may preempt a valid 1B service or pre-pickup
-commitment. The schema records Direct Order as a future cause but exposes no player trigger.
-Preemption records the broken responsibility and never silently republishes already-carried goods.
-
-### World and ownership changes
-
-- Facility ownership change resolves in this order:
-  1. cancel and release unpicked reservations, services, shipment orders, and public commitments
-     whose source or destination is the old-owner facility;
-  2. close the old owner's demand/supply signals and remove their depot-plan contributions;
-  3. atomically change the facility, active production state, and every buffered item to the new
-     owner without changing quantity or creating a ground pile;
-  4. emit the facility-claim fact with former owner, new owner, recipe progress, and claimed
-     quantities; and
-  5. assign or validate the new owner's supporting depot, open new signals, and plan from the
-     inherited buffer.
-  Cargo already loaded before the transition is not part of the facility aggregate and keeps its
-  prior title. If that cargo targeted the facility, foreign-buffer admission makes the old delivery
-  invalid and requires return, recovery, or another eligible destination.
-- Charter death uses the 1A redistribution rule. Commitments by or to the dead Charter terminate with
-  attribution; physical cargo follows its explicit title-holder through the death transition.
-- A destroyed or removed endpoint invalidates unpicked work. Picked-up cargo remains with the
-  shipment and requires return, recovery, or loss.
-- A newly blocked route makes unclaimed work ineligible and stalls a live shipment without
-  duplicating cargo.
+- Exact goods reservations name source, item, quantity, commitment, and leg.
+- Exact destination reservations name endpoint, item, quantity, and leg.
+- Hauling reservations name logist, cargo capacity, and work.
+- Soft atomic pickup validates source stock and destination capacity together.
+- Pre-pickup expiry or withdrawal releases exact reservations and committed carriage.
+- Post-pickup timeout marks a recoverable stall but cannot free the truck or recreate cargo.
+- Supporting-endpoint loss leaves the flow visible and work attributable until reassigned.
+- Facility ownership change cancels incompatible unpicked work before claiming the facility
+  aggregate; loaded cargo keeps its existing title.
+- Charter death follows the implemented storage/title lifecycle; active work releases only what is
+  still physically releasable.
+- Emergency preemption is explicit, attributed, and cannot violate cargo conservation.
 
 ## Facts, diagnostics, and public surfaces
 
-### Buffered facts
+Emit buffered facts for material transitions:
 
-1B appends immutable facts for:
+- supporting depot assigned, changed, lost, or unreachable;
+- starvation/blockage episode started, materially changed, or recovered;
+- target, goal, or attributed capacity shortfall changed on a planning pass;
+- stock reservation created, topped up, consumed, released, or breached;
+- service assigned, standby entered, forecast invalidated, or service released;
+- leg planned, reserved, short-loaded, departed, partially admitted, delivered, stalled, returned,
+  recovered, or lost;
+- Aid Request or Haul Job published, accepted, expired, withdrawn, or completed; and
+- facility aggregate ownership changed.
 
-- supporting-depot assignment/change;
-- demand and supply signal lifecycle;
-- depot plan coverage/uncovered transition;
-- facility service creation, assignment, phase, standby, release, completion, and failure;
-- shipment order creation/change/close;
-- Aid Request publication/change/close;
-- supply offer acceptance/withdrawal/expiry;
-- Haul Job publication/change/close;
-- haul claim acceptance/withdrawal/expiry;
-- reservation creation/consumption/release;
-- shipment load, route milestone, stall, delivery, return, and terminal loss;
-- title change at aid delivery;
-- facility-and-buffer claim on ownership change; and
-- every recoverable or terminal failure with cause, actor, avoidability, stage, and quantity.
+Facts contain stable IDs and enough prior/new values for explanation. They do not own current flow,
+plan, reservation, or shipment state.
 
-Facts contain stable IDs and context but never become gameplay control flow.
-
-### Conservation and invariants
-
-Extend the 1A audit by item and title-holder across:
-
-- facility buffers;
-- depot compartments;
-- ground stockpiles;
-- ordinary unit inventory/equipment;
-- logist cargo lots; and
-- explicit production, consumption, destruction, and ownership-change journals.
-
-The audit also asserts:
-
-- facility contents respect their configured stockpile limits;
-- every facility buffer has exactly the facility owner, including immediately after ownership
-  change;
-- every cargo lot matches one live or terminal shipment disposition;
-- cargo quantities match occupied cargo-hold slots;
-- reservations do not exceed present goods or capacity;
-- one logist has at most one active assignment;
-- public committed/delivered/remaining arithmetic is exact; and
-- aid title changes only on matching delivery into the requester compartment.
-
-Violations throw `SimulationInvariantException` naming the concrete host, shipment, reservation, or
-request.
-
-### Headless
-
-Extend canonical metrics and digest output through `Simulation.Views` only:
-
-- facility supporting depot, buffer limits, demand/supply signal state, time-to-bite/block, and
-  suffering/blockage duration;
-- depot plan summaries by Charter/depot/item, including contributor counts, covered/uncovered
-  quantity, inbound/outbound, and protected-reserve constraint;
-- facility services with assigned logist, phase, expected-ready tick, standby duration, next
-  deadline, cycles, and terminal reason;
-- private shipment orders and live shipments with title-holder, beneficiary, endpoints, quantities,
-  phase, route distance, and stall state;
-- Aid Requests, supply commitments, Haul Jobs, and haul commitments with canonical fulfillment;
-- cargo lots by logist and shipment;
-- allocation, replan, direct-bypass, standby, failure, and churn counts; and
-- zero-discrepancy conservation rows including cargo and title changes.
-
-Digest-only remains the default; `--metrics` retains its existing contract.
-
-### Godot
-
-Add projected presentation for:
-
-- pain at the actual facility/authored-demand source, showing category, forecast time pressure, and
-  suffering/blockage duration without exact private quantity;
-- depot pressure that distinguishes missing goods from missing carriage without exposing exact
-  compartment stock;
-- facility service state, including a visibly intentional standby truck;
-- public Aid Request and Haul Job state with exact declared quantity and progress;
-- cargo-bearing convoys tinted by carrier, with inspection naming title-holder and beneficiary; and
-- pickup, standby, departure, delivery, failure, and recovery events in the feed.
-
-Do not add player route controls, internal quantity disclosure, or interactive board decisions.
+Headless and developer views expose exact contributor flows, gross stock, target, goal, stock tiers,
+reservations, traffic, shipment arithmetic, decision terms, route failures, and conservation.
+Player-facing views obey GDD information rules: local pain and age, depot pressure, public exact
+commitments, intentional standby, convoy custody/title, and attributed outcomes without leaking
+private stock plans.
 
 ## Authored content and tuning
 
-### Tuning values
+These are provisional starts, not final balance:
 
-These values have different roles. Some set physical capacity or timing. Some are safety checks.
-Others are starting preferences for the neutral Manager or Leader. Future Leaders may influence
-preference values within safe limits, but they cannot change physical rules or rewrite work that was
-already accepted. The
-[Charter AI architecture](../design/charter-ai-architecture.md#policy-compilation-and-tuning-ownership)
-owns this split.
+| Value | Start | Ownership |
+|---|---:|---|
+| Manager planning cadence | 10 ticks | Game setting |
+| Supporting-depot reassessment | 60 ticks | Manager policy |
+| Supporting-depot minimum route saving | 2 ticks | Manager policy |
+| Depot target cover horizon | 60 ticks | Manager policy |
+| Neutral protected-goal fraction | 0.5 | Leader/Manager policy |
+| Maximum parallel live legs per order | 3 | Manager guardrail |
+| Routine departure / wait | 50% / 20 ticks | Routine execution band |
+| Important reservation / departure / wait | 80% / 80% / 20 ticks | Important execution band |
+| Critical reservation / departure | Full where possible / any useful positive load | Critical execution band |
+| Truck cargo capacity | 12 slots | Physical configuration |
+| Desired facility input cover | 2 batches | Manager policy |
+| Normal facility-output pickup | 50% of useful buffer | Manager policy |
+| Service minimum commitment | 60 ticks | Manager policy |
+| Facility standby maximum | 40 ticks | Manager policy |
+| Forecast slip tolerance | 10 ticks | Manager policy |
+| Direct-bypass minimum saving | 2 route ticks | Manager policy |
+| Aid commitment expiry | 60 ticks | Cooperation policy |
+| Haul commitment expiry | 60 ticks | Cooperation policy |
+| Loaded shipment stall diagnosis | 60 ticks | Safety check |
+| Minimum useful shipment | 1 item | Manager policy |
+| Off-road truck cooldown | 2 ticks per step | Physical configuration |
 
-The starting values are for the first working version, not final balance:
+Facility standby, aid/haul expiry, shipment stall, cargo, and movement values retain their existing
+provisional meanings unless implementation gives an obsolete name a clearer replacement. A future
+cautious Leader changes semantic stock-protection posture, stock cover, and firmness; the deterministic
+policy compiler bounds those inputs and produces literal targets, goals, and execution terms.
 
-| Value | Proposed start | Meaning | Effect |
-|---|---:|---|---|
-| `managerPlanningCadence` | 10 ticks | **Game setting.** How often a Manager reviews needs, jobs, and truck assignments. | Increase it for slower reactions and fewer reviews. Decrease it for faster reactions and more planning work. |
-| `signalValidationCadence` | 10 ticks | **Safety check.** How often the game double-checks shortage and available-output reports. | Increase it to check less often, so stale reports last longer. Decrease it to correct them sooner, using more processing time. |
-| `truckCargoSlots` | 12 slots | **Physical limit.** How much cargo a truck can carry. | Increase it for fewer trips and less truck pressure. Decrease it for more trips and tighter truck shortages. |
-| facility-type `stockpileLimits` | per facility type/item | **Physical limit.** Overrides the item-definition fallback for a facility type's hosted stockpile. | Increase an input limit to survive later deliveries or an output limit to allow later pickups, at the cost of keeping more goods outside depots. Decrease it for leaner buffers and tighter service pressure. |
-| `desiredInputBatches` | 2 | **Manager choice.** How many input batches the Manager tries to keep at a facility. | Increase it to reduce starvation but store more goods at facilities. Decrease it to use leaner stocks with less protection from delays. |
-| `pickupThresholdFraction` | 0.5 | **Manager choice.** How full the output buffer should be before a normal pickup. | Increase it for fuller truckloads and longer waits. Decrease it for earlier pickups and more partly filled trips. |
-| `serviceMinimumCommitmentTicks` | 60 ticks | **Manager choice.** How long a newly assigned service truck is protected from normal reassignment. | Increase it for steadier service but less freedom to move trucks. Decrease it for more flexibility but more service changes. |
-| `maximumStandbyTicks` | 40 ticks | **Manager choice.** How long a truck may wait at a facility for expected output. | Increase it to wait for fuller loads but keep trucks busy longer. Decrease it to release trucks sooner but risk extra travel or missed output. |
-| `forecastSlipToleranceTicks` | 10 ticks | **Manager choice.** How much later expected output may become before the Manager changes the plan. | Increase it to wait through small delays but risk wasting time. Decrease it to leave bad waits sooner but react to minor delays more often. |
-| `standbyReturnSafetyTicks` | 5 ticks | **Manager choice.** Extra return time required before lending a service truck to another job. Truck lending is not part of 1B. | Increase it to protect facility service and reject more side jobs. Decrease it to allow more side jobs but risk returning late. |
-| `directBypassMinimumSavings` | 2 route ticks | **Manager choice.** How much time a direct facility trip must save before it may skip the depot. | Increase it to send more goods through depots. Decrease it to allow more direct trips between facilities. |
-| `supplyCommitmentExpiryTicks` | 60 ticks | **Cooperation choice.** How long promised aid goods are held while waiting for pickup. | Increase it to protect promises longer but lock goods away. Decrease it to release goods sooner but let more promises expire. |
-| `haulCommitmentExpiryTicks` | 60 ticks | **Cooperation choice.** How long an outside truck is held while waiting to pick up an accepted haul. | Increase it to allow more travel time but keep trucks reserved longer. Decrease it to free trucks sooner but cancel more slow pickups. |
-| `shipmentStallTicks` | 60 ticks | **Safety check.** How long a loaded truck may stop moving before it is marked as stalled. | Increase it to allow slow journeys but report real problems later. Decrease it to report problems sooner but risk false alarms. |
-| `minimumUsefulShipment` | 1 item | **Manager choice.** The smallest load the Manager will send. | Increase it for fewer small jobs but slower help for small shortages. Decrease it for quicker small deliveries but more trips and jobs. |
-| `offRoadCooldownTicks` | 2 ticks | **Physical rule.** Extra travel time for each off-road truck step. | Increase it to make roads and depot placement more important. Decrease it to make off-road travel more attractive. |
-| `protectedReserve` | per Charter/depot/item | **Leader choice.** How much stock a Charter keeps back instead of spending or donating it. | Increase it for more safety and less aid. Decrease it for more aid and greater risk of a later shortage. |
+## Scenario
 
-The proof definitions must tune facility-type limits and the scenario policy must tune pickup
-thresholds together. No working-item limit may be smaller than one atomic batch or so small that
-healthy service requires a truck departure every production tick.
+Author a sibling scenario from the 1A three-region proof:
 
-### The 1B logistics scenario
-
-Author a sibling scenario and map from the 1A radius-4, three-region proof rather than changing the
-1A acceptance run in place:
-
-- keep Ironworks, Brimstone, and Greyline and the Ironfields, Sulfur Flats, and Central Works depots;
-- add one Ironworks and one Brimstone truck-logist at their regional depots for standing facility
-  service; retain Greyline's two trucks as public inter-depot haulers;
+- keep Ironworks, Brimstone, and Greyline with their regional depots;
+- add standing-service trucks while retaining Greyline's public haulers;
 - start extraction facilities empty and transformation facilities without pre-seeded inputs;
-- assign every facility to the nearest reachable regional depot;
-- use Ironworks' mine→refinery→rifle chain and Brimstone's mine→refinery→grenade/ammunition chain;
-- require Brimstone to obtain Ironworks materials through an Aid Request delivered to the sulfur
-  depot;
-- author Greyline demand points for finished rifles, grenades, and ammunition in its central-depot
-  compartment, producing remote Aid Requests;
-- preserve roads between regional facilities and depots and between all three depots; and
-- include at least one same-Charter local match for which direct facility bypass clears the savings
-  threshold.
+- run mine-to-refinery-to-finished-goods chains through physical service;
+- require Brimstone to obtain Ironworks material through aid to its depot;
+- represent Greyline finished-goods requirements as standing stock objectives;
+- include a same-Charter direct facility match;
+- show deliberate output standby and at least one deliberately parallel order; and
+- preserve roads among facilities and depots.
 
-The healthy run must show facility shuttle cycles, at least one deliberate standby, at least one
-direct bypass, at least one public donation, Greyline third-party carriage, delivery-time title
-transfer, and stable throughput without conservation discrepancy.
-
-### Disruption variants
-
-1. **Missing supply:** remove or unstaff an extractor. Downstream demand becomes uncovered; no donor
-   invents stock.
-2. **Insufficient facility service:** remove a production Charter's truck. The Manager leaves a
-   specific service uncovered or publishes concrete haul work; other live services do not churn.
-3. **Protected standby:** publish a distant lower-consequence Haul Job while a truck waits for
-   forecast output. The service keeps the truck and completes collection.
-4. **Invalidated standby:** remove the forecast facility's staffing or input while the truck waits.
-   The service releases it with a forecast-invalid diagnosis.
-5. **Distant aid:** donor stock and receiving depot are far apart. Forward movement prevents a false
-   stall and title remains donor-owned in transit.
-6. **Blocked route:** make the required depot path infeasible. An unclaimed job is rejected or a live
-   shipment stalls with cargo still present.
-7. **Excess competing aid:** requests exceed stock above protected reserve. Donor-local ranking and
-   public acceptance leave a deterministic uncovered remainder without oscillation.
-8. **Full receiving depot:** remove delivery capacity after pickup. The truck retains cargo and the
-   request remains undelivered; no title change occurs.
+Disruption variants cover missing supply, insufficient service, invalid standby, distant aid,
+unreachable support, blocked shipment route, competing aid, short pickup, and partial destination
+admission.
 
 ## Implementation work packages
 
-Implement in order. Each package ends with focused tests and a runnable repository.
+Implement in order. Each package is intentionally narrow: normally one state model and one system or
+service using it. Every package ends reviewable and runnable, with no placeholder path that bypasses
+the preceding package's invariants.
 
 ### Package 0 — Baseline and attachment map
 
-**Outcome:** 1A remains protected and every 1B extension point is identified.
+**Status:** complete.
 
-- Run the existing checks and preserve the A1 proof result.
-- Map the AI phase, production thresholds, stockpile admission, item transfer, unit features,
-  movement/pathfinding, fact journals, registries, views, metrics, and digest attachment points.
-- Record the shared-schema migrations required for facility-type stockpile overrides and cargo hold.
-
-**Gate:** no unexplained baseline failure, and no 1B domain state is proposed for ECS merely because
-it changes during play.
+The 1A proof and attachment map establish the baseline.
 
 ### Package 1 — Host capacity, endpoints, and title-preserving cargo
 
-**Outcome:** every physical host enforces the new storage boundary and a truck can carry foreign
-title safely.
+**Status:** implemented.
 
-- Add facility-type per-item stockpile overrides with item-definition fallback.
-- Replace the A1 living-transfer ejection bridge with atomic facility, production-state, and buffer
-  claim; retain the existing Charter-death aggregate transition.
-- Add `StorageEndpoint` resolution for facilities, owner depot compartments, and ground piles.
-- Add the cargo-hold feature and cargo lots; migrate truck definitions and the empty A1 truck data.
-- Add atomic hauling load/delivery primitives with internal-title preservation and aid-delivery title
-  transition seams.
+Facility-type stockpile overrides, aggregate facility claim, stationary storage endpoints, logist
+cargo holds, cargo lots, and atomic title-aware load/delivery primitives form the implementation
+baseline. The [TDD](../TDD.md) owns the exact implemented architecture.
 
-**Gate:** focused tests cover host-specific capacity, forbidden foreign facility stock, aggregate
-facility claim without ground piles, inherited recipe progress, endpoint resolution, lot stacking
-identity, cargo capacity, and title independent from carrier.
+### Package 2 — Charter aggregate service
 
-### Package 2 — Supporting depots and durable physical signals
+**Status:** design approved; ready for implementation.
 
-**Outcome:** each facility has a stable service hub and exposes truthful current demand/supply state.
+- Consolidate `CharterFactory` and `CharterLifecycleService` into one cohesive `CharterService`
+  without changing Charter creation, death, or depot-compartment behavior.
+- Move existing callers and focused tests to the cohesive service.
+- Remove the superseded split services after the migration.
 
-- Implement route-cost assignment, persistence, invalidation, and stable ties.
-- Add demand signals for facility inputs and authored depot demand points.
-- Add available-output signals with forecast/blockage timing.
-- Emit transition facts while keeping signals authoritative.
+**Gate:** existing Charter creation, spawn synchronization, living transfer, death, and
+depot-compartment tests retain their behavior; no alternate lifecycle path remains.
 
-**Gate:** tests cover assignment, no score-churn reassignment, time-to-bite, suffering/blockage
-transitions, partial recovery without age reset, and fact/state separation.
+### Package 3 — Logistics phase boundary
 
-### Package 3 — Depot plans and private matching
+**Outcome:** later logistics systems have one correctly ordered scheduling boundary.
 
-**Outcome:** Managers aggregate without losing contributors and solve title-local work before asking
-for help.
+- Add an empty `LogisticsSimulationPhase` after movement, facility production, and ground-stockpile
+  expiry.
+- Attach the phase to the simulation tick and make its position observable in a focused ordering
+  test; do not add flow or Manager behavior yet.
 
-- Add per-Charter depot plan lines and committed-flow accounting.
-- Implement neutral interpretation and deterministic local ranking.
-- Match facility output to facility/depot demand.
-- Add same-Charter direct bypass and own inter-depot shipment orders.
-- Add the neutral Leader-policy proposal boundary without a Leader domain object.
+**Gate:** the A1 proof remains unchanged, the phase runs exactly once per simulation tick, and an
+ordering test proves logistics observes current-tick movement, production, and expiry.
 
-**Gate:** tests prove no double-counted inbound, local demand remains until delivery, direct bypass
-beats two depot legs only when eligible, and unresolved title/carriage reaches the policy boundary.
+### Package 4 — Supporting-depot assignment
 
-### Package 4 — Persistent facility service and deliberate standby
+**Outcome:** every eligible facility has a stable, factual service anchor.
 
-**Outcome:** facilities receive stable hauling coverage and planned waiting survives spot work.
+- Add the facility's supporting-depot and next-reassessment state.
+- Implement initial assignment and invalid-assignment replacement in `SupportingDepotSystem`.
+- Implement the 60-tick valid reassessment and 2-route-tick minimum saving without challenger state.
+- Emit assignment, reassignment, loss, and unreachable facts.
 
-- Implement the FacilityService record, reservation, phases, cycle renewal, and selective uncovered
-  state.
-- Combine input delivery and output pickup where capacity permits.
-- Implement expected-ready forecasts, maximum wait, forecast invalidation, and decision traces.
-- Exclude assigned/standby trucks from all ordinary work candidates.
+**Gate:** focused tests cover initial selection, exact-tie stability, cooldown, insufficient saving,
+material saving, ownership invalidation, route invalidation, and no reachable depot.
 
-**Gate:** a healthy service cycles; a waiting truck rejects distant spot work; invalid production
-releases it; capacity shortfall leaves a specific service uncovered without oscillation.
+### Package 5 — Flow value contracts and buffers
 
-### Package 5 — Shipment execution and routing
+**Outcome:** the simulation can hold one allocation-free physical-flow snapshot without projecting
+behavior yet.
 
-**Outcome:** private orders become conservative physical movement.
+- Add tagged `FlowSourceRef` with facility support and a shared stable-ID payload.
+- Add `ItemConsumptionFlow` and `ItemSupplyFlow` value types with the approved nullable fields.
+- Add reusable simulation-owned consumption and supply buffers with a clear/reset/publish boundary.
+- Expose read-only current-phase spans or lists to consumers.
 
-- Add Shipment creation/splitting, go-to-origin, load, haul, deliver, road preference, and cooldowns.
-- Link cargo lots, reservations, route milestones, and source/destination admission.
-- Implement internal delivery and direct-bypass completion.
-- Retain cargo on full destination or stall.
+**Gate:** tests cover valid and invalid tagged-source construction, field meaning, buffer reuse,
+stable iteration order, and zero per-flow heap identity. No unit or resupply-point runtime type is
+introduced.
 
-**Gate:** tests cover complete cycles, partial-order splitting before execution, no partial atomic
-mutation, route choice, title preservation, full destination, and loaded-stall invariants.
+### Package 6 — Facility flow projection
 
-### Package 6 — Aid Requests and supply commitments
+**Outcome:** facilities rebuild truthful present physical flows after current-tick production.
 
-**Outcome:** missing title becomes public aid at a depot, not a request mode on a raw need.
+- Implement `FacilityItemFlowSystem` for staffed and unstaffed recipes.
+- Compute current-staffing effective cadence, gross stock, physical free capacity, and next credible
+  transitions.
+- Publish deadlines only while uninterrupted current operation can reach them.
+- Publish recipe-switch leftovers as supply without production cadence.
 
-- Add Aid Request publication through neutral policy.
-- Add donor-local offer generation, requester acceptance order, hard reservation, same-depot
-  delivery, and remote aid shipment orders.
-- Maintain exact requested/committed/delivered/remaining arithmetic.
-- Transfer title and award credit only at requester-compartment delivery.
+**Gate:** tests cover staffed production, unstaffed recipes, input starvation forecast, output
+blockage forecast, a nearer co-blocker suppressing the other deadline, progress within a batch,
+recipe-switch leftovers, and flow removal after source death.
 
-**Gate:** tests cover aggregation, split donors, protected reserve, zero-distance hand-over, remote
-title timing, withdrawal/expiry, and no request-to-own behavior.
+### Package 7 — Impairment episodes and transition facts
 
-### Package 7 — Haul Jobs and external carriage
+**Outcome:** rebuilt flows retain factual suffering/blockage continuity without becoming durable
+objects.
 
-**Outcome:** concrete shipments without internal capacity can be carried by another Charter without
-changing title.
+- Add minimal facility-owned episode state keyed by item and direction.
+- Start an episode only when a staffed transition is actually prevented.
+- Preserve its start through insufficient partial relief, changed forecasts, unstaffing, and later
+  co-blockers; close it only when the prevented transition succeeds or the source flow ceases.
+- Emit episode-start, material-change, recovery, and source-loss facts from state transitions.
 
-- Publish Haul Jobs through the neutral policy boundary.
-- Add hauler-local ranking, claim acceptance, hard unit/capacity reservation, and useful splitting.
-- Create third-party Shipments from accepted claims.
-- Preserve existing facility service and shipment assignments from ordinary claims.
+**Gate:** tests cover actual starvation, actual output blockage, insufficient partial delivery,
+insufficient partial output clearance, co-blockers, successful recovery, recipe switch, and proof
+that removing fact consumers cannot change authoritative state.
 
-**Gate:** tests cover ineligible committed trucks, third-party cargo title, split hauling, stable
-ties, claim expiry, and Greyline carrying several Charters' separate cargo safely.
+### Package 8 — Contributor aggregation
 
-### Package 8 — Failure, lifecycle, and conservation
+**Outcome:** Managers can consume grouped flows without losing their physical sources.
 
-**Outcome:** every failure releases only what is physically releasable and every item remains
-accounted for.
+- Group by Charter, supporting endpoint, item, and direction.
+- Retain ordered contributor rows with source, cadence, credible deadline, and episode start.
+- Compare different integer batch intervals exactly; do not create a floating net rate.
+- Keep unsupported contributors in an explicit no-endpoint group.
 
-- Implement pre-pickup expiry/withdrawal, post-pickup stall, return/recovery seams, emergency
-  preemption, endpoint invalidation, facility ownership change, and Charter death integration.
-- Add reliability counters and full attribution.
-- Extend conservation and reservation audits across cargo and title changes.
+**Gate:** tests cover several contributors with different intervals, equal-rate exact arithmetic,
+earliest credible deadline, active impairment age, supply and consumption remaining separate, and an
+unreachable contributor surviving aggregation.
 
-**Gate:** no timer frees loaded cargo; ownership change cancels incompatible unpicked work while
-leaving loaded cargo titled and physical; every terminal path has a physical disposition; ownership
-and quantity audits identify deliberate injected discrepancies.
+### Package 9 — Depot plan records and standing stock objectives
 
-### Package 9 — Views, headless metrics, and digest
+**Outcome:** durable Manager state can describe desired stock without inventing physical demand.
 
-**Outcome:** the entire causal chain is inspectable without exposing mutable state.
+- Add Charter/depot/item plan lines with gross stock, physical capacity, contributor references,
+  planned traffic, reservation summaries, target, goal, and attributed shortfalls.
+- Add standing explicit stock objectives with target, optional minimum goal, desired-by tick, reason,
+  and provenance.
+- Add change and withdrawal operations; physical attainment must not close an objective.
+- Represent Greyline's authored finished-goods needs as objectives.
 
-- Add projected signal, depot-plan summary, service, board, cargo, and shipment views.
-- Extend canonical metrics and digest rows.
-- Add decision-trace and churn counters.
-- Preserve the player visibility split in public projections.
+**Gate:** tests cover plan-line identity, objective replacement/withdrawal, persistence through
+attainment and later depletion, unsupported contributors, and no objective-created physical flow.
 
-**Gate:** captured-state output is canonical, complete, and cannot mutate simulation state; private
-quantities do not leak into ordinary presentation views.
+### Package 10 — Target and stock-goal compilation
 
-### Package 10 — Scenario, pain map, and live feed
+**Outcome:** every plan line receives concrete, explainable stocking quantities.
 
-**Outcome:** the revised economy is watchable and every disruption tells a different story.
+- Add the bounded neutral `EffectiveManagerPolicy` fields required for target cover and goal
+  fraction.
+- Compile policy-horizon gross consumption cover and standing objectives into `TargetQuantity`.
+- Cap target by physical capacity and attribute the clipped quantity.
+- Compile `StockGoalQuantity` from the bounded policy fraction and explicit minimum.
+- Compute reserved, goal-protected, and Soft stock partitions.
 
-- Author the sibling 1B map/scenario and all disruption variants.
-- Render source pain, depot pressure, service/standby state, and convoys.
-- Add board, pickup, standby, departure, delivery, failure, and recovery feed events.
-- Tune authored values until the healthy scenario reaches stable throughput and variants retain
-  distinct diagnoses.
+**Gate:** table-driven tests cover target-versus-goal examples, deterministic rounding, zero and full
+capacity, objective minimums, capacity shortfall attribution, reservations larger than current
+physical stock, and all three stock tiers.
 
-**Gate:** the watchable outcome and every disruption assertion pass across the chosen seed set with
-zero conservation discrepancy.
+### Package 11 — Fixed-cadence Manager planning
 
-### Package 11 — Close 1B
+**Outcome:** Managers interpret one completed snapshot at predictable ticks.
 
-**Outcome:** implementation reality and owning documents agree without migration residue.
+- Add the authored planning cadence and per-Charter next-planning tick.
+- Run due Managers only after logistics execution, support validation, flow rebuild, aggregation,
+  and target/goal compilation.
+- Rank contributors and objectives using time-to-bite, impairment age, consequence, route time,
+  commitments, and policy.
+- Diagnose intervening physical failures without scheduling an extra planning pass.
 
-- Run the complete checks and residue sweeps for old demand/request-to-own/transfer modes, title at
-  pickup, facts-as-planning, host-inherited cargo title, public internal transfers, and the A1
-  facility-stock ejection bridge.
-- Update the TDD for implemented storage, cargo, registry, ordering, and public-boundary facts.
-- Remove temporary compatibility code and stale migration notes.
-- Update management position and Loop 1 completion only when every gate is met.
+**Gate:** tests prove no event-triggered planning, stable exact ties, one plan per cadence tick,
+current-phase snapshot use, persistence of the prior target/goal between passes, and next-tick
+movement for newly planned work.
 
-**Gate:** no contradicted legacy path remains reachable and every completion condition below is
-demonstrated.
+### Package 12 — Shipment order, leg, and execution-term state
 
-## Validation and tests
+**Outcome:** planning can express tolerant physical work before any truck executes it.
 
-### Storage, ownership, and cargo
+- Add parent `ShipmentOrder` and one-item `ShipmentLeg` registries and lifecycle operations.
+- Add stable Routine, Important, and Critical policy bands.
+- Snapshot target, minimum departure, access, commitment, reserved quantity, pickup deadline,
+  top-up, fallback, and policy version into `ShipmentExecutionTerms`.
+- Add bounded deliberate splitting with at most three parallel live legs and exact parent remainder
+  arithmetic.
 
-- Facility stockpiles use facility-type per-item overrides with item-definition fallback; proof
-  working-item limits are atomic-batch safe and smaller than depot capacity.
-- Facilities reject foreign title; depot compartments and cargo lots preserve it explicitly.
-- Facility ownership change claims the active recipe progress and all buffered goods without
-  changing quantity or creating a ground pile; incompatible unpicked work is released first.
-- Pickup never changes title; same-owner delivery preserves it; aid delivery changes it exactly once.
-- Carrier affiliation never changes cargo title or beneficiary.
+**Gate:** tests cover one-item enforcement, all three bands, policy changes not mutating live terms,
+parallel legs when one truck could carry the order, live-leg cap, cancellation before pickup, and no
+parent remainder duplication.
 
-### Signals, depot plans, and escalation
+### Package 13 — Goods and destination-capacity reservations
 
-- Signals reflect physical state and retain bite/suffering/block history through partial changes.
-- Facts mirror transitions but removing a fact consumer cannot change Manager behavior.
-- Depot aggregation retains source contributors and subtracts stock/inbound exactly once.
-- Internal remedies precede neutral escalation; no public record exists for solved internal work.
+**Outcome:** exact commitments protect both ends without changing gross physical stock.
 
-### Facility service and stability
+- Add identified source-goods and destination-capacity reservation registries.
+- Add atomic create, increase, reduce, consume, and release operations.
+- Enforce exact reservations during local facility consumption and shipment planning.
+- Derive plan reservation summaries without embedding them in physical flows.
 
-- Input delivery and output collection share a trip when capacity permits.
-- Forecast-backed standby remains assigned and visible.
-- Ordinary high-scored spot work cannot preempt a valid service.
-- Invalid forecast, route, or ownership releases unpicked work with attribution.
-- Insufficient capacity degrades selected services instead of churning all assignments.
+**Gate:** tests cover double-reservation rejection, mirrored capacity, reservation release,
+consumption exclusion, goal-protected Hard reservation, Soft rejection below goal, host capacity
+change, and unchanged gross flow quantities.
 
-### Board and allocation
+### Package 14 — Facility service records and commitments
 
-- Aid Requests aggregate only uncovered title needs at receiving depots.
-- Haul Jobs name concrete physical work and never act as generic transfer requests.
-- Donor and hauler intentions do not overlap their own resources.
-- Acceptance caps portions at public/order remainder and uses documented exact ties.
-- Protected reserve and committed services remain unavailable.
+**Outcome:** planning can reserve persistent facility coverage before cycle execution exists.
 
-### Shipment and failure
+- Add the `FacilityService` record, registry, stable identity, supporting-depot link, covered
+  directions, and lifecycle state.
+- Add hauling commitment and atomic assign/release operations.
+- Exclude a service-assigned truck from ordinary work candidates.
+- Represent selectively uncovered facilities when carriage is insufficient.
 
-- Go-to-origin, load, haul, and delivery preserve conservation and endpoint admission.
-- Direct bypass records depot-plan coverage without depot storage.
-- Full destination and blocked route remain recoverable physical states.
-- Pre-pickup expiry releases; post-pickup stall retains truck and cargo.
-- Return/recovery and explicit loss reconcile every terminal cargo disposition.
+**Gate:** tests cover creation, renewal metadata, hauling exclusion, idempotent assignment, release,
+invalid ownership or endpoint, and several uncovered facilities without assignment churn. No
+service movement is added yet.
 
-### Diagnostics and visibility
+### Package 15 — Private matching and order creation
 
-- Developer/headless output can explain source, depot, service, board, route, and delivery failure.
-- Pain shows time pressure and suffering/blockage without private exact stock.
-- Public board quantity and progress are exact.
-- Convoy inspection distinguishes carrier, title-holder, and beneficiary.
-- Decision traces explain standby preservation/release and direct-bypass choice.
+**Outcome:** a due Manager creates only feasible Charter-internal work before escalation.
 
-### Scenarios and reproducibility
+- Match local supply, consumption, stock objectives, and depot rebalancing against live
+  reservations and traffic.
+- Create or renew facility services, ordinary Soft/Planned internal legs, and important
+  Hard/partially Reserved legs.
+- Select same-Charter direct facility bypass only when it clears the authored route saving and
+  preserves plan coverage.
+- Send unresolved title or carriage proposals through the neutral Leader-policy boundary without a
+  concrete Leader object.
 
-- Healthy flow reaches stable throughput with service, bypass, aid, third-party carriage, and
-  delivery-time title transfer.
-- Every disruption variant reaches its named diagnosis and does not oscillate.
+**Gate:** tests cover local remedy ordering, no double-counted inbound, service creation and
+preservation, direct-bypass eligibility, own inter-depot work, Soft competition, attributed
+uncovered remainder, and escalation only after private remedies.
+
+### Package 16 — Soft pickup and Hard top-up
+
+**Outcome:** legs depart with useful partial quantities under their snapshotted terms.
+
+- Implement Soft pickup as one atomic source-stock and destination-capacity acquisition.
+- Implement Hard depot-origin top-up as accumulated exact source reservations with one departure
+  load.
+- Apply minimum departure, pickup deadline, and fallback terms for all three bands.
+- Reopen only the unpicked quantity on the parent order for the next planning pass.
+
+**Gate:** tests cover 90% Routine pickup, Routine failure below 50%, 80%-reserved Important pickup
+after a 20-tick wait, Important top-up to 100%, Critical positive-load departure, local consumption
+between planning and Soft pickup, and exact parent remainder.
+
+### Package 17 — Shipment movement and partial delivery
+
+**Outcome:** loaded legs move and deliver conservatively through real routes.
+
+- Assign eligible internal logists, route to origin, load, follow road-aware movement, and reach the
+  destination.
+- Admit as much cargo as current destination capacity permits.
+- Update exact delivered-portion title and commitment arithmetic.
+- Keep undelivered quantity in cargo and expose wait, return, and recovery dispositions.
+
+**Gate:** tests cover a complete internal trip, direct bypass, road preference, cooldown, partial
+destination admission, full destination, title preservation, aid title change on admitted quantity
+only, and no cargo bookkeeping release.
+
+### Package 18 — Facility service cycle execution
+
+**Outcome:** a persistent service advances through ordinary input and output trips.
+
+- Add service phases for acquiring a cycle, travelling to input origin, delivering inputs,
+  collecting ready output, returning or directly delivering, and renewing or releasing.
+- Build each physical movement from the shipment-leg and reservation operations already implemented.
+- Support input-only, output-only, and ordinary round-trip cycles.
+- Preserve the service and hauling commitment across successful cycle renewal.
+
+**Gate:** healthy input-only, output-only, and round-trip services each cycle; assignment survives
+ordinary higher-ranked work; a failed leg leaves an attributed service state; renewal creates no
+duplicate leg or hauling promise.
+
+### Package 19 — Facility standby and combined cycles
+
+**Outcome:** service trucks may wait or backhaul for physical reasons rather than score inertia.
+
+- Add `StandbyForOutput`, credible ready-tick validation, maximum wait, and forecast-slip handling.
+- Permit incremental facility-output loading while waiting to free buffer capacity.
+- Combine compatible input delivery and output collection within cargo capacity.
+- Release or replan on missing staffing, input, route, ownership, or expired wait.
+
+**Gate:** tests cover valid standby, rejection of competing spot work, progressive output loading,
+combined input/output service, forecast slip inside tolerance, invalidated forecast, and maximum-wait
+release.
+
+### Package 20 — Aid Requests and supply commitments
+
+**Outcome:** unresolved title needs become exact public aid without bypassing donor policy.
+
+- Publish Aid Requests through the neutral Leader boundary.
+- Generate donor-local offers and accept portions without exceeding public remainder.
+- Create default Soft/fully Reserved commitments and explicitly approved Hard aid.
+- Handle same-depot delivery and remote shipment-order creation.
+- Preserve exact requested, committed, reserved, loaded, delivered, and remaining arithmetic.
+
+**Gate:** tests cover split donors, donor goal protection, accepted-goods exclusion from local use,
+Hard-aid approval, zero-distance transfer, remote title timing, expiry/withdrawal, and excess
+competing aid.
+
+### Package 21 — Haul Jobs and external carriage
+
+**Outcome:** another Charter may carry only concrete, reserved physical work.
+
+- Publish Haul Jobs only for shipment legs backed by exact goods reservations.
+- Rank and accept claims using the hauler's own resources and stable exact ties.
+- Reserve the unit and cargo capacity; permit several haulers to claim separate portions.
+- Preserve title-holder and beneficiary independently from carrier affiliation.
+
+**Gate:** tests cover refusal of uncertain Soft work, ineligible committed trucks, split hauling,
+claim expiry, third-party title, separate cargo lots, and Greyline carrying several Charters' work.
+
+### Package 22 — Failure, recovery, and lifecycle
+
+**Outcome:** every interrupted operation has an attributable physical disposition.
+
+- Add pre-pickup expiry and withdrawal, loaded-shipment stall diagnosis, wait, return, recovery, and
+  explicit loss.
+- Integrate endpoint invalidation, facility ownership change, Charter death, and emergency
+  preemption.
+- Release only reservations and carriage that remain physically releasable.
+- Record cause, responsible actor, avoidability, quantity, and stage.
+
+**Gate:** no timer frees loaded cargo; incompatible unpicked work releases before facility claim;
+loaded cargo survives title-holder or carrier changes correctly; every terminal path names a
+physical disposition.
+
+### Package 23 — Conservation and reservation audits
+
+**Outcome:** quantity, title, promises, and capacity can be reconciled independently.
+
+- Extend conservation across facility storage, depot compartments, ground piles, reservations,
+  cargo, partial delivery, return, recovery, title change, and explicit loss.
+- Add audits for source reservations, destination-capacity reservations, parent/leg arithmetic, and
+  hauling-capacity commitments.
+- Add focused discrepancy attribution rather than one aggregate failure.
+
+**Gate:** all healthy and failure paths reconcile; deliberate injected quantity, title, reservation,
+capacity, and parent-remainder discrepancies fail in the expected audit.
+
+### Package 24 — Views, headless metrics, and digest
+
+**Outcome:** the causal chain is inspectable without exposing mutable domain state.
+
+- Add read-only flow, contributor, plan, stock-tier, service, board, cargo, and shipment projections.
+- Extend canonical headless metrics and digest rows.
+- Add decision traces, planning-cadence counters, service coverage, short-load, partial-delivery,
+  impairment-age, and churn metrics.
+- Preserve private/public visibility boundaries.
+
+**Gate:** captured views cannot mutate simulation state; output ordering is canonical; private
+quantities stay out of ordinary presentation; the same seed and state produce equivalent output.
+
+### Package 25 — Scenario and disruption fixtures
+
+**Outcome:** all approved mechanics run together before presentation work.
+
+- Author the sibling 1B scenario from the A1 proof.
+- Add healthy service, direct bypass, deliberate standby, parallel legs, aid, and third-party
+  carriage.
+- Add fixtures for missing supply, insufficient service, invalid standby, unreachable support,
+  blocked route, competing aid, short pickup, and partial destination admission.
+- Tune authored values until each fixture reaches its intended state without conservation error.
+
+**Gate:** the healthy scenario reaches stable throughput and every disruption produces its distinct
+structured diagnosis across the chosen seed set.
+
+### Package 26 — Pain map, convoy state, and live feed
+
+**Outcome:** the integrated scenario becomes watchable without exposing private plans.
+
+- Render source pain and impairment age, depot pressure categories, service/standby state, and
+  cargo-bearing convoys.
+- Show public Aid Request and Haul Job quantities and fulfillment.
+- Add pickup, wait, departure, partial delivery, recovery, failure, and completion feed events.
+- Keep route choice and direct unit control unavailable to the player.
+
+**Gate:** a viewer can distinguish source, stock-goal, reservation, carriage, route, and destination
+failures from the map and feed; convoy inspection names carrier, title-holder, and beneficiary.
+
+### Package 27 — Close 1B
+
+**Outcome:** implementation reality, documentation, and acceptance evidence agree.
+
+- Run complete checks and residue sweeps for the rejected flow model and obsolete shipment rules.
+- Update the TDD only for facts now implemented.
+- Remove compatibility code and stale migration notes.
+- Update management and Loop 1 completion only when every preceding gate and the completion gate
+  below are demonstrated.
+
+**Gate:** no contradicted legacy path remains reachable, the A1 proof remains intact, and every 1B
+completion condition is demonstrated.
+
+## Validation and examples
+
+### Physical-flow examples
+
+1. **Staffed production:** a staffed recipe consuming 15 ingots and producing 5 rifles every 30
+   ticks exposes both batch quantities, 30-tick effective intervals, gross buffers, and only the
+   next/deadline ticks supported by uninterrupted current operation.
+2. **Unstaffed flow:** the same facility exposes recipe batch quantities and gross stocks, but both
+   effective intervals and operational forecasts are absent. It does not claim throughput.
+3. **Actual starvation:** an input transition fails while staffed. The consumption flow records the
+   episode start at that tick; a prior predicted starvation tick alone never starts the episode.
+4. **Output blockage:** a staffed completion cannot admit its output batch. The supply flow retains
+   its production cadence and records blockage start while the blocked transition remains pending.
+5. **Partial recovery:** a delivery too small to permit the failed input transition changes gross
+   stock but preserves the original starvation start. The episode closes only when the transition
+   succeeds.
+6. **Recipe-switch leftovers:** changing recipes leaves 7 unrelated rifles in stock. They appear as
+   supply with quantity 7 and no produced batch, cadence, or production forecast.
+7. **Unreachable support:** a facility with no route still emits its source flows using the none
+   endpoint and an attributed support failure; it is not omitted from planning or pain.
+
+### Stock-arithmetic examples
+
+1. **Target versus goal:** 60-tick credible consumption cover is 80, a standing objective requests
+   120, and capacity is 100. The target is 100, the neutral goal is 50, and the missing 20 is an
+   attributed capacity shortfall.
+2. **Three tiers:** physical stock 100, exact reservations 30, and goal 40 produce 30 reserved,
+   40 unreserved goal-protected, and 30 soft stock.
+3. **Soft short-load:** a Routine leg targets 100 while only 90 soft items exist. It atomically
+   reserves destination capacity, loads 90, departs above its 50 minimum, and reopens 10 on its
+   parent.
+4. **Hard top-up:** an Important leg targets 100, reserves 80 into goal-protected stock, and waits up
+   to 20 ticks. Ten arriving items become additional reservations; with no further supply it may
+   depart with 90 at its deadline because 90 exceeds the 80 minimum.
+5. **Goal changes between passes:** a goal compiled as 50 remains 50 after a shortage until the next
+   planning pass. A unit or Soft leg beside 50 protected items cannot draw them. If the next pass
+   lowers the goal to 30, 20 becomes soft stock; the earlier failure does not retroactively vanish.
+
+### Shipment examples
+
+1. **Ninety-percent Soft pickup:** the Routine example above is successful partial pickup, not a
+   broken promise, because the leg was Planned.
+2. **Eighty-percent reserved Hard pickup:** an Important leg may depart with its reserved 80 after a
+   20-tick wait when no top-up arrives. The remaining 20 reopens on the parent.
+3. **Parallel legs:** an order for 240 may create three live 80-item legs even if one truck could
+   eventually carry all 240. Each owns separate terms, reservations, and physical progress.
+4. **Partial admission:** a truck carrying 90 can admit only 60. Delivery/title arithmetic advances
+   by 60; 30 stays in cargo for wait, return, recovery, or loss.
+5. **Accepted aid:** a donor with 120 physical, goal 50, and no reservations may accept at most 70
+   under default Soft access. The accepted portion becomes fully Reserved and cannot be consumed
+   locally. Hard aid requires explicit Leader approval.
+6. **Cargo recovery:** a failed destination does not reopen loaded quantity. A return admits cargo
+   back to a valid source, or a recovery operation transfers it; only that physical transition
+   changes cargo accounting.
+
+### Future unit compatibility
+
+A Loop 3 resupply point may aggregate food consumption from several assigned units into one
+stationary endpoint plan. Shipments replenish the point's Charter-separated compartment; units visit
+the point and draw locally through Soft access. No shipment targets a unit, and no per-unit traffic
+is embedded in the flow snapshot. Ordinary depots are valid resupply points.
+
+The point keeps `TargetQuantity` above `StockGoalQuantity` so working stock is normally available.
+At the goal, units wait until a later Manager pass lowers it or new stock arrives. This may visibly
+produce suffering beside protected goods. Resupply-point IDs, registries, placement, local
+admission, and behavior remain Loop 3 work.
+
+### Automated validation
+
+- Flow and plan tests cover every example above and contributor-preserving aggregation.
+- Shipment tests cover exact reservations, destination capacity, partial execution, title, parent
+  remainder, cargo recovery, expiry, and stalls.
+- Scenario tests cover healthy service, direct bypass, standby, aid, third-party carriage,
+  unreachable support, blocked routes, competing aid, and full/partially available destinations.
+- Fact-consumer removal cannot change Manager behavior.
 - Same seed and captured state produce canonical equivalent results.
-- All item/title conservation rows remain balanced.
+- Item/title conservation and reservation audits balance on every terminal path.
 
 ## Completion gate
 
-Iteration 1B is complete when Charter-owned raw goods leave small facility buffers, standing
-services keep the local economy moving, regional depot plans aggregate demand without hiding its
-sources, same-Charter local flow may bypass unnecessary hub travel, and public cooperation begins
-only where goods or carriage are genuinely missing.
+Iteration 1B is complete when standing services move real Charter goods through a stable multi-stage
+economy; rebuilt flows expose credible cadence, present quantity, deadlines, and impairment age;
+depot plans distinguish desired target, protected goal, reservations, and traffic; and shipment
+terms permit useful uncertainty without double promises.
 
-The healthy scenario must show finished goods reaching Greyline's remote demand through accepted aid
-and visible convoys. A service truck must deliberately wait for credible production and remain
-protected from ordinary distant work; an invalid forecast must release it. Third-party carriage must
-preserve donor title through pickup and transit, and delivery into the requester compartment must be
-the sole routine logistics ownership-change moment. Facility transfer separately claims its small
-buffer and active production state as one aggregate without ejection. Pre-pickup expiry may release
-reservations; post-pickup stall may not release physical cargo by bookkeeping. Every disruption must
-fail distinctly, every decision must be attributable, private internal work must stay off the public
-board, and physical goods and hauling capacity must never be duplicated, promised twice, silently
-nationalized, or silently reassigned.
+The healthy scenario must show direct local bypass, deliberate standby, deliberate parallel legs,
+partial execution, accepted aid, third-party carriage, and delivery-time title transfer. Failures
+must leave exact physical remainders and distinct diagnoses. No code path may silently nationalize,
+duplicate, destroy, reserve twice, release loaded cargo by timeout, or deliver directly to a unit.

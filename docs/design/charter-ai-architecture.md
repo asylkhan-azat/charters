@@ -43,16 +43,17 @@ The Leader decides:
 - which strategic outcomes matter;
 - doctrine and persistent policies;
 - whether to accept political commitments;
-- which reserves or existing goals may be sacrificed;
-- how to resolve Manager escalations that require another Charter's goods, reserve sacrifice, or
+- which stock goals or existing objectives may be sacrificed;
+- how to resolve Manager escalations that require another Charter's goods, protected-stock access, or
   politically meaningful external carriage;
 - when an unresolved depot requirement deserves an Aid Request, refusal, reprioritization, or
   council petition;
 - how to respond to requests, Direct Orders, grants, relationships, council appeals, brokered
-  pledges, guarantees, priority grants, censures, reserve or haul-policy requests, and operational
+  pledges, guarantees, priority grants, censures, stock-goal or haul-policy requests, and operational
   restraints.
 
-Leader preferences change weights, thresholds, reserve floors, and acceptable risks. They do not
+Leader preferences change semantic postures such as stock cover, protected-floor caution,
+commitment firmness, and acceptable risk. They do not
 directly become percentages of units or exact operational assignments. Leaders express semantic
 policy; they do not edit raw tuning fields.
 
@@ -60,17 +61,21 @@ policy; they do not edit raw tuning fields.
 
 The Manager plans from the Charter's true physical state. It:
 
-- maintains routine production, supply, defence, and reserve levels;
-- reads durable local demand and available-output signals, then interprets when shortages or blocked
-  output matter;
+- maintains routine production, supply, defence, targets, and protected stock goals;
+- reads rebuilt consumption and supply flows, then interprets credible deadlines and active
+  starvation or blockage;
 - assigns sticky supporting depots and maintains Charter/depot/item plans with their source
-  contributors, deadlines, stock, protected reserves, and committed movement;
+  contributors, deadlines, gross stock, stocking targets, protected stock goals, reservations, and
+  planned movement;
 - maintains standing facility services and treats forecast-backed truck standby as committed work;
 - turns Leader goals and accepted commitments into plans;
-- reserves goods and capacity before creating operations;
+- separates Soft/Hard stock access from Planned/Reserved commitment and mirrors exact goods
+  reservations with destination-capacity reservations;
 - allocates available units and facilities;
-- creates private shipments, including same-Charter direct facility bypass when it preserves the
-  depot plan at lower physical cost;
+- creates parent shipment orders and one-item legs, including deliberate parallel legs and
+  same-Charter direct facility bypass;
+- snapshots concrete execution terms so pickup tolerance, top-up, and fallback remain stable during
+  execution;
 - diagnoses and reports failure with an attributable cause;
 - escalates only conflicts that exceed Leader policy or delegated authority.
 
@@ -87,7 +92,7 @@ Charter strategy or discard commitments because another goal has a slightly high
 The simulation represents charterless units and goods directly as national ownership with no
 `CharterId`. There is no placeholder political actor: charterless state has no Leader,
 relationships, grants, petitions, or strategic Manager. Its units use the same physical systems
-with simple local heuristics and lack coordinated forecasts, protected reserves, and multi-step
+with simple local heuristics and lack coordinated forecasts, compiled stock goals, and multi-step
 plans.
 
 ## Work model
@@ -96,7 +101,7 @@ plans.
 
 A standing responsibility preserves an acceptable operating state: feed units, replenish active
 fronts, operate useful facilities, keep their depot service viable, supply inputs, clear outputs
-before blockage, maintain depot reserves, and complete accepted work. A facility service remains one
+before blockage, maintain depot targets and goals, and complete accepted work. A facility service remains one
 standing responsibility across several trips; a truck waiting for forecast production is executing
 that responsibility, not becoming idle capacity.
 
@@ -112,11 +117,11 @@ scope. The decision chain remains distinct:
 ```text
 policy or Leader direction
     → observed state
-    → durable local demand / available-output signal
-    → supporting-depot plan
+    → rebuilt physical consumption / supply flows
+    → fixed-cadence supporting-depot stock plan
     → routine service or selected strategic goal
-    → private shipment, or Leader escalation for public cooperation
-    → reservations and physical operation
+    → parent order and snapshotted shipment legs, or Leader escalation
+    → optional exact reservations and physical operation
     → outcome or attributed failure
 ```
 
@@ -125,12 +130,14 @@ is scoped, testable, and explainable.
 
 ### Manager authority and escalation
 
-Managers may use unreserved goods and capacity inside policy, maintain minimums, assign supporting
-depots, preserve facility services, create private shipments, and publish routine Haul Jobs within
-delegated cooperation policy. They require a Leader decision to request another Charter's title,
-breach protected reserves, abandon an accepted commitment, cancel a major strategic operation, or
-make a doctrinal or political sacrifice. In Loop 1 a neutral policy occupies this boundary without
-adding personality; later Leaders may approve, refuse, reprioritize, or petition.
+Managers may use Soft stock above the current goal, maintain targets and goals, assign supporting
+depots, preserve facility services, create private shipments, and publish concrete Haul Jobs within
+delegated cooperation policy. Hard access into goal-protected stock requires an exact reservation
+and policy authority. Managers require a Leader decision to request another Charter's title, approve
+Hard aid, lower a politically protected goal outside delegation, abandon an accepted commitment,
+cancel a major strategic operation, or make a doctrinal sacrifice. In Loop 1 a neutral policy
+occupies this boundary without adding personality; later Leaders may approve, refuse, reprioritize,
+or petition.
 
 Leader-to-player escalation never interrupts the observer phase. The Leader resolves the issue
 autonomously or queues a petition for the next War Council. Only the player may invoke an Emergency
@@ -144,28 +151,36 @@ Authored data separates three kinds of value:
   facility buffer capacity, movement cost, and simulation cadence;
 - **hard guardrails** preserve legal and stable behavior, such as capacity invariants, valid tuning
   ranges, conservation, and the rule that ordinary rescoring cannot reclaim committed work; and
-- **neutral policy defaults** describe how the dormant 1B Manager behaves, such as reserve posture,
-  useful pickup size, commitment duration, standby patience, safety margin, and aid generosity.
+- **neutral policy defaults** describe how the dormant 1B Manager behaves, such as target cover,
+  protected-goal fraction, access authority, execution importance, standby patience, and aid
+  generosity.
 
 Future Leader AI does not replace the first two categories and does not apply one universal
 multiplier to the third. It produces semantic postures and decisions; a deterministic policy
 compiler maps those inputs, Manager doctrine, accepted commitments, and authored defaults into a
-bounded, versioned `EffectiveManagerPolicy`. For example, a cautious reserve posture can raise
-protected stock and desired facility cover, while an efficiency posture can prefer fuller pickups
-and longer forecast-backed standby. Each lever has its own direction and allowed range.
+bounded, versioned `EffectiveManagerPolicy`. A cautious posture may raise the stock-cover horizon
+and protected-goal fraction; a firm posture may choose Hard access and a larger reserved portion;
+an efficiency posture may prefer fuller pickups and longer credible standby. Each lever has its own
+direction and allowed range.
 
-Operational heuristics remain Manager-owned even when Leader policy biases them. The Leader may
-prefer stability or urgency; the Manager still calculates routes, forecasts, quantities, and exact
-assignments from physical state. Active services and accepted commitments snapshot their relevant
-policy terms until renewal or a permitted break condition, so a policy change cannot retroactively
-erase a promise or cause assignment churn.
+Operational heuristics remain Manager-owned even when Leader policy biases them. At its fixed
+planning cadence the Manager calculates routes, forecasts, literal `TargetQuantity` and
+`StockGoalQuantity`, and exact assignments from physical state. Active services and shipment legs
+snapshot concrete `ShipmentExecutionTerms`—target, minimum departure, access, reservation, pickup
+deadline, top-up, and fallback—until renewal or a permitted break. A policy change therefore cannot
+retroactively erase a promise or cause assignment churn.
 
 ## State and execution boundaries
 
-Long-lived Charter state uses stable domain identifiers. Leaders, policies, goals, local signals,
-supporting-depot plans, facility services, private shipment orders, Aid Requests, supply
+Long-lived Charter state uses stable domain identifiers. Leaders, policies, goals, supporting-depot
+plans, facility services, private shipment orders and legs, Aid Requests, supply
 commitments, Haul Jobs, shipments, reservations, relationships, and decision history belong to the
 simulation domain rather than transient ECS entity handles.
+
+Physical consumption and supply flows are different: systems rebuild allocation-free value
+snapshots into reusable simulation-owned buffers each logistics phase. They have tagged stable
+source references but no object identity or lifecycle. Only minimal impairment history persists on
+the source so partial relief cannot erase starvation or blockage age.
 
 Only abundant, frequently updated unit state belongs in ECS: position, ordinary carried inventory,
 cargo-hold capability, operation assignment, movement, combat, local supply condition, and other unit
@@ -182,8 +197,14 @@ admission rule for moving measured hot state into ECS later.
 
 ## Stability rules
 
-- Replan on meaningful events and at a slower validation cadence, never every rendering frame.
-- Reserve accepted goods and capacity before execution so they cannot be promised twice.
+- Run Manager planning only on its fixed simulation cadence. Diagnose execution failures
+  immediately, but wait for the next pass to replace or resize work.
+- Rebuild physical flows after movement, production, expiry, and current logistics execution; newly
+  planned movement starts on the next tick.
+- Keep gross physical flow state separate from reservations and traffic.
+- Keep access and commitment orthogonal: Soft/Hard controls which stock may be claimed, while
+  Planned/Reserved controls whether an exact quantity is promised.
+- Mirror exact source-goods reservations with destination-capacity reservations.
 - Preserve active commitments across ordinary replanning.
 - Treat deliberate standby as an explicit service phase with a forecast and decision deadline, never
   as unclaimed capacity or a movement heartbeat.
@@ -194,6 +215,9 @@ admission rule for moving measured hot state into ECS later.
 - Permit pre-pickup expiry to release reservations. After pickup, never release a truck or recreate
   its cargo merely because a timer expired; the shipment needs delivery, return, recovery, capture,
   or explicit loss.
+- Permit partial pickup and partial delivery. Reopen only unpicked parent-order remainder; keep
+  undelivered quantity as physical cargo.
+- Permit bounded deliberate parallel legs even when one hauler could eventually carry the order.
 - Bound active work so a Charter cannot fragment into hundreds of negligible operations.
 - Record terminal and recoverable failures separately, with cause, responsibility, and avoidability.
 - Resolve simultaneous decisions in explicit phases; stable IDs break exact score ties.
@@ -205,11 +229,12 @@ inspection:
 
 - candidates considered and eligibility failures;
 - positive and negative score factors;
-- reserve or capability that constrained the choice;
+- target, stock goal, stock tier, reservation, or capability that constrained the choice;
 - supporting-depot assignment, source contributors, production forecast, and why a truck waited or
   became available;
 - why a shipment used a depot or a same-Charter direct bypass;
 - why existing work was preserved, expired, cancelled, or preempted;
+- snapshotted execution terms and why a leg short-loaded, waited, departed, or fell back;
 - physical cause and responsible actor when an operation failed.
 
 Player-facing presentation uses only information allowed by [GDD §9](../GDD.md#9-information-model--tiered-truth).
@@ -217,11 +242,11 @@ Developer traces may contain true internal state and must never leak into ordina
 
 ## Delivery cut
 
-[Loop 1](loop-1-moving-economy.md) implements static Charter identity, durable facility demand and
-available-output signals, supporting-depot plans, standing facility services, private shipment
-orders, public Aid Requests and Haul Jobs, cargo title independent from carrier affiliation,
-reservations, hauling operations, and decision traces. A neutral policy occupies the future Leader
-escalation boundary; personality and politics remain dormant.
+[Loop 1](loop-1-moving-economy.md) is scoped to static Charter identity, rebuilt facility consumption
+and supply flows, supporting-depot stock plans, target/goal policy, standing facility services,
+private shipment orders and legs, public Aid Requests and concrete Haul Jobs, cargo title independent
+from carrier affiliation, reservations, partial hauling operations, and decision traces. A neutral
+policy occupies the future Leader escalation boundary; personality and politics remain dormant.
 
 Later loops add land-driven goals, Leader personality and relationships, combat planning, council
 commitments, and campaign strategy in the order owned by the roadmap.
