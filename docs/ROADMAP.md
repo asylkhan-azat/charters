@@ -68,21 +68,26 @@ deadlocking, oscillating, or hiding the cause of shortages?
 [Iteration 1B — Depot-Driven Transport](specs/iteration-1b-depot-driven-transport.md).*
 
 - Give facility types small per-item stockpile overrides and facilities sticky supporting depots.
-  Rebuild allocation-free consumption and supply snapshots each logistics phase, preserving only
-  minimal source impairment history, and aggregate contributors into Charter-scoped depot plans.
-- Compile one additive `StockingPolicy` per Charter/depot/item with Target, Protected, Reservation,
-  versioned capacity clipping, five physical partitions, and exact named reservations inside the
-  reservable pool.
-- Implement persistent ProductionMaintenance with at most one retained primary hauler, common
-  depot↔facility and inter-depot order/leg execution, input/output backhauls, output-leg top-up,
-  same-Charter direct facility bypass, road-aware routing, and title-preserving cargo lots.
-- Add destination-driven shipment orders with Minimum/Total success conditions, required-by and
-  outcome deadlines, separate settlement state, source-specific legs, named execution packages,
-  conservative forecast credit, recovery capacity, deliberate parallelism, and bounded redundancy.
-- Publish only unresolved inter-Charter cooperation: Aid Requests for goods delivered to a receiving
-  depot and Haul Jobs with disclosed partial guarantees and stamped execution terms. Give each donor
-  acceptance its own exact order, reserve recipient and donor-staging capacity, keep neutral policy
-  at the future Leader boundary, and transfer title only on admitted recipient delivery.
+  Rebuild allocation-free facility and same-title ground-pile flows inside each due Manager pass,
+  preserve minimal facility impairment history, and aggregate per-facility cover into Charter depot
+  plans.
+- Store durable Protected, Reservable, and Floating stock on each depot compartment/item, with exact
+  reservations inside Reservable and Target/excess views over Floating. Compile additive
+  `StockingPolicy` using deterministic fixed-point inflow weights; neutral defaults are 40/40/20.
+- Implement persistent ProductionMaintenance with at most one retained primary hauler and only
+  depot↔facility input, output, and combined backhaul. All facility traffic passes through support;
+  direct facility bypass is unscheduled unless later playtests justify it.
+- Add shared directional route-cost fields and a phase-aware delivery estimator. Add
+  destination-driven shipment orders with Minimum/Total outcomes, explicit supersession hysteresis,
+  source-specific legs, named packages, repeated-but-nonphysical forecast credit, atomic source,
+  destination, recovery, cargo-slot, and hauler claims, deliberate parallelism, and bounded
+  redundancy.
+- Publish unresolved cooperation as Aid Requests and carrier-neutral Haul Opportunities; gather
+  claimant proposals before atomically creating a stamped ShipmentLeg and Haul Job for the winner.
+  One-source donor acceptances use order-level exact claims and shared recipient/donor-staging
+  escrows; neutral policy guarantees at least 50%, and title transfers only on admitted delivery.
+- Add explicit Charter/beneficiary death handling, national fallback recovery, optional cargo
+  beneficiaries, and separate quantity-conservation and title audits.
 - Add time-to-bite and suffering state, depot policy pressure, ProductionMaintenance coverage, public request
   fulfillment, convoy state, and structured failure reasons to the headless report, pain map, and
   live feed.
@@ -91,22 +96,24 @@ deadlocking, oscillating, or hiding the cause of shortages?
 
 **Watchable outcome:** Regional depots accumulate raw and finished goods while ProductionMaintenance
 keeps nearby facilities running through ordinary shipment legs; Greyline convoys carry accepted aid
-to a remote depot. Removing one link produces an upstream, maintenance, inter-depot, or last-mile
-failure that is distinct on the map and in the feed.
+to a remote depot through publicly resolved work. Removing one link produces an upstream,
+maintenance, inter-depot, or last-mile failure that is distinct on the map and in the feed.
 
-**Tune now:** facility-type stockpile limits; Target cover; standing Reservation buffer; Protected
-posture; Efficient, Balanced, Expedite, and Guaranteed package values and preferences; maximum three
-parallel legs and 150% redundant coverage; useful-shipment floor; top-up windows; maintenance
-retention; truck capacity and cooldowns; supporting-depot reassessment; direct-bypass threshold;
-neutral aid/haul weights; planning cadence; and time-to-bite thresholds.
+**Tune now:** facility-type stockpile limits; per-facility Target cover and two-batch restart stock;
+40/40/20 inflow weights; Protected posture; Efficient, Balanced, Expedite, and Guaranteed package
+values and preferences; maximum three parallel legs and 150% redundant coverage; the named standard
+truck profile and 25% useful-shipment floor; top-up windows; maintenance retention; supporting-depot
+reassessment; 50% neutral aid guarantee; public claim weights; planning cadence; and time-to-bite
+thresholds.
 
-**Exit gate:** A healthy scenario reaches stable throughput without forcing every matched local flow
-through a depot; ProductionMaintenance retains its primary hauler across ordinary competition; each
-disruption fails in a distinct, diagnosable way; Protected stock is never executed against; order
-outcome remains separate from loaded-cargo settlement; Charter title survives third-party carriage
-and changes only on admitted recipient delivery up to accepted aid; partial execution leaves exact
-physical remainders; and goods, source reservations, destination/recovery capacity, and hauling
-capacity are never duplicated or silently reassigned.
+**Exit gate:** A healthy scenario reaches stable throughput through mandatory supporting depots;
+ProductionMaintenance retains its primary hauler across ordinary competition; each disruption fails
+in a distinct, diagnosable way; durable stock partitions reconcile with physical stock; Protected
+stock is never executed against; order outcome remains separate from loaded-cargo settlement;
+Charter title survives third-party carriage and changes only on admitted recipient delivery up to
+accepted aid; national recovery preserves loaded cargo after lifecycle failure; partial execution
+leaves exact physical remainders; and goods, source/destination/recovery reservations, cargo slots,
+and hauling capacity are never duplicated or silently reassigned.
 
 ## Loop 2 — Land is command
 
@@ -192,7 +199,8 @@ rather than arbitrary modifiers?
 ### Iteration 4A — Personality and relationships
 
 - Add the MVP leader traits, doctrine biases, competence, loyalty, and simple friend/feud pairs.
-- Apply those factors to land valuation, operation choice, Aid Request donation, Haul Job priority,
+- Apply those factors to land valuation, operation choice, Aid Request donation, Haul Opportunity
+  claimant priority,
   stock-goal sacrifice, and petition generation.
 - Surface reasons for refusals and priority changes in council text and the event feed.
 
@@ -266,8 +274,8 @@ changed without code edits?
   nation, then tune the authored campaign at the chosen scale.
 - Add batch seed runs and export a compact tuning report: production utilization,
   ProductionMaintenance coverage, top-up and blocked time, depot pressure, Aid Request latency and
-  fill rate, Haul Job
-  latency, convoy distance/loss, shortage duration, front movement, casualties, morale breaks,
+  fill rate, Haul Opportunity resolution and Haul Job execution latency, convoy distance/loss,
+  shortage duration, front movement, casualties, morale breaks,
   Charter loyalty, Influence flow, Will flow, and ending cause.
 - Stress the 5,000-unit simulation ceiling separately from the smaller MVP campaign.
 - Run repeated observer/council playtests; simplify or cut any system that is not legible or does not

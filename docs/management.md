@@ -21,34 +21,38 @@ the [architecture](design/charter-ai-architecture.md), and
 work packages have landed, and the migration note it added to the TDD has been removed.
 [Iteration 1B — Depot-Driven Transport](specs/iteration-1b-depot-driven-transport.md) is approved for
 implementation through Package 1 (host capacity, endpoints, and title-preserving cargo). Package 2's
-rejected implementation remains discarded. The replacement 1B design is approved and divided into
-small packages beginning with Charter aggregate consolidation, followed by rebuilt physical flows,
-additive StockingPolicy compilation, destination-driven orders with source-specific legs,
-ProductionMaintenance, and partial multi-leg shipment execution.
+rejected implementation remains discarded; its replacement design is approved and remains the next
+implementation step. Packages 3–24 now describe the resolved depot-driven model: mandatory
+supporting-depot traffic, directional route fields, facility and ground-pile flows, durable depot
+stock partitions, atomic reservation and leg transactions, fixed-cadence planning, aid escrows,
+carrier-neutral Haul Opportunities, lifecycle recovery, and conservation audits. These changes are
+design-only; the TDD still describes the Package 1 code baseline.
 
 ## Progress
 
 This session completed:
 
-- Removed the rejected Package 2 implementation in full, restoring Package 1 as the code baseline.
-- Recorded the system/service boundary, aggregate-service cohesion rule, and namespace-import
-  preference in the coding guidelines.
-- Resolved the Package 2 redesign and folded it into the 1B specification, Loop 1 design, GDD,
-  Charter AI architecture, roadmap, and coding guidelines. The temporary redesign checkpoint has
-  been retired.
-- Approved rebuilt `ItemConsumptionFlow`/`ItemSupplyFlow` snapshots, allocation-free tagged source
-  references, credible deadlines, and source-owned impairment history.
-- Remodeled 1B logistics around additive depot StockingPolicies, quantitative exact reservations,
-  destination-driven conditional ShipmentOrders, source-specific ShipmentLegs with named execution
-  packages, and persistent ProductionMaintenance.
-- Closed the remodeled model's execution rules: Protected stock is inaccessible; exact reservations
-  occupy a standing reservable pool; order outcome is separate from loaded-cargo settlement;
-  deadlines extend deterministically; full destination and bounded recovery capacity are held;
-  parallel redundancy is capped; facility and inter-depot movement share leg primitives; and public
-  aid exposes exact partial guarantees while title transfers only on admitted recipient delivery.
-- Preserved fixed-cadence planning, nominal/effective facility flows, cached route costs,
-  lead-time-floored stocking horizons, partial pickup and delivery, cargo recovery, and the future
-  stationary resupply-point boundary under the new model.
+- Reconciled the 1B specification, GDD, Loop 1 design, roadmap, Charter AI architecture, and this
+  status around the revised logistics model without changing production code or future-state TDD
+  claims.
+- Removed facility-to-facility hauling from scheduled work. Every facility input and output now uses
+  its supporting depot; reconsideration requires later playtest evidence.
+- Replaced projected-only depot partitions with durable Protected, Reservable, and Floating stock,
+  deterministic 40/40/20 inflow allocation, explicit policy reclassification, and atomic stock
+  mutation rules.
+- Added per-facility cover, two-batch unstaffed restart stock, expiring ground-pile supply, a named
+  standard-truck useful floor, fixed-cadence policy compilation, and explicit supersession
+  hysteresis.
+- Added reverse directional route fields, the shared phase-aware delivery estimator,
+  renewal-boundary support handoff, cargo-slot claims, full-load recovery, and all-or-nothing leg
+  creation.
+- Reworked aid around one-source donor acceptances, order-level exact claims, shared capacity
+  escrows, a 50% neutral guarantee, gathered Haul Opportunity proposals, stamped Haul Jobs, and
+  Charterless national fallback.
+- Defined optional cargo beneficiaries, Charter and beneficiary death behavior, national recovery,
+  and separate quantity-conservation and title audits.
+- Rewrote and consecutively renumbered every unimplemented package after approved Package 2; the
+  sequence now ends with Package 24.
 - Established the 1B baseline and attachment map with the A1 proof protected.
 - Added facility-type-authored per-item stockpile limits with item-definition fallback. Facilities
   reuse configured `Stockpile` instances, and production preflights output batches through them.
