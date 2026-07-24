@@ -21,6 +21,7 @@ Single-player indirect-control war strategy game. Godot 4 + C# (.NET), strict si
 ## Communication
 
 - Keep responses concise and information-dense. Lead with the answer or result, while including enough context to remain clear rather than becoming abrupt.
+- Use simple, concrete language when describing simulation economy or logistics problems. Assume the user is not a game-AI engineer: explain unfamiliar terms in plain language and use a short example when it helps.
 - Avoid restating the user's point, generic affirmation, and conversational filler such as "Exactly," "That's true," or "I agree" unless it adds substantive information.
 - Do not report test or verification outcomes when they all passed — run the checks, but green is the assumed default and goes unmentioned. Report a check only when it failed, was skipped, or behaved unexpectedly.
 
