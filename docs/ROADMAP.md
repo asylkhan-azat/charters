@@ -70,37 +70,43 @@ deadlocking, oscillating, or hiding the cause of shortages?
 - Give facility types small per-item stockpile overrides and facilities sticky supporting depots.
   Rebuild allocation-free consumption and supply snapshots each logistics phase, preserving only
   minimal source impairment history, and aggregate contributors into Charter-scoped depot plans.
-- Compile desired stock targets and protected stock goals from policy cover and standing objectives.
-  Keep Soft/Hard stock access independent from Planned/Reserved commitment, with exact source and
-  destination-capacity reservations.
-- Implement persistent depot↔facility services, deliberate truck standby, input/output backhauls,
-  parent shipment orders with one-item legs, deliberate parallelism, partial pickup and delivery,
+- Compile one additive `StockingPolicy` per Charter/depot/item with Target, Protected, Reservation,
+  versioned capacity clipping, five physical partitions, and exact named reservations inside the
+  reservable pool.
+- Implement persistent ProductionMaintenance with at most one retained primary hauler, common
+  depot↔facility and inter-depot order/leg execution, input/output backhauls, output-leg top-up,
   same-Charter direct facility bypass, road-aware routing, and title-preserving cargo lots.
+- Add destination-driven shipment orders with Minimum/Total success conditions, required-by and
+  outcome deadlines, separate settlement state, source-specific legs, named execution packages,
+  conservative forecast credit, recovery capacity, deliberate parallelism, and bounded redundancy.
 - Publish only unresolved inter-Charter cooperation: Aid Requests for goods delivered to a receiving
-  depot and concrete Haul Jobs for identified shipments. Add hard goods/carriage reservations,
-  neutral policy at the future Leader boundary, and title transfer only on successful delivery.
-- Add time-to-bite and suffering state, depot pressure, facility-service coverage, public request
+  depot and Haul Jobs with disclosed partial guarantees and stamped execution terms. Give each donor
+  acceptance its own exact order, reserve recipient and donor-staging capacity, keep neutral policy
+  at the future Leader boundary, and transfer title only on admitted recipient delivery.
+- Add time-to-bite and suffering state, depot policy pressure, ProductionMaintenance coverage, public request
   fulfillment, convoy state, and structured failure reasons to the headless report, pain map, and
   live feed.
-- Add seeded disruptions for missing supply, insufficient service capacity, invalidated standby,
-  distant stock, blocked routes, and excess competing aid.
+- Add seeded disruptions for missing supply, reservation breach, insufficient maintenance coverage,
+  invalidated forecast, distant stock, blocked routes, full destination, recovery, and competing aid.
 
-**Watchable outcome:** Regional depots accumulate raw and finished goods while persistent shuttles
-keep nearby facilities running; Greyline convoys carry accepted aid to a remote depot. Removing one
-link produces an upstream, local-service, inter-depot, or last-mile failure that is distinct on the
-map and in the feed.
+**Watchable outcome:** Regional depots accumulate raw and finished goods while ProductionMaintenance
+keeps nearby facilities running through ordinary shipment legs; Greyline convoys carry accepted aid
+to a remote depot. Removing one link produces an upstream, maintenance, inter-depot, or last-mile
+failure that is distinct on the map and in the feed.
 
-**Tune now:** facility-type stockpile limits, target cover, protected-goal fraction, Soft/Hard access
-policy, execution bands, parallel-leg cap, pickup and top-up windows, service commitment and standby
-windows, truck capacity and cooldowns, supporting-depot reassessment, direct-bypass threshold,
-neutral aid/haul weights, planning cadence, and time-to-bite thresholds.
+**Tune now:** facility-type stockpile limits; Target cover; standing Reservation buffer; Protected
+posture; Efficient, Balanced, Expedite, and Guaranteed package values and preferences; maximum three
+parallel legs and 150% redundant coverage; useful-shipment floor; top-up windows; maintenance
+retention; truck capacity and cooldowns; supporting-depot reassessment; direct-bypass threshold;
+neutral aid/haul weights; planning cadence; and time-to-bite thresholds.
 
 **Exit gate:** A healthy scenario reaches stable throughput without forcing every matched local flow
-through a depot; standing facility services survive ordinary higher-scored spot work; each
-disruption fails in a distinct, diagnosable way; Charter title survives third-party carriage and
-changes only on the admitted portion of agreed delivery; partial execution leaves exact physical
-remainders; goods, destination capacity, and hauling capacity are never duplicated, promised twice,
-or silently reassigned.
+through a depot; ProductionMaintenance retains its primary hauler across ordinary competition; each
+disruption fails in a distinct, diagnosable way; Protected stock is never executed against; order
+outcome remains separate from loaded-cargo settlement; Charter title survives third-party carriage
+and changes only on admitted recipient delivery up to accepted aid; partial execution leaves exact
+physical remainders; and goods, source reservations, destination/recovery capacity, and hauling
+capacity are never duplicated or silently reassigned.
 
 ## Loop 2 — Land is command
 
@@ -155,8 +161,8 @@ supply, terrain, and autonomous decisions?
 ### Iteration 3B — The supplied front
 
 - Add stationary national resupply points with Charter-separated compartments; ordinary depots are
-  valid points. Units visit their assigned point for local Soft-only transfers and are never
-  shipment destinations.
+  valid points. Units visit their assigned point and draw only floating stock; Protected stock and
+  stock backing exact reservations remain inaccessible. Units are never shipment destinations.
 - Connect infantry food, equipped rifles and grenades, and carried ammunition to rebuilt
   consumption flows aggregated through those points. Managers replenish target-above-goal working
   stock and escalate only uncovered point requirements to the public Request Board.
@@ -258,8 +264,9 @@ changed without code edits?
 
 - Reconcile the region radius and total campaign size with the target of roughly 630 hexes per
   nation, then tune the authored campaign at the chosen scale.
-- Add batch seed runs and export a compact tuning report: production utilization, facility-service
-  coverage, standby and blocked time, depot pressure, Aid Request latency and fill rate, Haul Job
+- Add batch seed runs and export a compact tuning report: production utilization,
+  ProductionMaintenance coverage, top-up and blocked time, depot pressure, Aid Request latency and
+  fill rate, Haul Job
   latency, convoy distance/loss, shortage duration, front movement, casualties, morale breaks,
   Charter loyalty, Influence flow, Will flow, and ending cause.
 - Stress the 5,000-unit simulation ceiling separately from the smaller MVP campaign.

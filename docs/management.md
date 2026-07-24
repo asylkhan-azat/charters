@@ -23,7 +23,8 @@ work packages have landed, and the migration note it added to the TDD has been r
 implementation through Package 1 (host capacity, endpoints, and title-preserving cargo). Package 2's
 rejected implementation remains discarded. The replacement 1B design is approved and divided into
 small packages beginning with Charter aggregate consolidation, followed by rebuilt physical flows,
-fixed-cadence target/goal planning, and partial multi-leg shipment execution.
+additive StockingPolicy compilation, destination-driven orders with source-specific legs,
+ProductionMaintenance, and partial multi-leg shipment execution.
 
 ## Progress
 
@@ -37,18 +38,17 @@ This session completed:
   been retired.
 - Approved rebuilt `ItemConsumptionFlow`/`ItemSupplyFlow` snapshots, allocation-free tagged source
   references, credible deadlines, and source-owned impairment history.
-- Approved depot target/goal compilation, orthogonal stock access and Planned/Reserved
-  commitment, fixed-cadence planning, and snapshotted shipment execution terms.
-- Reviewed the 1B logistics model and closed its open decision points: the stock goal now protects
-  what leaves a Charter rather than where it sits (new `Internal` access), execution bands are
-  derived from impairment and lead time instead of being unassigned, flows carry nominal alongside
-  effective cadence so targets neither jitter nor strand an unstaffed facility, route cost became a
-  cached service feeding a lead-time-floored stocking horizon, remainders below a replan threshold
-  merge instead of fragmenting, parent orders gained terminal states, and service/leg authority,
-  standby capacity bounds, co-blocker ties, donor ordering, and reservation-breach causes are now
-  stated. Reservations moved ahead of the arithmetic that reads them in the package order.
-- Approved deliberate parallel legs, partial pickup and delivery, exact source/destination
-  reservations, cargo-remainder recovery, and the future stationary resupply-point boundary.
+- Remodeled 1B logistics around additive depot StockingPolicies, quantitative exact reservations,
+  destination-driven conditional ShipmentOrders, source-specific ShipmentLegs with named execution
+  packages, and persistent ProductionMaintenance.
+- Closed the remodeled model's execution rules: Protected stock is inaccessible; exact reservations
+  occupy a standing reservable pool; order outcome is separate from loaded-cargo settlement;
+  deadlines extend deterministically; full destination and bounded recovery capacity are held;
+  parallel redundancy is capped; facility and inter-depot movement share leg primitives; and public
+  aid exposes exact partial guarantees while title transfers only on admitted recipient delivery.
+- Preserved fixed-cadence planning, nominal/effective facility flows, cached route costs,
+  lead-time-floored stocking horizons, partial pickup and delivery, cargo recovery, and the future
+  stationary resupply-point boundary under the new model.
 - Established the 1B baseline and attachment map with the A1 proof protected.
 - Added facility-type-authored per-item stockpile limits with item-definition fallback. Facilities
   reuse configured `Stockpile` instances, and production preflights output batches through them.

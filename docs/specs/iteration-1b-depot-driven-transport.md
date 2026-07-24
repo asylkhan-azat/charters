@@ -18,16 +18,18 @@ The iteration is accepted when the dedicated scenario:
 - assigns each participating facility a reachable supporting depot and keeps that assignment stable;
 - moves real raw materials, intermediate goods, and finished goods through working facility buffers;
 - rebuilds truthful consumption and supply flows without persistent signal objects;
-- distinguishes current stock, desired target, protected stock goal, reservations, and traffic;
-- keeps productive facility services stable, including credible standby for future output;
+- distinguishes protected, reservable, exactly reserved, floating, and excess depot stock;
+- keeps productive `ProductionMaintenance` responsibilities stable while output legs top up against
+  credible future production;
 - permits direct same-Charter facility transfers and deliberate parallel shipment legs;
 - permits useful partial pickups and deliveries while preserving exact physical accounting;
-- publishes only inter-Charter Aid Requests and concrete, reserved Haul Jobs;
+- publishes only inter-Charter Aid Requests and Haul Jobs with concrete stamped terms and disclosed
+  partial guarantees;
 - preserves cargo title through third-party carriage and transfers it only on agreed delivery;
-- diagnoses source, depot, service, reservation, route, pickup, and delivery failures distinctly;
+- diagnoses source, depot, maintenance, reservation, route, pickup, and delivery failures distinctly;
 - reconciles every item and owner across storage, reservations, cargo, production, consumption,
   delivery, and explicit destruction; and
-- exposes the running economy through headless output, the pain map, service/convoy state, and the
+- exposes the running economy through headless output, the pain map, maintenance/convoy state, and the
   event feed.
 
 ## Scope boundaries
@@ -35,13 +37,14 @@ The iteration is accepted when the dedicated scenario:
 1B includes facility-type per-item stockpile limits; aggregate facility-and-buffer ownership
 transfer; stationary storage endpoints; title-preserving cargo; cached route costs and replenishment
 lead time; sticky supporting-depot assignment for facilities; rebuilt facility item flows;
-Charter/depot/item stock plans; standing stock objectives; Internal, Soft, and Hard stock access;
-Planned and Reserved commitment; derived execution bands; private shipment orders and one-item legs;
-deliberate parallel legs; bounded remainder granularity and order closure; same-Charter direct
-facility bypass; persistent facility services; deliberate standby; partial pickup and delivery;
-public Aid Requests and concrete Haul Jobs; goods, destination-capacity, and carriage reservations;
-neutral decisions at the future Leader boundary; attributed failure; conservation; headless
-diagnostics; a pain-map overlay; and convoy/service events.
+Charter/depot/item additive stocking policies; standing stock objectives; quantitative exact
+reservations; destination-driven private shipment orders and source-specific one-item legs; named
+execution packages; deliberate bounded and redundant parallel legs; derived order granularity;
+same-Charter direct facility bypass; persistent `ProductionMaintenance`; output-leg top-up; partial
+pickup and delivery; public Aid Requests and exact-term Haul Jobs; goods, destination-capacity,
+recovery-capacity, and carriage reservations; neutral decisions at the future Leader boundary;
+attributed failure; conservation; headless diagnostics; a pain-map overlay; and
+convoy/maintenance events.
 
 1B does not include personality, relationships, a concrete Leader domain object, council petitions,
 Direct Order UI, public standing contracts, item-group requests, unit consumption, resupply-point
@@ -65,7 +68,7 @@ This document is the implementation handoff for 1B:
 3. Implement the remaining work packages in order, landing each package's focused tests with its
    behavior.
 4. Keep the 1A proof scenario runnable while adding a sibling 1B scenario.
-5. Use [Validation and tests](#validation-and-tests) as the acceptance matrix and the
+5. Use [Validation and examples](#validation-and-examples) as the acceptance matrix and the
    [Completion gate](#completion-gate) as the final definition of done.
 
 When documents disagree, the GDD owns player-facing mechanics, the TDD owns code that already
@@ -84,14 +87,15 @@ implementation cut. Update the TDD only after implementation makes a technical s
 | Flow authority | Current flows are rebuilt value snapshots of physical state. Facts report transitions and never drive planning. |
 | Planning | Managers plan only on their fixed cadence. Execution failures are diagnosed immediately but do not trigger an extra planning pass. |
 | Gross state | Flow stock and capacity are gross physical facts. Reservations and traffic are separate planning/execution state. |
-| Stock access | `StockGoalQuantity` protects stock against draws the Manager did not schedule and cannot recall. Same-Charter relocation never consults the goal and draws only unreserved stock. |
-| Commitment | Planned work has no exact goods promise. Reserved work protects an exact quantity. Access and commitment are independent axes. |
-| Importance | A leg's execution band is derived from credible time-to-bite against replenishment lead time. It is never authored per order. |
-| Work granularity | A reopened remainder below the minimum replan remainder merges into existing work or closes its parent. It never spawns a leg of its own. |
-| Service stability | Active facility service, including valid standby, reserves hauling capacity. Ordinary rescoring cannot reclaim it. |
-| Service authority | A facility service owns carriage commitment and cycle ordering. Its legs own every quantity, deadline, and fallback decision. |
+| Stock policy | `TargetQuantity`, `ProtectedQuantity`, and `ReservationQuantity` are additive and fit within physical item capacity. Exact reservations occupy the Reservation pool. |
+| Protection | Ordinary and exactly reserved draws never cross `ProtectedQuantity`. Only a later policy compilation may reclassify Protected stock. |
+| Reservation | Reservation strength is a concrete per-leg quantity. No qualitative promise enum changes what physical stock exists. |
+| Importance | Physical impairment and time-to-bite derive urgency; urgency and Leader policy select a named execution package. The package, not an urgency label, is stamped on the leg. |
+| Work granularity | Order `MinimumQuantity` and a derived minimum useful shipment prevent negligible follow-up work without hiding a material destination need. |
+| Maintenance stability | Active `ProductionMaintenance`, including valid output top-up, retains one primary hauler. Ordinary rescoring cannot reclaim it. |
+| Authority | `ProductionMaintenance` owns hauler retention and cycle ordering. Orders and legs own every goods quantity, reservation, deadline, and physical outcome. |
 | Partial execution | Short pickup reopens the parent remainder. Undelivered cargo remains physical cargo; bookkeeping never returns it to stock. |
-| Public work | Accepted aid reserves concrete goods. Public Haul Jobs expose only concrete, reserved cargo work. |
+| Public work | Accepted aid exposes its intended and exactly reserved quantities. Haul Jobs expose the full snapshotted execution terms. |
 | Determinism | Each Charter decides against one completed phase snapshot. Stable IDs resolve exact ties. Random mistakes are not injected. |
 | Conservation | Production and explicit destruction are the only quantity changes. Movement, reservation, custody, and title transitions conserve totals. |
 
@@ -102,15 +106,15 @@ movement
     → facility staffing and production
     → ground-stockpile expiry
     → logistics execution
-        → advance existing endpoint, service, and shipment work
+        → advance existing endpoint, ProductionMaintenance, and shipment work
         → validate supporting depots
         → rebuild facility ItemConsumptionFlow / ItemSupplyFlow buffers
         → run due Managers on their fixed planning cadence
-            → compile target and stock goal
-            → preserve commitments and match private work
+            → compile additive StockingPolicy pools
+            → preserve exact reservations and match private work
             → create parent orders and one-item shipment legs
             → escalate unresolved title or carriage through neutral Leader policy
-                → Aid Request / accepted supply commitment
+                → Aid Request / accepted donor order
                 → concrete Haul Job when external carriage is needed
     → newly planned movement may start on the next tick
     → transition facts, diagnostics, views, and conservation
@@ -144,14 +148,14 @@ lots contain:
 
 ```text
 CargoLot
-    ShipmentId
+    ShipmentId                       // Package 1 placeholder; Package 13 migrates to ShipmentLegId
     ItemDefinition
     Quantity
     TitleOwner
     Beneficiary CharterId
 ```
 
-Lots stack only when shipment, item, title-holder, and beneficiary match. Loading and delivery
+Lots stack only when physical shipment leg, item, title-holder, and beneficiary match. Loading and delivery
 atomically update source or destination storage, cargo lots, reservations, shipment state, ownership
 journals, and conservation attribution.
 
@@ -175,7 +179,7 @@ stationary endpoints before they participate; units themselves never do.
 ### Route cost and replenishment lead time
 
 Route cost in ticks is a first-class planning quantity: supporting-depot selection, direct-bypass
-eligibility, Manager ranking, execution bands, and the target horizon all read it. A full path
+eligibility, Manager ranking, urgency, and stocking cover all read it. A full path
 search per query is not acceptable at planning cadence, so route cost is a cached service keyed by
 an ordered pair of stationary endpoints.
 
@@ -184,18 +188,22 @@ or endpoint changes: road edits, depot or facility creation and death, and endpo
 loss. It never expires on a timer, and a cache miss resolves through the same pathfinder that
 movement uses.
 
-Replenishment lead time is the derived quantity planning actually reasons about:
+Planning uses two derived quantities:
 
 ```text
-lead time(source endpoint, destination endpoint, band) =
+replenishment loop(source endpoint, destination endpoint, package) =
     2 × one-way route ticks
   + Manager planning cadence
-  + the band's pickup deadline
+  + package TopUpTicks
+
+candidate delivery(hauler, source endpoint, destination endpoint, package) =
+    hauler-to-source route ticks
+  + package TopUpTicks
+  + source-to-destination route ticks
 ```
 
-It answers "if I decide to fix this now, when can goods realistically arrive?" Execution bands and
-the target horizon are both defined against it, so authored tick values cannot silently disagree
-with the map.
+The loop floors stocking cover; candidate delivery sets order feasibility, urgency, and the earliest
+credible attempt. Authored tick values therefore cannot silently disagree with the map.
 
 ### Supporting-depot assignment
 
@@ -209,10 +217,11 @@ least 2 route ticks. The facility stores the current depot and reassessment tick
 identity. If none is reachable, its flows remain visible with no supporting endpoint and an
 attributed unreachable-support condition.
 
-A valid assignment is not reconsidered at all while a facility service is live against it.
-Reassessment cadence and service minimum commitment are both 60 ticks, so an unsuppressed
-2-tick threshold would tear down services roughly as fast as they are committed whenever two depots
-sit near-equidistant. Reassessment resumes on the first pass after the service is released.
+A valid assignment is not reconsidered while `ProductionMaintenance` is live against it.
+Reassessment cadence and the minimum maintenance tenure are both 60 ticks, so an unsuppressed
+2-tick threshold would tear down responsibilities roughly as fast as they are committed whenever two
+depots sit near-equidistant. Reassessment resumes on the first pass after maintenance releases its
+primary hauler.
 
 ### Source representation
 
@@ -336,7 +345,7 @@ Grouping uses `(Charter, supporting endpoint, item, direction)` while retaining 
 their cadences, deadlines, and impairment ages. Different intervals are compared with exact integer
 arithmetic; consumption and supply are never collapsed into one net rate.
 
-Reservations, inbound movement, and outbound work are not flow fields. A hard reservation may affect
+Reservations, inbound movement, and outbound work are not flow fields. An exact reservation may affect
 what a physical transition can consume, but the Manager explains that result by overlaying the
 reservation registry on gross flow state.
 
@@ -351,11 +360,12 @@ DepotPlanLine
     CharterId
     DepotId
     Item
-    TargetQuantity
-    StockGoalQuantity
+    StockingPolicy
     PhysicalQuantity
     ExactSourceReservations
     ExactDestinationCapacityReservations
+    ExactExcessStagingCapacityReservations
+    ExactRecoveryCapacityReservations
     PlannedInbound
     PlannedOutbound
     consumption contributors
@@ -364,131 +374,155 @@ DepotPlanLine
     attributed shortfalls
 ```
 
-`TargetQuantity` is the desired stocking level. `StockGoalQuantity` is the protected access floor.
-Both are concrete quantities compiled on the Manager's fixed planning pass and remain unchanged
-until the next pass.
-
-### Target compilation
-
-The neutral policy target is:
+`StockingPolicy` is the concrete, versioned result of one Manager planning pass:
 
 ```text
-effective horizon =
-    max(authored cover horizon, longest contributor Routine lead time)
-
-policy cover =
-    nominal gross consumption within the effective horizon
-
-uncapped target =
-    max(policy cover, each standing explicit stock objective)
-
-TargetQuantity =
-    min(uncapped target, physical item capacity)
+StockingPolicy
+    TargetQuantity
+    ProtectedQuantity
+    ReservationQuantity
+    PolicyVersion
 ```
 
-Cover uses `NominalIntervalTicks`, so a target does not move because workers wandered and an
-unstaffed facility is still stocked for. Deadlines, ranking, and execution continue to use effective
-cadence.
+All three quantities are non-negative and their sum is at most the endpoint's physical item limit.
+They are additive:
 
-The horizon is bounded below by lead time because an authored constant alone cannot know the map. A
-contributor 40 route ticks away needs more than 60 ticks of cover before its protected floor is
-subtracted, or it starves for reasons that have nothing to do with goods being available.
+- `TargetQuantity` is desired floating working stock. It attracts replenishment but protects
+  nothing from use.
+- `ProtectedQuantity` is an inaccessible floor. No shipment, local draw, execution package, or aid
+  decision may cross it. A later Manager pass may explicitly reclassify it.
+- `ReservationQuantity` is the maximum reservable pool. Exact reservations occupy part of the pool;
+  they are not quantities added on top of it.
 
-An objective records its target, reason, provenance, and optional desired-by tick. It remains active
-after physical attainment until explicitly changed or withdrawn. An objective or policy requirement
-above capacity produces an attributed capacity shortfall; it does not expand storage or disappear
-silently. A shortfall is level state on the plan line, re-evaluated every pass; its fact is emitted
-only when the attributed quantity changes, so a permanently capacity-bound line does not drown the
-feed.
+Quantities use the existing non-negative integer item units. `PolicyVersion` is monotonic per plan
+line and advances when its concrete policy values or effective-policy provenance changes; orders and
+legs retain the version under which their conditions were created.
 
-Physical stock above `TargetQuantity` is legal and is never evicted. The Manager plans no further
-inbound for that line, and the excess is ordinary unreserved stock available to rebalancing and aid.
-Inbound planning is additionally bounded by free capacity less live destination-capacity
-reservations, so a line at target cannot promise admission it does not have.
+The Manager stores only a valid concrete policy. Semantic Leader desires and local needs may ask for
+more than capacity can hold; neutral compilation preserves Protected, then the Reservation limit,
+then Target, and records each clipped component as an attributed policy-capacity shortfall. A future
+Leader policy may influence those concrete choices before the policy is stamped, but it cannot
+produce an invalid sum.
 
-Greyline's authored finished-goods needs are standing stock objectives, not invented physical
-consumption flows.
-
-### Stock-goal compilation
-
-The neutral goal is half the target:
-
-```text
-fraction goal =
-    clamp(round_policy(TargetQuantity × 0.5), 0, TargetQuantity)
-
-StockGoalQuantity =
-    clamp(max(fraction goal, explicit objective minimum), 0, TargetQuantity)
-```
-
-Rounding is deterministic and defined with the authored policy value. A cautious future Leader may
-increase the cover horizon, goal fraction, or objective minimum through semantic policy compilation.
-The Manager still snapshots a literal target and goal; downstream execution never consults a live
-personality score.
+The neutral standing Reservation buffer is 20% of physical item capacity. The Manager raises it when
+needed to contain live exact reservations and the minimum reservations of imminent guaranteed work.
+A policy reduction may not set Reservation below its live exact quantity. A Protected increase that
+would make a live exact reservation unbacked is deferred and attributed instead of stealing the
+promise.
 
 ### Stock partitions
 
-For physical quantity `P`, exact source reservations `R`, and goal `G`:
+For physical quantity `Q`, policy `(T, P, R)`, and live exact source reservations `E`:
 
 ```text
-reserved stock         = min(P, R)
-unreserved stock       = max(0, P - R)
-goal-protected stock   = min(unreserved stock, G)
-unprotected stock      = max(0, unreserved stock - G)
+protected held =
+    min(Q, P)
+
+non-protected physical =
+    max(0, Q - protected held)
+
+exactly reserved and physically backed =
+    min(E, non-protected physical)
+
+ready to reserve =
+    min(max(0, R - E),
+        max(0, non-protected physical - exactly reserved and physically backed))
+
+floating physical =
+    max(0,
+        non-protected physical
+      - exactly reserved and physically backed
+      - ready to reserve)
+
+floating target stock =
+    min(floating physical, T)
+
+floating excess =
+    max(0, floating physical - T)
 ```
 
-Reservations have identity and quantity. Goal protection is a policy access boundary, not a
-reservation duplicated across plan lines.
+An exact reservation may be created only from `ready to reserve`. Creating it moves quantity from
+ready-to-reserve to exactly reserved without changing physical stock. Loading consumes both physical
+stock and the exact reservation. Remaining floating stock then refills the reservable pool
+arithmetically before it counts toward Target, matching the policy's purpose of keeping a standing
+guarantee buffer.
 
-### What the stock goal protects
+Ordinary unreserved work may draw floating target stock and floating excess. It cannot draw
+ready-to-reserve or Protected stock. An exact reservation may draw only its own physically backed
+quantity. Local consumption, future unit resupply, and unrelated shipments honour those identities.
 
-`StockGoalQuantity` defends stock against draws the Manager did not schedule and cannot recall. Two
-draws qualify:
+If destruction, capture, ownership change, or Charter death leaves less non-Protected physical stock
+than live exact reservations require, the uncovered quantity is a reservation breach. Execution does
+not consume Protected to hide it.
 
-- accepted aid, which transfers title into another Charter's compartment; and
-- Loop 3 unit resupply, which happens whenever a unit arrives and ends in consumption.
+### Policy compilation
 
-Same-Charter relocation — every facility service, every internal leg, every depot rebalance — is
-goal-neutral. The Manager scheduled it, it conserves the Charter's total, and the goods remain
-recallable at their destination. It draws unreserved stock and never asks about the goal.
+The neutral Target remains routine activity cover:
 
-This is a deliberate correction. Applying the goal to internal movement makes a Charter protect
-stock from itself: at the neutral 0.5 fraction, half of every depot line becomes permanently
-unmovable to the facilities that line exists to feed, and the facility starves beside its own goods.
-That outcome is intended for Loop 3 units, whose draws the Manager does not schedule; it is
-nonsense for work the Manager plans itself against one snapshot showing every competing consumer.
-Internal allocation is protected by planning and by exact reservations, which is sufficient.
+```text
+effective cover window =
+    max(authored 60-tick cover, longest contributor replenishment loop)
 
-### Access and commitment
+raw Target =
+    max(nominal gross consumption within the window,
+        each standing Target objective)
+```
 
-Stock access and commitment strength are orthogonal:
+Cover uses `NominalIntervalTicks`, so worker movement does not jitter policy and an unstaffed
+facility is still stocked for. Physical deadlines, urgency, and forecasting use effective cadence.
 
-| Axis | Value | Meaning |
-|---|---|---|
-| Access | `Internal` | Same-Charter relocation. Draws unreserved stock; the goal is not consulted. |
-| Access | `Soft` | Cross-title draw. May claim only stock above exact reservations and the stock goal. |
-| Access | `Hard` | Cross-title draw. May reserve into goal-protected unreserved stock. |
-| Commitment | `Planned` | No exact goods are promised. |
-| Commitment | `Reserved` | A named exact quantity is protected at a source. |
+Standing objectives target one policy component and retain reason, provenance, and optional
+desired-by tick:
 
-Every private internal leg is `Internal`; its band therefore varies only its commitment and its
-departure tolerance. Accepted aid is `Soft` plus fully Reserved by default: it cannot consume below
-the donor's goal, but accepted goods cannot be taken by later local work.
+- routine operational demand raises Target;
+- operation preparation or Leader caution raises Protected;
+- expected guaranteed shipments raise Reservation.
 
-`Hard` exists only for aid that an explicit Leader policy decision approves. Each approval names one
-exact quantity for one request; approvals are never standing, and live Hard reservations against a
-plan line may not exceed that line's goal-protected stock at approval time. Without those two
-bounds the floor is decorative: reservations are subtracted before goal protection is measured, so
-an unbounded sequence of Hard draws empties the protected pool without any single step ever
-reporting a breach.
+Objectives remain active until changed or withdrawn. Attainment does not close them. Greyline's
+authored finished-goods needs are Target objectives rather than invented physical consumption flows.
 
-Local facility consumption and future unit resupply cannot consume exact shipment-reserved goods.
+The Manager compiles Protected and the standing-plus-imminent Reservation requirement, then gives
+Target the remaining physical capacity. Raw demand that does not fit remains visible as component-
+specific shortfall level state; facts emit only when the attributed quantity changes. Physical stock
+above the sum of all three policy quantities is legal floating excess and is never evicted.
+
+Inbound planning is additionally bounded by physical free capacity less full destination-capacity
+reservations. A line cannot promise admission merely because policy says more stock is desirable.
+
+### Depot need generation
+
+The five physical partitions expose component deficits without inventing another policy axis:
+
+```text
+ProtectedDeficit =
+    ProtectedQuantity - protected held
+
+ReservationDeficit =
+    ReservationQuantity
+  - exactly reserved and physically backed
+  - ready to reserve
+
+TargetDeficit =
+    TargetQuantity - floating target stock
+```
+
+Each result is clamped at zero. Their sum is the line's present policy deficit. The Manager reconciles
+that value with loaded reachable inbound cargo, exact inbound source reservations, valid destination
+capacity, and known outbound work exactly once. Unreserved proposed traffic and speculative recursive
+production do not count as coverage.
+
+One scoped depot need owns one open ShipmentOrder. The Manager does not open a sibling order merely
+because an existing leg is incomplete. If the reconciled quantity, required-by condition, purpose, or
+policy provenance changes materially, the next planning pass supersedes the order and excludes every
+quantity already loaded for the predecessor. A positive residual below the useful-shipment floor
+remains visible in the plan but does not immediately create a replacement order.
 
 ### Planning cadence and interpretation
 
 Managers plan only on the authored fixed cadence. They rank current flows and objectives using
-credible time-to-bite, impairment age, consequence, route time, existing commitments, target/goal
-shortfall, and the compiled policy. They preserve live commitments before creating new work.
+credible time-to-bite, impairment age, consequence, route time, existing exact reservations, policy
+shortfall, and the compiled Leader/Manager policy. They preserve live physical work before creating
+new work.
 
 A short load, missed forecast, newly unreachable endpoint, or capacity loss is diagnosed on the
 tick it occurs. It changes physical and execution state immediately but does not trigger a Manager
@@ -498,178 +532,348 @@ random mistake injection is allowed.
 
 The Manager attempts, in order:
 
-1. preserve and account for exact commitments;
-2. cover facility service and standing objectives inside the service area;
+1. preserve and account for exact reservations and loaded cargo;
+2. cover `ProductionMaintenance` and standing objectives inside the service area;
 3. use eligible same-Charter direct facility bypass;
 4. rebalance the Charter's depot stock;
-5. allocate uncommitted internal carriage; and
+5. allocate available internal carriage; and
 6. escalate missing title or external carriage through the neutral Leader boundary.
 
-## Facility services
+## Production maintenance
 
-A facility service is persistent Manager work linking one facility, its supporting depot, and
-committed hauling capacity. It may deliver inputs, collect output, combine both directions, or run a
-single useful direction. Its ordinary phases are:
+`ProductionMaintenance` is a persistent Manager responsibility linking one facility, its supporting
+depot, and at most one retained primary hauler. It may deliver inputs, collect output, combine both
+directions, or run one useful direction. Urgent overflow is ordinary additional shipment work; it
+does not let one maintenance record retain several haulers.
+
+Its ordinary phases are:
 
 ```text
 AcquireCycle
-    → TravelToInputOrigin
-    → DeliverInputs
-    → StandbyForOutput
-    → CollectOutput
-    → ReturnOrDirectDeliver
+    → ExecuteInputLegs
+    → WaitAtFacilityForOutput
+    → ExecuteOutputLegs
+    → ReturnOrDirectDelivery
     → RenewOrRelease
 ```
 
-### Service and leg authority
+### Maintenance and leg authority
 
-A service groups compatible legs on one truck, and each of those legs carries independently
-snapshotted terms. The division of authority is fixed:
+Maintenance may group compatible one-item legs on its primary hauler, but every leg uses the same
+order, reservation, cargo, delivery, and recovery mechanics as inter-depot work. The division of
+authority is fixed:
 
-- the **service** owns the hauling commitment, the phase order of a cycle, and the decision to
-  release the truck; and
-- the **legs** own every quantity, reservation, deadline, and fallback decision.
+- **ProductionMaintenance** owns hauler retention, cycle order, input-before-output sequencing,
+  renewal, and the decision to release the primary hauler.
+- **ShipmentOrder and ShipmentLeg** own every goods quantity, reservation, deadline, package term,
+  cargo disposition, and outcome.
 
-A service never overrides a leg's terms, and a leg never releases the truck. When one leg's fallback
-fires while another is mid-standby, the leg closes under its own terms and the service continues its
-cycle with the remaining work, releasing the truck only when no covered direction is left. Keeping
-one arithmetic owner is what stops the two state machines from contradicting each other.
+Maintenance never overrides a leg's terms, and a leg never releases the retained hauler. When one
+leg settles or fails while a sibling waits, maintenance continues the remaining useful cycle and
+releases only when no covered direction remains or the responsibility is infeasible.
 
-### Standby
+### Output top-up
 
-`StandbyForOutput` is deliberate work. It is valid only while staffing, inputs, progress, and output
-space support a credible ready tick within the maximum wait. Facility-output standby may load
-produced output incrementally while waiting because doing so frees the facility buffer. This is
-separate from depot-origin Reserved top-up, whose goods remain reserved at the source until one
-departure load.
+Waiting at a facility for output is the output leg's ordinary `TopUpTicks` behavior, not a second
+maintenance-specific timer. It is valid only while staffing, inputs, progress, output space, and the
+leg's conservative forecast support a credible ready tick within the snapshotted top-up window.
 
-Incremental standby loading is bounded by the destination-capacity reservation already held for that
-leg. A truck may not accumulate cargo it has no admission for: undelivered cargo can never be
-returned by bookkeeping, so exceeding reserved capacity during standby would strand goods on a truck
-in the healthy scenario rather than in a disruption fixture. When reserved capacity is full, standby
-either ends or continues without further loading.
+Facility output may load incrementally because pickup frees its small buffer. This physical pickup
+is not an upfront reservation: any package requiring a positive reservation minimum is ineligible at
+a facility source, and guaranteed onward work must first consolidate through a depot. Incremental
+loading remains bounded by the full destination-capacity reservation and cargo capacity.
 
-An assigned service truck is unavailable to ordinary work. Forecast invalidation, route loss,
-ownership incompatibility, or maximum-wait expiry releases or replans unpicked work with attribution.
+The primary hauler is unavailable to ordinary work. Forecast invalidation, route loss, ownership
+incompatibility, or top-up expiry settles or replans the affected unpicked leg with attribution;
+maintenance keeps or releases its hauler under its own stable responsibility rules.
 
 ## Shipment planning and execution
 
 ### Parent orders and legs
 
-A `ShipmentOrder` states the intended item movement and owns its outstanding remainder. It creates
-one-item `ShipmentLeg` records beneath it. A service may group compatible legs on one truck, but a
-leg never mixes item types.
+A `ShipmentOrder` is one finite destination need. It fixes beneficiary, destination, item,
+success/failure conditions, and policy provenance; each one-item `ShipmentLeg` chooses its own source.
+This lets one order use several depots or suppliers without letting different Managers mutate one
+another's private state.
 
-The Manager may deliberately create multiple parallel live legs even when one truck could
-theoretically carry the target. The neutral cap is three live legs per order. Splitting is a
-throughput and resilience decision, not only a fallback for insufficient truck capacity.
+```text
+ShipmentOrder
+    ShipmentOrderId
+    ManagerCharterId
+    BeneficiaryCharterId
+    Destination
+    Item
+    Purpose
+    NeedReference
+    TotalQuantity
+    MinimumQuantity
+    RequiredByTick?
+    DeadlineTick
+    DeadlineExtensionTicksPerItem?
+    Outcome?
+    SettlementState
+    CreatedTick
+    OutcomeTick?
+    ClosedTick?
+    CreditedDeliveredQuantity
+    ExcessDeliveredQuantity
+    PolicyVersion
+    SuccessorOrderId?
+```
 
-Each leg snapshots `ShipmentExecutionTerms`:
+`TotalQuantity` is the desired credited delivery. `MinimumQuantity` is the threshold that fixes a
+successful outcome. Both are positive and Minimum is at most Total.
+
+`RequiredByTick` expresses when the destination starts suffering and drives urgency. The effective
+deadline expresses when this transport attempt becomes a failure:
+
+```text
+internal base deadline =
+    max(RequiredByTick ?? CreatedTick + 60,
+        CreatedTick + best feasible candidate-delivery ticks)
+
+effective deadline =
+    DeadlineTick
+  + floor(min(CreditedDeliveredQuantity, TotalQuantity)
+          × DeadlineExtensionTicksPerItem)
+```
+
+An accepted Aid Request uses its agreed required-by tick as the hard base deadline and is accepted
+only when at least one candidate can attempt it in time. The extension rate is nullable and stored as
+non-negative deterministic fixed point; physical consumption or blockage relief may supply a rate,
+while ordinary depot and aid orders normally use none. Deadline arithmetic saturates at the largest
+valid simulation tick rather than overflowing.
+
+Delivery executes before deadline evaluation on the deadline tick. Reaching Minimum fixes Success,
+cancels every releasable unpicked leg, and enters settlement. Loaded siblings may continue toward
+Total and may physically overdeliver. Missing Minimum at the deadline fixes Failure and enters
+settlement. Late cargo may still deliver or recover but cannot rewrite the outcome. Withdrawn and
+Superseded are additional outcomes; a changed need creates a successor rather than mutating live
+Total, Minimum, or deadline.
+
+`SettlementState` is `Active`, `Settling`, or `Closed`. An outcome closes planning authority;
+settlement closes only when no leg retains cargo, reservations, or a hauler on its behalf.
+
+At most one open order exists for one scoped
+`(ManagerCharter, Beneficiary, Destination, Item, Purpose, NeedReference)` need. A material change to
+that need supersedes the open order and creates a successor; a later planning pass never edits the
+predecessor's conditions.
+
+### Order granularity
+
+For depot replenishment, the minimum useful shipment is provisionally one quarter of the standard
+eligible hauler's capacity for that item. The Manager chooses Minimum so successful delivery leaves
+less than that quantity outstanding:
+
+```text
+tolerated remainder = min(TotalQuantity - 1, minimum useful shipment - 1)
+MinimumQuantity = TotalQuantity - tolerated remainder
+```
+
+A production need raises Minimum when necessary to unblock one complete recipe transition. An aid
+order sets Minimum equal to its accepted Total. A depot policy deficit below the derived minimum
+useful shipment does not immediately create a new order; later consumption or policy change may make
+the deficit material again.
+
+### Leg state and concrete terms
+
+```text
+ShipmentLeg
+    ShipmentLegId
+    ShipmentOrderId
+    Source
+    HaulerId?
+    ProductionMaintenanceId?
+    PlannedQuantity
+    ExecutionPackageId
+    ShipmentExecutionTerms
+    SourceReservationQuantity
+    DestinationCapacityReservationId
+    ExcessStagingEndpoint?
+    ExcessStagingCapacityReservationId?
+    RecoveryEndpoint
+    RecoveryCapacityReservationId?
+    PickedUpQuantity
+    CreditedDeliveredQuantity
+    ExcessDeliveredQuantity
+    StagedQuantity
+    ReturnedQuantity
+    RecoveredQuantity
+    LostQuantity
+    State
+    CreatedTick
+    TopUpStartedTick?
+    PickedUpTick?
+    DepartedTick?
+    ArrivedTick?
+    ClosedTick?
+    FailureReason?
+```
+
+Package 13 migrates the Package 1 `ShipmentId` cargo-lot identity to `ShipmentLegId`. A cargo lot
+must resolve one leg because pickup, delivery, recovery, and order arithmetic belong there.
+
+Each leg snapshots:
 
 ```text
 ShipmentExecutionTerms
-    TargetQuantity
+    MinReservationQuantity
+    MaxReservationQuantity
     MinimumDepartureQuantity
-    StockAccess                 // Internal | Soft | Hard
-    Commitment                  // Planned | Reserved
-    ReservedQuantity
-    PickupDeadlineTick
-    TopUpBehavior
-    FallbackBehavior
+    MinimumDeliveryRatio
+    MinimumDeliveryQuantity?
+    TopUpTicks
+    ForecastBias
+    ExecutionPackageId
     PolicyVersion
 ```
 
-Terms are compiled from stable importance bands. A band is **derived, never authored per order**, so
-that urgency stays a consequence of physical state and the decision trace can always explain it:
+`MinimumDeliveryQuantity` is null before departure and materialized there from actual picked-up
+quantity. Source, destination, donor-staging, and recovery reservation IDs remain separate durable
+records rather than being embedded only in these terms.
+
+Leg states progress through `Created`, `TravellingToSource`, `ToppingUp`, `Loaded`,
+`TravellingToDestination`, `Delivering`, `Recovering`, and terminal `Settled`, `Failed`, `Cancelled`,
+or `Lost` states. A state may be skipped when endpoints coincide or no top-up is needed, but it may
+never move backward or discard a physical cargo lot. `FailureReason` is required for `Failed` and
+`Lost`, while cancellation is legal only before pickup.
+
+### Named execution packages
 
 ```text
-band(leg) =
-    Critical    if an impairment episode is already active for the item and direction,
-                or the credible deadline has already passed
-    Important   if the credible deadline falls within one Routine lead time
-    Routine     otherwise, including when no credible deadline exists
+ExecutionTermsPackage
+    ExecutionPackageId
+    MinReservationRatio
+    MaxReservationRatio
+    MinimumDepartureRatio
+    MinimumDeliveryRatio
+    TopUpTicks
+    ForecastBias
 ```
 
-Lead time is the quantity defined under [route cost](#route-cost-and-replenishment-lead-time), so a
-distant contributor escalates earlier than a near one for the same deadline. Escalation is
-monotonic within a leg's life: a renewal may raise a band, and ordinary rescoring may not lower one.
+Authored package ratios are decimals converted once into deterministic fixed-point values. Minimum
+thresholds round up, maximum reservation caps round down, and a package whose integer bounds collapse
+is infeasible for that leg. Expedite's zero minimum ratios still compile to the global rule that a
+non-empty leg must depart and deliver at least one item.
 
-| Band | Terms |
-|---|---|
-| Routine | Planned; depart as soon as the target is available, or at the 20-tick deadline with at least 50%; otherwise close the leg and reopen its quantity. |
-| Important | Create with 80% initially reserved, top up for at most 20 ticks, then depart with at least 80%. |
-| Critical | Reserve the full target where possible and depart immediately after securing any positive useful load. |
+Ratios use integer parts per 10,000 in the simulation domain. Values are bounded to 0–10,000;
+quantity multiplication uses a 64-bit intermediate with explicit overflow checks. For planned quantity `q` and ratio `r`,
+a minimum is `(q × r + 9,999) / 10,000` and a maximum is `(q × r) / 10,000`. The same scale stores
+deadline-extension ticks per item, without the 100% upper bound; its product saturates at the largest
+valid tick.
 
-Access is set by the leg's boundary, not by its band: internal legs are `Internal` in every band,
-and only Leader-approved aid is ever `Hard`. The terms are concrete and do not change when Leader
-policy changes later. Renewal or a new leg may snapshot newer policy.
+| Package | Min/Max reserve | Min departure/delivery | Top-up | Forecast credit |
+|---|---:|---:|---:|---:|
+| `Efficient` | 0% / 0% | 100% / 100% | 20 ticks | 100% |
+| `Balanced` | 50% / 80% | 80% / 80% | 20 ticks | 50% |
+| `Expedite` | 0% / 100% | any positive / any positive | 0 ticks | 0% |
+| `Guaranteed` | 100% / 100% | 100% / 100% | 0 ticks | 0% |
+
+Physical impairment and `RequiredByTick` against candidate delivery derive a transient Routine,
+Important, or Critical urgency used only in the decision trace. Effective Leader policy supplies an
+ordered list of named packages for that urgency and purpose. The Manager selects the first feasible
+package; different legs under one order may choose differently because their sources, routes, and
+reservable quantities differ. The leg stores the package and concrete terms, not an urgency band.
+
+The effective Leader logistics policy provides a standing Reservation-buffer ratio, an ordered
+package list by transient urgency and purpose, maximum parallel legs, and desired redundancy. The
+compiler clamps parallelism to one through three and redundancy to 100% through 150%; it records the
+requested posture and concrete bounded result for explanation.
+
+A package is reservation-feasible only when its rounded Min can be exactly reserved at creation. The
+Manager reserves as much as currently ready up to rounded Max. Failure to meet Min makes that package
+ineligible and selects the next feasible package with an attributed downgrade.
+
+At a depot, exact reservations draw only from the line's ready-to-reserve pool. A facility or ground
+pile cannot create an upfront reservation. A package with positive Min is therefore ineligible there;
+guaranteed onward movement must first consolidate through a depot. A zero-Min package may still
+collect physical facility output or use direct bypass, and ordinary atomic pickup prevents double use.
+
+For each candidate source/hauler pair, the Manager compiles packages in preference order, then ranks
+feasible pairs by usable quantity, expected delivery tick, exact reservation availability, route
+cost, `SourceId`, and `HaulerId`. Stable IDs break only otherwise exact ties. A pair is infeasible if
+its source, package, route, hauler capacity, destination capacity, or recovery plan cannot support a
+positive useful leg.
 
 ### Pickup and top-up
 
-A Planned leg holds no goods reservation while waiting. At pickup it atomically acquires source goods
-its access permits and matching destination capacity. It may short-load if at least its minimum
-departure quantity is available. A 90% load on a Routine target is an ordinary successful departure;
-the parent order reopens the missing 10% for the next planning pass.
+Every leg reserves full planned destination capacity when created. A leg may not exist merely on a
+policy demand that its destination cannot admit. For internal redundant work, capacity must cover the
+entire planned overdelivery. Aid reserves recipient capacity for its accepted Total and donor-
+compartment staging capacity for planned redundant excess.
 
-A Reserved depot-origin leg retains accumulated top-up goods as exact source reservations. It loads
-once when departing. For example, an Important target of 100 may reserve 80 immediately, wait up to 20
-ticks for new stock to reach 100, then depart with 100; if no more arrives, it may depart with the
-reserved 80 at the deadline. Cancellation before pickup releases the reservation cleanly.
+At a depot source, exact reservations remain in stationary storage and may top up toward Max while
+the hauler travels or waits. At departure the operation atomically loads that exact quantity plus
+currently floating stock up to PlannedQuantity. A facility-output leg may instead load produced
+goods incrementally while its primary maintenance hauler waits.
 
-Every exact source reservation is mirrored by destination-capacity reservation. A destination change
-or capacity loss may reduce admission only through explicit execution/failure rules; it never
-silently overbooks storage.
+The hauler waits toward the full PlannedQuantity for at most `TopUpTicks`. It may leave early when
+full. At expiry it departs only if actual physical cargo reaches MinimumDeparture; otherwise the
+unpicked leg closes and releases its exact source, destination, recovery, and carriage reservations.
+
+ForecastBias credits only conservative future state:
+
+- already-loaded reachable inbound cargo whose ETA is within the top-up window; and
+- physically credible facility output within that window.
+
+`ForecastCreditedQuantity = floor(ConservativeForecastQuantity × ForecastBias)`, capped to the leg's
+unfilled planned quantity. It may justify dispatching a hauler toward the source or continuing to
+wait. It never becomes physical stock, an exact reservation, or part of MinimumDeparture. Unloaded
+planned traffic and recursive supply-chain predictions receive no credit.
+
+This forecast is deliberately narrow to implement: it reads already-loaded inbound legs and the
+existing credible next-production facts rather than introducing a speculative supply graph. The
+executor reevaluates those facts during top-up, so staffing, input, route, or production-progress
+changes can invalidate credit without changing stamped terms.
+
+At departure the leg materializes MinimumDelivery from actual cargo and reserves capacity at its
+named recovery endpoint for `PickedUpQuantity - MinimumDeliveryQuantity`. A facility-origin leg
+normally recovers to its supporting depot rather than blocking the facility buffer it just freed.
 
 ### Delivery and remainder
 
-Partial destination admission is legal. The admitted portion updates storage, delivered quantity,
-public commitment arithmetic, and any aid title transition atomically. The remainder stays in cargo.
-It must wait, return, be recovered, be captured, or be explicitly lost. It is not restored to the
-origin or order remainder by bookkeeping.
+Ordinary arrival admits the full load because capacity was reserved. Explicit capacity breach,
+ownership change, capture, or invalid admission may permit only a partial delivery. Once the leg has
+admitted MinimumDelivery it may return the remaining cargo against its recovery reservation. Below
+that threshold it keeps trying until parent outcome or deadline forces settlement. Cargo never
+returns to storage or order remainder through bookkeeping.
 
-A parent order's unpicked quantity may be replanned into new legs. Already loaded cargo is not
-duplicated into that remainder. Exact arithmetic separately tracks target, reserved at source,
-loaded, delivered, cargo remainder, cancelled, recovered, and explicitly lost quantities.
+Delivery claims the order's remaining credited quantity first. Same-title internal delivery beyond
+Total is legal physical excess and increments `ExcessDeliveredQuantity`. The Manager counts that
+stock on its next pass rather than creating a duplicate order.
 
-### Remainder granularity and order closure
+Manager policy normally plans the smallest candidate-leg prefix expected to approach Total. A
+semantic redundancy posture may add useful legs beyond it, but hard guardrails permit at most three
+live legs and at most 150% of the order's remaining Total in planned quantities. Existing active work
+is not cancelled merely because a later policy lowers those bounds. The 150% test is applied whenever
+new work is created or renewed; later deliveries may leave loaded work above the ratio, while
+releasable unpicked excess is normalized on the next planning pass and all releasable siblings cancel
+immediately when Minimum fixes success.
 
-A reopened remainder below the minimum replan remainder never receives a leg of its own. At the next
-planning pass it either merges into a live or newly created leg sharing the same Charter, origin
-endpoint, destination endpoint, and item, or it closes with its parent.
-
-Without this rule the model fragments by construction: a 100-item leg loading 90 reopens 10, that 10
-draws a truck, loading 9 reopens 1, and the authored one-item minimum departure load authorises the
-whole cascade. That value governs whether a leg already standing at a source may depart with a small
-useful load; it never authorises *planning* a small leg.
-
-Parent orders are terminal-stated so planning records cannot accumulate indefinitely:
-
-| Terminal state | Reached when |
-|---|---|
-| `Fulfilled` | Delivered quantity meets the order target. |
-| `ClosedShort` | No live legs remain and the remainder is below the minimum replan remainder. The unmoved quantity is attributed. |
-| `Superseded` | A planning pass replaces the order with reworked coverage; the successor is named. |
-| `Withdrawn` | The need disappeared before pickup. |
-| `Failed` | The remainder is unreachable, unaffordable, or uncovered and no successor is created. |
-
-Every terminal state is reached on a planning pass and names a physical disposition for each
-quantity it accounted for. An order with no live legs may not survive a second planning pass without
-either new legs or a terminal state.
+Already loaded cargo remains excluded from reopened or successor demand. Exact arithmetic separately
+tracks planned, reserved at source, loaded, credited delivery, excess delivery, returned, recovered,
+and explicitly lost quantity.
 
 ### Public cooperation
 
-Internal flows, plans, services, orders, and uncertain Planned legs remain private.
+Internal flows, policies, maintenance, and orders remain private.
 
 - An **Aid Request** declares item, quantity, requester, receiving depot compartment, required-by
-  tick, and reason. Accepted donor portions become Soft-access, fully Reserved supply commitments
-  unless Leader policy explicitly approves Hard access. Multiple donors may cover portions.
-- A **Haul Job** declares concrete reserved goods with title-holder, beneficiary, origin,
-  destination, quantity, required-by tick, and linked shipment leg. Uncertain internal Planned work
-  is never posted publicly.
+  tick, and reason. Each donor acceptance creates a donor-owned order whose Minimum equals its
+  accepted Total. Multiple donor orders may cover portions.
+- A **Haul Job** exposes a concrete leg's intended quantity, exactly reserved quantity, minimum
+  departure, top-up window, deadline, title-holder, beneficiary, origin, destination, and package.
+  A public hauler therefore accepts disclosed pickup risk rather than an implied full guarantee.
 
-Accepted portions cannot exceed public or parent-order remainder. Pickup changes custody only.
-Delivery of the admitted aid portion into the requester compartment transfers exact title and awards
-credit. Undelivered cargo retains donor title and remains physically accounted for.
+The selected package determines how much accepted aid is exactly reserved. Acceptance is legal when
+its package minimum is backed, even if the full accepted quantity is not; delivering less than the
+accepted Total still fails that donor order.
+
+Accepted portions cannot exceed Aid Request remainder. Pickup changes custody only. Recipient
+delivery and title transfer are capped by the accepted quantity. Redundant aid first covers any still
+unfilled accepted quantity; physical excess stages without title change in the donor's compartment
+at that same depot using its reserved capacity. If staging cannot remain valid, the leg uses its
+named recovery endpoint. Excess earns no aid credit.
 
 A donor evaluating several open Aid Requests in one planning pass considers them in ascending
 required-by tick, then descending requested quantity, then ascending `AidRequestId`. 1B has no
@@ -681,14 +885,21 @@ actual route hazards exist. Current reachable routes carry no fabricated confide
 
 ## Reservation, failure, and lifecycle rules
 
-- Exact goods reservations name source, item, quantity, commitment, and leg.
+- Exact goods reservations name source, item, quantity, and leg and occupy that depot line's
+  Reservation pool.
 - Exact destination reservations name endpoint, item, quantity, and leg.
+- Exact excess-staging reservations name the donor compartment at the destination depot, item,
+  quantity, and aid leg.
+- Exact recovery reservations name endpoint, item, quantity, and leg. They cover the largest cargo
+  remainder after a successful MinimumDelivery.
 - A reservation is breached only by explicit destruction, capture, facility ownership change, or
   Charter death. Ordinary production, consumption, and movement honour reservations, so a breach
   fact always names one of those four causes.
 - Hauling reservations name logist, cargo capacity, and work.
-- Planned atomic pickup validates source stock and destination capacity together.
-- Pre-pickup expiry or withdrawal releases exact reservations and committed carriage.
+- Atomic pickup validates exact-plus-floating source stock, full destination capacity, recovery
+  capacity, and cargo capacity together.
+- Pre-pickup expiry, satisfaction, supersession, or withdrawal releases every physically releasable
+  reservation and carriage assignment.
 - Post-pickup timeout marks a recoverable stall but cannot free the truck or recreate cargo.
 - Supporting-endpoint loss leaves the flow visible and work attributable until reassigned.
 - Facility ownership change cancels incompatible unpicked work before claiming the facility
@@ -703,23 +914,26 @@ Emit buffered facts for material transitions:
 
 - supporting depot assigned, changed, lost, or unreachable;
 - starvation/blockage episode started, materially changed, or recovered;
-- target, goal, or attributed capacity shortfall changed on a planning pass;
+- Target, Protected, Reservation, physical partition, or attributed policy shortfall changed on a
+  planning pass;
 - stock reservation created, topped up, consumed, released, or breached;
-- service assigned, standby entered, forecast invalidated, or service released;
-- leg planned, band escalated, reserved, short-loaded, departed, partially admitted, delivered,
-  stalled, returned, recovered, or lost;
-- parent order opened, resized, or reaching one of its terminal states;
+- ProductionMaintenance created, primary hauler retained, top-up wait entered, forecast invalidated,
+  renewed, or released;
+- leg planned, package selected or downgraded, reserved, short-loaded, departed, partially admitted,
+  delivered, overdelivered, staged, stalled, returned, recovered, or lost;
+- parent order opened, satisfied, failed, superseded, withdrawn, settled, or closed;
 - Aid Request or Haul Job published, accepted, expired, withdrawn, or completed; and
 - facility aggregate ownership changed.
 
 Facts contain stable IDs and enough prior/new values for explanation. They do not own current flow,
 plan, reservation, or shipment state.
 
-Headless and developer views expose exact contributor flows, gross stock, target, goal, stock tiers,
-reservations, traffic, shipment arithmetic, decision terms, route failures, and conservation.
+Headless and developer views expose exact contributor flows, all three policy quantities, physical
+stock partitions, reservations, traffic, order/leg arithmetic, package terms, route failures, and
+conservation.
 Player-facing views obey GDD information rules: local pain and age, depot pressure, public exact
-commitments, intentional standby, convoy custody/title, and attributed outcomes without leaking
-private stock plans.
+guaranteed-versus-intended aid, intentional top-up waits, convoy custody/title, and attributed
+outcomes without leaking private stock policies.
 
 ## Authored content and tuning
 
@@ -730,46 +944,49 @@ These are provisional starts, not final balance:
 | Manager planning cadence | 10 ticks | Game setting |
 | Supporting-depot reassessment | 60 ticks | Manager policy |
 | Supporting-depot minimum route saving | 2 ticks | Manager policy |
-| Depot target cover horizon | 60 ticks, floored by longest contributor lead time | Manager policy |
-| Neutral protected-goal fraction | 0.5 | Leader/Manager policy |
+| Depot Target cover window | 60 ticks, floored by longest contributor replenishment loop | Manager policy |
+| Neutral standing Reservation buffer | 20% of item capacity, raised for imminent guarantees | Leader/Manager policy |
+| Neutral Protected quantity | 0 unless an explicit objective raises it | Leader/Manager policy |
+| Routine internal order lifetime | 60 ticks, floored by best feasible attempt | Manager policy |
 | Maximum parallel live legs per order | 3 | Manager guardrail |
-| Minimum replan remainder | 3 items (quarter truck) | Manager guardrail |
-| Routine departure / wait | 50% / 20 ticks | Routine execution band |
-| Important reservation / departure / wait | 80% / 80% / 20 ticks | Important execution band |
-| Critical reservation / departure | Full where possible / any useful positive load | Critical execution band |
+| Maximum planned redundant coverage | 150% of remaining Total | Manager guardrail |
+| Minimum useful depot shipment | 25% of standard item-specific hauler capacity | Manager policy |
+| Efficient package | 0% reserve; 100% depart/deliver; 20-tick top-up; full conservative forecast credit | Authored execution package |
+| Balanced package | 50–80% reserve; 80% depart/deliver; 20-tick top-up; 50% forecast credit | Authored execution package |
+| Expedite package | 0–100% reserve; any positive depart/deliver; no wait or forecast | Authored execution package |
+| Guaranteed package | 100% reserve/depart/deliver; no wait or forecast | Authored execution package |
 | Truck cargo capacity | 12 slots | Physical configuration |
 | Desired facility input cover | 2 batches | Manager policy |
 | Normal facility-output pickup | 50% of useful buffer | Manager policy |
-| Service minimum commitment | 60 ticks | Manager policy |
-| Facility standby maximum | 40 ticks | Manager policy |
-| Forecast slip tolerance | 10 ticks | Manager policy |
+| ProductionMaintenance minimum retention | 60 ticks | Manager policy |
 | Direct-bypass minimum saving | 2 route ticks | Manager policy |
-| Aid commitment expiry | 60 ticks | Cooperation policy |
-| Haul commitment expiry | 60 ticks | Cooperation policy |
+| Aid order deadline | Accepted request required-by tick | Cooperation policy |
+| Haul Job expiry | Linked leg/order deadline | Cooperation policy |
 | Loaded shipment stall diagnosis | 60 ticks | Safety check |
 | Minimum useful departure load | 1 item | Execution policy |
 | Off-road truck cooldown | 2 ticks per step | Physical configuration |
 
-Facility standby, aid/haul expiry, shipment stall, cargo, and movement values retain their existing
-provisional meanings unless implementation gives an obsolete name a clearer replacement. A future
-cautious Leader changes semantic stock-protection posture, stock cover, and firmness; the deterministic
-policy compiler bounds those inputs and produces literal targets, goals, and execution terms.
+A future cautious Leader changes semantic stock posture, guarantee buffer, named-package preference,
+parallel-leg limit, and desired redundancy. The deterministic policy compiler bounds those inputs
+and produces literal StockingPolicy quantities and snapshotted leg terms.
 
 ## Scenario
 
 Author a sibling scenario from the 1A three-region proof:
 
 - keep Ironworks, Brimstone, and Greyline with their regional depots;
-- add standing-service trucks while retaining Greyline's public haulers;
+- add one retained ProductionMaintenance hauler per responsibility while retaining Greyline's public
+  haulers;
 - start extraction facilities empty and transformation facilities without pre-seeded inputs;
-- run mine-to-refinery-to-finished-goods chains through physical service;
+- run mine-to-refinery-to-finished-goods chains through physical orders and legs;
 - require Brimstone to obtain Ironworks material through aid to its depot;
-- represent Greyline finished-goods requirements as standing stock objectives;
+- represent Greyline finished-goods requirements through depot StockingPolicy demand;
 - include a same-Charter direct facility match;
-- show deliberate output standby and at least one deliberately parallel order; and
+- show deliberate output top-up and at least one deliberately parallel order; and
 - preserve roads among facilities and depots.
 
-Disruption variants cover missing supply, insufficient service, invalid standby, distant aid,
+Disruption variants cover missing supply, insufficient maintenance coverage, invalid output
+forecast, distant aid,
 unreachable support, blocked shipment route, competing aid, short pickup, partial destination
 admission, a facility losing staffing and later restarting from stock kept for it, and a chain of
 short pickups whose remainders must merge rather than fragment.
@@ -901,54 +1118,59 @@ that removing fact consumers cannot change authoritative state.
 earliest credible deadline, active impairment age, supply and consumption remaining separate, and an
 unreachable contributor surviving aggregation.
 
-### Package 9 — Depot plan records and standing stock objectives
+### Package 9 — Depot policy records and standing stock objectives
 
-**Outcome:** durable Manager state can describe desired stock without inventing physical demand.
+**Outcome:** durable Manager state can describe additive working, protected, and reservable stock
+without inventing physical demand.
 
 - Add Charter/depot/item plan lines with gross stock, physical capacity, contributor references,
-  planned traffic, reservation summaries, target, goal, and attributed shortfalls.
-- Add standing explicit stock objectives with target, optional minimum goal, desired-by tick, reason,
+  planned traffic, reservation summaries, `StockingPolicy`, physical partitions, and attributed
+  component shortfalls.
+- Add standing objectives naming Target, Protected, or Reservation quantity, desired-by tick, reason,
   and provenance.
 - Add change and withdrawal operations; physical attainment must not close an objective.
-- Represent Greyline's authored finished-goods needs as objectives.
+- Represent Greyline's authored finished-goods needs as Target objectives.
 
 **Gate:** tests cover plan-line identity, objective replacement/withdrawal, persistence through
-attainment and later depletion, unsupported contributors, and no objective-created physical flow.
+attainment and later depletion, policy-component provenance, unsupported contributors, and no
+objective-created physical flow.
 
-### Package 10 — Goods and destination-capacity reservations
+### Package 10 — Goods, delivery, staging, and recovery reservations
 
-**Outcome:** exact commitments protect both ends without changing gross physical stock.
+**Outcome:** exact source guarantees and every capacity claim remain identifiable without
+changing gross physical stock.
 
-This package precedes stock arithmetic deliberately. Plan-line partitions and `Hard` access are
-defined against exact reservations, so compiling them first would mean reading a registry that does
-not exist yet — the placeholder path this specification forbids.
+This package precedes stock arithmetic deliberately: ready-to-reserve and exactly reserved
+partitions require a real reservation registry.
 
-- Add identified source-goods and destination-capacity reservation registries.
+- Add identified source-goods, destination-capacity, donor-staging-capacity, and recovery-capacity
+  reservation registries.
 - Add atomic create, increase, reduce, consume, and release operations.
 - Enforce exact reservations during local facility consumption.
 - Derive plan reservation summaries without embedding them in physical flows.
 
-**Gate:** tests cover double-reservation rejection, mirrored capacity, reservation release,
-consumption exclusion, host capacity change, unchanged gross flow quantities, and the four permitted
-breach causes.
+**Gate:** tests cover double-reservation rejection, full planned destination capacity, aid excess
+staging, recovery capacity, reservation release, consumption exclusion, host capacity change,
+unchanged gross flow quantities, and the four permitted breach causes.
 
-### Package 11 — Target, stock-goal, and partition compilation
+### Package 11 — StockingPolicy and partition compilation
 
-**Outcome:** every plan line receives concrete, explainable stocking quantities.
+**Outcome:** every plan line receives a valid concrete policy and explainable physical partitions.
 
-- Add the bounded neutral `EffectiveManagerPolicy` fields required for target cover and goal
-  fraction.
-- Compile nominal-cadence consumption cover over the lead-time-floored horizon and standing
-  objectives into `TargetQuantity`.
-- Cap target by physical capacity and attribute the clipped quantity as level state.
-- Compile `StockGoalQuantity` from the bounded policy fraction and explicit minimum.
-- Compute reserved, goal-protected, and unprotected stock partitions against the live reservation
-  registry.
+- Add bounded `EffectiveManagerPolicy` fields for Target cover, the 20% standing Reservation buffer,
+  imminent guarantee expansion, and semantic Protected posture.
+- Compile nominal-cadence cover and component objectives into raw Target, Protected, and Reservation
+  demand.
+- Emit a valid additive policy whose sum fits item capacity; defer changes that would invalidate live
+  exact reservations and attribute every clipped component.
+- Compute protected, exactly reserved, ready-to-reserve, floating target, and floating excess
+  partitions against physical stock and the live reservation registry.
 
-**Gate:** table-driven tests cover target-versus-goal examples, deterministic rounding, zero and full
-capacity, objective minimums, capacity shortfall attribution emitted only on change, reservations
-larger than current physical stock, stock above target, an unstaffed contributor still producing
-cover, a distant contributor extending the horizon, and all three stock tiers.
+**Gate:** table-driven tests cover the 500/200/50/150/300 example, policy-sum validation,
+deterministic rounding, zero and full capacity, component clipping emitted only on change, attempted
+policy theft from live reservations, reservation breach below Protected, stock above policy, an
+unstaffed contributor still producing Target cover, a distant contributor extending cover, and all
+five physical partitions.
 
 ### Package 12 — Fixed-cadence Manager planning
 
@@ -956,48 +1178,53 @@ cover, a distant contributor extending the horizon, and all three stock tiers.
 
 - Add the authored planning cadence and per-Charter next-planning tick.
 - Run due Managers only after logistics execution, support validation, flow rebuild, aggregation,
-  and target/goal compilation.
+  and StockingPolicy compilation.
 - Rank contributors and objectives using time-to-bite, impairment age, consequence, route time,
-  commitments, and policy.
+  reservations, policy deficits, and effective Leader policy.
+- Derive minimum useful depot shipments from item-specific hauler capacity and suppress smaller
+  residual replenishment needs.
 - Diagnose intervening physical failures without scheduling an extra planning pass.
 
 **Gate:** tests prove no event-triggered planning, stable exact ties, one plan per cadence tick,
-current-phase snapshot use, persistence of the prior target/goal between passes, and next-tick
-movement for newly planned work.
+current-phase snapshot use, persistence of the prior policy between passes, small-deficit
+suppression, and next-tick movement for newly planned work.
 
 ### Package 13 — Shipment order, leg, and execution-term state
 
 **Outcome:** planning can express tolerant physical work before any truck executes it.
 
 - Add parent `ShipmentOrder` and one-item `ShipmentLeg` registries and lifecycle operations.
-- Add stable Routine, Important, and Critical bands and derive a leg's band from impairment state
-  and credible deadline against lead time.
-- Snapshot target, minimum departure, access, commitment, reserved quantity, pickup deadline,
-  top-up, fallback, and policy version into `ShipmentExecutionTerms`.
-- Add bounded deliberate splitting with at most three parallel live legs and exact parent remainder
-  arithmetic.
-- Add the minimum replan remainder rule and every parent-order terminal state.
+- Add `RequiredByTick`, base/effective deadline, fixed-point extension, immutable Total/Minimum,
+  separate Outcome and Settlement state, delivery/excess arithmetic, and supersession.
+- Add authored `Efficient`, `Balanced`, `Expedite`, and `Guaranteed` definitions and fixed-point
+  package compilation.
+- Derive transient urgency, select the first feasible named package from policy preferences, and
+  snapshot concrete reservation, departure, delivery, top-up, forecast, and policy terms.
+- Migrate cargo identity from Package 1 `ShipmentId` to `ShipmentLegId`.
+- Add deterministic leg states, timestamps, source/delivery/staging/recovery reservation links, and
+  picked-up, credited, excess, staged, returned, recovered, and lost arithmetic.
+- Add bounded multi-source parallelism with at most three live legs, at most 150% planned coverage,
+  and exact loaded-versus-successor arithmetic.
 
-**Gate:** tests cover one-item enforcement, band derivation across all three bands including a
-distant contributor escalating earlier than a near one, monotonic escalation within a leg, policy
-changes not mutating live terms, parallel legs when one truck could carry the order, live-leg cap,
-cancellation before pickup, no parent remainder duplication, a sub-threshold remainder merging
-rather than spawning a leg, and every terminal state reachable with no order surviving two empty
-planning passes.
+**Gate:** tests cover one-item enforcement, one open order per scoped need, immutable order
+conditions, RequiredBy versus Deadline, deadline extension, success/failure settlement,
+supersession, package rounding and fallback, different packages under one order, policy changes not
+mutating live terms, three-leg/150% caps, legal state transitions, cancellation before pickup, and no
+loaded quantity entering successor demand.
 
-### Package 14 — Facility service records and commitments
+### Package 14 — ProductionMaintenance records and hauler retention
 
-**Outcome:** planning can reserve persistent facility coverage before cycle execution exists.
+**Outcome:** planning can retain one stable facility-maintenance hauler before cycle execution exists.
 
-- Add the `FacilityService` record, registry, stable identity, supporting-depot link, covered
-  directions, and lifecycle state.
-- Add hauling commitment and atomic assign/release operations.
-- Exclude a service-assigned truck from ordinary work candidates.
+- Add the `ProductionMaintenance` record, registry, stable identity, supporting-depot link, covered
+  directions, one optional primary hauler, and lifecycle state.
+- Add atomic retain/release operations and minimum-retention metadata.
+- Exclude a maintenance-retained truck from ordinary work candidates.
 - Represent selectively uncovered facilities when carriage is insufficient.
 
 **Gate:** tests cover creation, renewal metadata, hauling exclusion, idempotent assignment, release,
 invalid ownership or endpoint, and several uncovered facilities without assignment churn. No
-service movement is added yet.
+maintenance movement is added yet.
 
 ### Package 15 — Private matching and order creation
 
@@ -1005,157 +1232,182 @@ service movement is added yet.
 
 - Match local supply, consumption, stock objectives, and depot rebalancing against live
   reservations and traffic.
-- Create or renew facility services, ordinary Internal/Planned legs, and important
-  Internal/partially Reserved legs.
+- Create or renew ProductionMaintenance and destination-driven orders, then select source-specific
+  legs and named packages.
+- Rank feasible source/hauler pairs by usable quantity, expected delivery, reservation availability,
+  route cost, and stable IDs; record package and candidate fallback reasons.
+- Allocate the smallest candidate prefix expected to approach Total and add policy-approved
+  redundancy only within the three-leg/150% guardrails and full destination capacity.
 - Select same-Charter direct facility bypass only when it clears the authored route saving and
-  preserves plan coverage.
+  uses a zero-minimum-reservation package.
 - Send unresolved title or carriage proposals through the neutral Leader-policy boundary without a
   concrete Leader object.
 
-**Gate:** tests cover local remedy ordering, no double-counted inbound, service creation and
-preservation, direct-bypass eligibility, own inter-depot work, competition for unreserved stock,
-attributed uncovered remainder, proof that an internal leg is never refused by its own Charter's
-stock goal, and escalation only after private remedies.
+**Gate:** tests cover local remedy ordering, no double-counted inbound, maintenance creation and
+preservation, direct-bypass eligibility, multi-source inter-depot work, competition for floating
+stock, package downgrade, overcommit capacity, attributed uncovered remainder, Protected never being
+drawn, and escalation only after private remedies.
 
-### Package 16 — Atomic pickup and reserved top-up
+### Package 16 — Atomic reservation, pickup, and top-up
 
-**Outcome:** legs depart with useful partial quantities under their snapshotted terms.
+**Outcome:** source reservations and departure behavior obey each leg's stamped package.
 
-- Implement Planned pickup as one atomic source-stock and destination-capacity acquisition.
-- Implement depot-origin top-up as accumulated exact source reservations with one departure load.
-- Apply minimum departure, pickup deadline, and fallback terms for all three bands.
-- Reopen only the unpicked quantity on the parent order for the next planning pass, subject to the
-  minimum replan remainder.
+- Reserve from a depot's ready-to-reserve partition up to the rounded maximum only when the rounded
+  minimum can be met; never satisfy a reservation from forecast or Protected stock.
+- Hold full planned destination capacity when the leg is created.
+- Let the hauler seek the full planned quantity during `TopUpTicks`, accumulating physically
+  available stock and exact reservation within the package cap.
+- At expiry, depart only when physical load meets `MinimumDepartureQuantity`; otherwise fail the
+  unpicked leg and release its releasable reservations.
+- At departure, derive `MinimumDeliveryQuantity` from actual picked-up quantity and reserve recovery
+  capacity for the possible successful remainder.
 
-**Gate:** tests cover 90% Routine pickup, Routine failure below 50%, 80%-reserved Important pickup
-after a 20-tick wait, Important top-up to 100%, Critical positive-load departure, local consumption
-between planning and pickup, and exact parent remainder.
+**Gate:** tests cover all four named packages, minimum-up/maximum-down rounding, reservation fallback,
+Protected exclusion, target-seeking top-up, local consumption between planning and pickup,
+conservative-forecast invalidation, and non-depot rejection of positive minimum reservation.
 
-### Package 17 — Shipment movement and partial delivery
+### Package 17 — Shipment movement, delivery, and settlement
 
-**Outcome:** loaded legs move and deliver conservatively through real routes.
+**Outcome:** loaded legs move, admit cargo, and settle without weakening their physical claims.
 
-- Assign eligible internal logists, route to origin, load, follow road-aware movement, and reach the
+- Assign an eligible hauler, route to source, load, follow road-aware movement, and reach the
   destination.
-- Admit as much cargo as current destination capacity permits.
-- Update exact delivered-portion title and commitment arithmetic.
-- Keep undelivered quantity in cargo and expose wait, return, and recovery dispositions.
+- Admit delivery against the leg's destination-capacity reservation. Treat admission below that
+  claim as an explicit storage breach, not normal opportunistic delivery.
+- Credit the parent up to `TotalQuantity`, record internal excess separately, and apply aid title and
+  credit only to admitted recipient quantity.
+- Keep undelivered cargo physical and expose wait, donor staging, return, recovery, and loss
+  dispositions.
+- Permit a decided order to remain settling while loaded sibling legs complete their dispositions.
 
-**Gate:** tests cover a complete internal trip, direct bypass, road preference, cooldown, partial
-destination admission, full destination, title preservation, aid title change on admitted quantity
-only, and no cargo bookkeeping release.
+**Gate:** tests cover complete and direct-bypass trips, road preference, cooldown, full capacity
+claims, explicit capacity breach, minimum-versus-total success, internal overdelivery, exact aid
+caps, title preservation, recovery-capacity consumption, and no bookkeeping-only cargo release.
 
-### Package 18 — Facility service cycle execution
+### Package 18 — ProductionMaintenance cycle execution
 
-**Outcome:** a persistent service advances through ordinary input and output trips.
+**Outcome:** a persistent maintenance responsibility sequences ordinary input and output legs.
 
-- Add service phases for acquiring a cycle, travelling to input origin, delivering inputs,
-  collecting ready output, returning or directly delivering, and renewing or releasing.
-- Build each physical movement from the shipment-leg and reservation operations already implemented.
-- Keep the service authoritative over carriage and phase order only; legs keep every quantity,
-  deadline, and fallback decision.
-- Support input-only, output-only, and ordinary round-trip cycles.
-- Preserve the service and hauling commitment across successful cycle renewal.
+- Add phases for acquiring a cycle, input-before-output sequencing, travelling, delivering inputs,
+  collecting output, combined backhaul, renewal, standby, and release.
+- Build every physical movement from the same order, leg, package, reservation, and cargo operations
+  used by inter-depot work.
+- Keep ProductionMaintenance authoritative only over primary-hauler retention and cycle sequencing;
+  orders and legs retain every quantity, deadline, reservation, and outcome.
+- Support input-only, output-only, direct-bypass, and combined round-trip cycles.
 
-**Gate:** healthy input-only, output-only, and round-trip services each cycle; assignment survives
-ordinary higher-ranked work; one leg's fallback firing mid-cycle closes that leg alone and leaves
-the service and its sibling legs intact; a failed leg leaves an attributed service state; renewal
-creates no duplicate leg or hauling promise.
+**Gate:** each cycle form uses common leg primitives; the primary hauler survives ordinary renewal;
+one failed leg closes without rewriting siblings; urgent overflow creates ordinary additional legs;
+and no responsibility retains more than one hauler.
 
-### Package 19 — Facility standby and combined cycles
+### Package 19 — Production top-up and combined cycles
 
-**Outcome:** service trucks may wait or backhaul for physical reasons rather than score inertia.
+**Outcome:** facility output waiting is ordinary leg top-up rather than duplicate maintenance logic.
 
-- Add `StandbyForOutput`, credible ready-tick validation, maximum wait, and forecast-slip handling.
-- Permit incremental facility-output loading while waiting to free buffer capacity, bounded by the
-  leg's held destination-capacity reservation.
-- Combine compatible input delivery and output collection within cargo capacity.
-- Release or replan on missing staffing, input, route, ownership, or expired wait.
+- Let an output leg use its stamped `TopUpTicks`, departure threshold, and conservative production
+  forecast while ProductionMaintenance remains in its output phase.
+- Permit incremental physical output loading to free facility buffer capacity, bounded by the leg's
+  cargo and destination-capacity claims.
+- Combine compatible input delivery and output collection within physical cargo capacity.
+- Release or replan on missing staffing, input, route, ownership, expired top-up, or invalidated
+  production forecast.
 
-**Gate:** tests cover valid standby, rejection of competing spot work, progressive output loading,
-standby halting collection at exhausted reserved destination capacity rather than stranding cargo,
-combined input/output service, forecast slip inside tolerance, invalidated forecast, and maximum-wait
-release.
+**Gate:** tests cover valid output top-up, progressive loading, exhausted destination capacity,
+combined input/output carriage, credible forecast, invalidated forecast, expiry, and the absence of
+a second standby timer or threshold in ProductionMaintenance.
 
-### Package 20 — Aid Requests and supply commitments
+### Package 20 — Aid Requests and donor orders
 
-**Outcome:** unresolved title needs become exact public aid without bypassing donor policy.
+**Outcome:** each accepted aid portion becomes an exact donor-owned order without a separate promise
+axis.
 
 - Publish Aid Requests through the neutral Leader boundary.
 - Generate donor-local offers and accept portions without exceeding public remainder, considering
-  open requests in required-by, quantity, then ID order.
-- Create default Soft/fully Reserved commitments and explicitly approved Hard aid, bounded to one
-  exact quantity per approval and to the line's goal-protected stock.
-- Handle same-depot delivery and remote shipment-order creation.
-- Preserve exact requested, committed, reserved, loaded, delivered, and remaining arithmetic.
+  requests in required-by, quantity, then stable-ID order.
+- Create one donor-owned ShipmentOrder per acceptance with `MinimumQuantity == TotalQuantity` and
+  reject an acceptance whose agreed deadline is already infeasible.
+- Use the selected named package to determine the exact source guarantee; disclose intended,
+  reserved, minimum-departure, top-up, and deadline quantities.
+- Reserve accepted recipient capacity and redundant donor-compartment capacity at the destination;
+  handle same-depot delivery and remote legs through the same arithmetic.
 
-**Gate:** tests cover split donors, donor goal protection, accepted-goods exclusion from local use,
-deterministic ordering of competing requests, Hard-aid approval, refusal of a second Hard draw on
-one approval, zero-distance transfer, remote title timing, expiry/withdrawal, and excess competing
-aid.
+**Gate:** tests cover split donors, partial guarantees, deterministic competing requests,
+zero-distance transfer, infeasible-deadline rejection, exact recipient caps, donor-title staging,
+delivery-time title transfer, expiry, withdrawal, and reconciliation of requested, accepted,
+reserved, loaded, admitted, staged, and remaining quantities.
 
 ### Package 21 — Haul Jobs and external carriage
 
-**Outcome:** another Charter may carry only concrete, reserved physical work.
+**Outcome:** another Charter may knowingly accept a leg with fully disclosed partial guarantees.
 
-- Publish Haul Jobs only for shipment legs backed by exact goods reservations.
+- Publish a Haul Job from an unclaimed leg once its exact stamped terms and currently reserved
+  quantity are public; full source reservation is not required unless the package requires it.
 - Rank and accept claims using the hauler's own resources and stable exact ties.
-- Reserve the unit and cargo capacity; permit several haulers to claim separate portions.
-- Preserve title-holder and beneficiary independently from carrier affiliation.
+- Reserve the hauler and its cargo capacity; permit several haulers to claim separate legs.
+- Preserve source title-holder, beneficiary, and carrier affiliation independently.
 
-**Gate:** tests cover refusal of uncertain Planned work, ineligible committed trucks, split hauling,
-claim expiry, third-party title, separate cargo lots, and Greyline carrying several Charters' work.
+**Gate:** tests cover partially and fully guaranteed jobs, claimant acceptance of stamped risk,
+ineligible retained haulers, split hauling, claim expiry, third-party title, separate cargo lots,
+and one carrier moving work for several Charters.
 
-### Package 22 — Failure, recovery, and lifecycle
+### Package 22 — Failure, recovery, supersession, and lifecycle
 
-**Outcome:** every interrupted operation has an attributable physical disposition.
+**Outcome:** every decided order and interrupted leg has an attributable physical disposition.
 
-- Add pre-pickup expiry and withdrawal, loaded-shipment stall diagnosis, wait, return, recovery, and
-  explicit loss.
-- Integrate endpoint invalidation, facility ownership change, Charter death, and emergency
-  preemption.
-- Release only reservations and carriage that remain physically releasable.
+- Add order success at Minimum, deadline failure, fixed-point deadline extension, supersession,
+  cancellation of releasable siblings, and settlement closure.
+- Add pre-pickup expiry and withdrawal, loaded-leg stall diagnosis, late delivery, wait, donor
+  staging, return, recovery, and explicit loss.
+- Integrate endpoint invalidation, facility ownership change, Charter death, reservation breach, and
+  emergency hauler release.
+- Release only reservations and carriage that remain physically releasable; loaded cargo and its
+  capacity claims survive parent outcome changes.
 - Record cause, responsible actor, avoidability, quantity, and stage.
 
-**Gate:** no timer frees loaded cargo; incompatible unpicked work releases before facility claim;
-loaded cargo survives title-holder or carrier changes correctly; every terminal path names a
-physical disposition.
+**Gate:** delivery precedes deadline evaluation on the deadline tick; deadline extension floors
+deterministically; late cargo cannot rewrite failure; supersession does not resize live conditions;
+no timer frees loaded cargo; and every terminal or settling path names a physical disposition.
 
 ### Package 23 — Conservation and reservation audits
 
-**Outcome:** quantity, title, promises, and capacity can be reconciled independently.
+**Outcome:** stock partitions, quantities, title, and capacity reconcile independently.
 
-- Extend conservation across facility storage, depot compartments, ground piles, reservations,
-  cargo, partial delivery, return, recovery, title change, and explicit loss.
-- Add audits for source reservations, destination-capacity reservations, parent/leg arithmetic, and
-  hauling-capacity commitments.
+- Extend conservation across facility storage, each depot policy partition, ground piles, exact
+  reservations, cargo, delivery, staging, return, recovery, title change, and explicit loss.
+- Audit policy capacity, live-reservation backing, source reservation, destination capacity,
+  recovery capacity, parent/leg arithmetic, order outcome/settlement, and hauler capacity.
+- Attribute exceptional reservation breaches from destruction or capture separately from execution
+  defects.
 - Add focused discrepancy attribution rather than one aggregate failure.
 
-**Gate:** all healthy and failure paths reconcile; deliberate injected quantity, title, reservation,
-capacity, and parent-remainder discrepancies fail in the expected audit.
+**Gate:** every healthy, failed, and settling path reconciles; injected quantity, title, policy,
+reservation, capacity, credited/excess-delivery, and parent/leg discrepancies fail in the expected
+audit.
 
 ### Package 24 — Views, headless metrics, and digest
 
-**Outcome:** the causal chain is inspectable without exposing mutable domain state.
+**Outcome:** the causal chain is inspectable without exposing mutable or private domain state.
 
-- Add read-only flow, contributor, plan, stock-tier, service, board, cargo, and shipment projections.
+- Add read-only flow, contributor, StockingPolicy, physical-partition, order, leg, package-selection,
+  ProductionMaintenance, board, cargo, and settlement projections.
 - Extend canonical headless metrics and digest rows.
-- Add decision traces, planning-cadence counters, service coverage, short-load, partial-delivery,
-  impairment-age, and churn metrics.
-- Preserve private/public visibility boundaries.
+- Add decision traces and fallback reasons, planning-cadence counters, maintenance coverage,
+  short-load, top-up, overdelivery, recovery-capacity, impairment-age, and churn metrics.
+- Preserve private/public visibility boundaries while exposing all accepted aid and Haul Job terms.
 
 **Gate:** captured views cannot mutate simulation state; output ordering is canonical; private
-quantities stay out of ordinary presentation; the same seed and state produce equivalent output.
+quantities stay out of ordinary presentation; public work is fully explainable; and the same seed
+and state produce equivalent output.
 
 ### Package 25 — Scenario and disruption fixtures
 
 **Outcome:** all approved mechanics run together before presentation work.
 
 - Author the sibling 1B scenario from the A1 proof.
-- Add healthy service, direct bypass, deliberate standby, parallel legs, aid, and third-party
-  carriage.
-- Add fixtures for missing supply, insufficient service, invalid standby, unreachable support,
-  blocked route, competing aid, short pickup, and partial destination admission.
+- Add healthy ProductionMaintenance, direct bypass, output top-up, one-to-three parallel legs,
+  bounded redundancy, aid, and third-party carriage.
+- Add fixtures for missing supply, breached reservation, invalid forecast, unreachable support,
+  blocked route, competing aid, short pickup, full destination, donor staging, and recovery.
 - Tune authored values until each fixture reaches its intended state without conservation error.
 
 **Gate:** the healthy scenario reaches stable throughput and every disruption produces its distinct
@@ -1165,14 +1417,16 @@ structured diagnosis across the chosen seed set.
 
 **Outcome:** the integrated scenario becomes watchable without exposing private plans.
 
-- Render source pain and impairment age, depot pressure categories, service/standby state, and
-  cargo-bearing convoys.
-- Show public Aid Request and Haul Job quantities and fulfillment.
-- Add pickup, wait, departure, partial delivery, recovery, failure, and completion feed events.
+- Render source pain and impairment age, depot policy pressure, ProductionMaintenance phase,
+  top-up state, and cargo-bearing convoys.
+- Show public Aid Request and Haul Job quantities, guarantees, terms, and fulfillment.
+- Add reservation, pickup, wait, departure, partial delivery, overdelivery, staging, recovery,
+  failure, settlement, and completion feed events.
 - Keep route choice and direct unit control unavailable to the player.
 
-**Gate:** a viewer can distinguish source, stock-goal, reservation, carriage, route, and destination
-failures from the map and feed; convoy inspection names carrier, title-holder, and beneficiary.
+**Gate:** a viewer can distinguish source, Protected, Reservation, floating-stock, carriage, route,
+and destination failures from the map and feed; convoy inspection names package, carrier,
+title-holder, beneficiary, and parent order.
 
 ### Package 27 — Close 1B
 
@@ -1184,8 +1438,9 @@ failures from the map and feed; convoy inspection names carrier, title-holder, a
 - Update management and Loop 1 completion only when every preceding gate and the completion gate
   below are demonstrated.
 
-**Gate:** no contradicted legacy path remains reachable, the A1 proof remains intact, and every 1B
-completion condition is demonstrated.
+**Gate:** no contradicted qualitative-promise, policy-pool, urgency-package, or
+separate-facility-hauling path
+remains reachable; the A1 proof remains intact; and every 1B completion condition is demonstrated.
 
 ## Validation and examples
 
@@ -1208,95 +1463,120 @@ completion condition is demonstrated.
 7. **Unreachable support:** a facility with no route still emits its source flows using the none
    endpoint and an attributed support failure; it is not omitted from planning or pain.
 
-### Stock-arithmetic examples
+### Stocking-policy examples
 
-1. **Target versus goal:** 60-tick nominal consumption cover is 80, a standing objective requests
-   120, and capacity is 100. The target is 100, the neutral goal is 50, and the missing 20 is an
-   attributed capacity shortfall that re-emits only when its quantity changes.
-2. **Lead time floors the horizon:** the same line's only contributor is 40 route ticks away, giving
-   a Routine lead time of 110 ticks. Cover compiles over 110 ticks, not 60, because a 60-tick target
-   could not survive its own replenishment loop.
-3. **Unstaffed cover:** a contributor loses staffing. Its effective cadence disappears and its
-   deadlines vanish, but nominal cadence keeps its cover in the target, so the depot still stocks
-   the inputs the facility needs to restart.
-4. **Three tiers:** physical stock 100, exact reservations 30, and goal 40 produce 30 reserved,
-   40 unreserved goal-protected, and 30 unprotected stock.
-5. **Internal legs ignore the goal:** with that same line, an internal service leg may draw all 70
-   unreserved items, including the 40 under the goal, because relocating them does not change the
-   Charter's holding. Only an aid commitment is limited to the 30 above the goal.
-6. **Internal short-load:** a Routine leg targets 100 while only 90 unreserved items exist. It
-   atomically reserves destination capacity, loads 90, departs above its 50 minimum, and reopens 10
-   on its parent.
-7. **Reserved top-up:** an Important leg targets 100, reserves 80, and waits up to 20 ticks. Ten
-   arriving items become additional reservations; with no further supply it may depart with 90 at
-   its deadline because 90 exceeds the 80 minimum.
-8. **Goal changes between passes:** a goal compiled as 50 remains 50 after a shortage until the next
-   planning pass. A donor cannot give away those 50, and a Loop 3 unit cannot draw them. If the next
-   pass lowers the goal to 30, 20 more becomes available to aid; the earlier refusal does not
-   retroactively vanish.
-9. **Sub-threshold remainder:** a leg reopens 2 items against a minimum replan remainder of 3. The
-   next pass folds them into a new leg for the same route and item, or closes the parent
-   `ClosedShort` with 2 attributed as unmoved. It never dispatches a truck for 2 items.
+1. **Five physical partitions:** an item capacity of 1,000 has `ProtectedQuantity = 500`,
+   `ReservationQuantity = 200`, 50 in live exact reservations, and 1,000 physical items. The view
+   exposes 500 protected, 50 exactly reserved, 150 ready to reserve, and 300 floating. If
+   `TargetQuantity = 250`, the floating stock further exposes 250 target and 50 excess.
+2. **Neutral capacity clipping:** requests for 500 Protected, 300 Reservation, and 400 Target compile
+   against capacity 1,000 as 500, 300, and 200. The 200 unmet Target is attributed. Neutral clipping
+   preserves Protected, then Reservation, then Target.
+3. **Live reservation floor:** a policy has 120 live exact reservations. A requested Reservation of
+   80 is raised to at least 120 or the policy compilation is rejected if capacity cannot preserve
+   Protected plus the live backing.
+4. **Standing buffer replenishment:** capacity 1,000 gives a provisional 200 Reservation pool. With
+   no floating stock, exact pickup consumes 60 backed items and leaves a 60-item ready-to-reserve
+   deficit; later inflow fills that deficit before counting toward Target, without changing the
+   policy quantity.
+5. **Protected exclusion:** 500 Protected items remain physically present while floating and
+   reservable stock are empty. Neither ordinary pickup nor an exact reservation can draw them.
+6. **Exceptional breach:** capture destroys or transfers stock backing a live reservation. The leg
+   records an attributed reservation breach; execution does not silently replace it with Protected
+   stock.
+7. **Lead time floors the horizon:** a contributor 40 route ticks away gives a 110-tick replenishment
+   lead time. Target cover compiles over 110 ticks rather than the nominal 60.
+8. **Unstaffed cover:** effective cadence and operational deadlines disappear when staffing is lost,
+   but nominal cadence may retain enough Target stock to restart the facility.
 
-### Shipment examples
+### Shipment and package examples
 
-1. **Ninety-percent pickup:** the Routine example above is successful partial pickup, not a broken
-   promise, because the leg was Planned.
-2. **Eighty-percent reserved pickup:** an Important leg may depart with its reserved 80 after a
-   20-tick wait when no top-up arrives. The remaining 20 reopens on the parent.
-3. **Band derivation:** a refinery's ore starves in 30 ticks. Its supporting depot is 8 route ticks
-   away, giving a Routine lead time of 46, so the leg is created Important. An identical facility 2
-   ticks away has a lead time of 34 and is also Important; the same facility with a 90-tick deadline
-   is Routine. Once the refinery's starvation episode opens, its next leg is Critical.
-4. **Parallel legs:** an order for 240 may create three live 80-item legs even if one truck could
-   eventually carry all 240. Each owns separate terms, reservations, and physical progress.
-5. **Partial admission:** a truck carrying 90 can admit only 60. Delivery/title arithmetic advances
-   by 60; 30 stays in cargo for wait, return, recovery, or loss.
-6. **Accepted aid:** a donor with 120 physical, goal 50, and no reservations may accept at most 70
-   under default Soft access. The accepted portion becomes fully Reserved and cannot be consumed
-   locally. Hard aid requires explicit Leader approval naming an exact quantity.
-7. **Cargo recovery:** a failed destination does not reopen loaded quantity. A return admits cargo
-   back to a valid source, or a recovery operation transfers it; only that physical transition
-   changes cargo accounting.
+1. **Minimum versus Total:** an order for Total 100 and Minimum 80 reaches 80 credited items.
+   Outcome becomes success, unpicked siblings cancel, and loaded siblings remain settling toward
+   Total.
+2. **Small-deficit suppression:** a standard eligible hauler carries 80 of the item, so the
+   provisional useful-shipment floor is 20. A replenishment that leaves a 12-item deficit does not
+   immediately open another order.
+3. **Deadline extension:** base deadline 100, rate 0.5 fixed-point ticks per item, and 35 credited
+   items produce effective deadline 117. Crediting beyond Total cannot extend it further.
+4. **Deadline-tick delivery:** cargo admitted during tick 117 can establish success before the
+   deadline evaluator runs. Cargo admitted on tick 118 after failure remains physical delivery but
+   cannot change the outcome.
+5. **Package rounding:** a ratio-based minimum for a 7-item leg rounds up; a maximum reservation
+   rounds down. If the rounded maximum falls below the rounded minimum, that package is infeasible.
+6. **Balanced top-up:** a 100-item leg reserves 80, seeks 100 for 20 ticks, and may depart at expiry
+   with any physical load of at least 80. Forecast can justify waiting but cannot supply a missing
+   physical item.
+7. **Direct facility pickup:** Efficient or Expedite may collect physically available output because
+   their minimum reservation is zero. Guaranteed must consolidate through a depot.
+8. **Parallel redundancy:** an order with 100 remaining may have up to three live legs whose planned
+   quantities total at most 150 when Leader policy requests redundancy.
+9. **Full capacity and overdelivery:** each leg holds destination capacity for its full planned
+   quantity. Internal cargo beyond Total is admitted and recorded as excess; it is not credited to
+   the order.
+10. **Aid staging:** an accepted 100-item aid order credits at most 100. Redundant donor-owned cargo
+    stages in the donor compartment at the recipient depot under its own reserved capacity, or uses
+    the recovery endpoint.
+11. **Recovery claim:** a leg picks up 100 and has MinimumDelivery 80. It reserves recovery capacity
+    for 20 at departure; successful delivery of 80 may consume that claim for the remainder.
+12. **Supersession:** a changed need creates a replacement order. The old order keeps its original
+    Minimum, Total, deadline, outcome, and loaded-cargo settlement.
+
+### ProductionMaintenance and public-work examples
+
+1. **Common primitives:** depot-to-facility input, facility-to-depot output, direct bypass, and
+   combined backhaul each create ordinary orders and legs. ProductionMaintenance retains one
+   primary hauler and only sequences the cycle.
+2. **Output top-up:** the retained hauler waits under the output leg's TopUp terms and incrementally
+   loads completed batches. ProductionMaintenance owns no duplicate wait budget.
+3. **Urgent overflow:** a critical input need adds an ordinary extra leg while the retained hauler
+   completes output collection; the maintenance responsibility never retains the overflow hauler.
+4. **Partially guaranteed Haul Job:** a Balanced 100-item aid leg publicly shows 80 exactly reserved,
+   80 minimum departure, 20 top-up ticks, and its hard deadline. An external hauler accepts those
+   stamped terms knowingly.
+5. **Delivery-time transfer:** donor title remains on loaded and staged excess cargo. Only recipient-
+   admitted quantity up to the accepted aid Total changes title and earns aid credit.
 
 ### Future unit compatibility
 
-A Loop 3 resupply point may aggregate food consumption from several assigned units into one
-stationary endpoint plan. Shipments replenish the point's Charter-separated compartment; units visit
-the point and draw locally through Soft access. A unit draw is Soft, not Internal, because it leaves
-the stationary storage model on a schedule the Manager does not set — exactly the case the stock
-goal exists to defend against. No shipment targets a unit, and no per-unit traffic is embedded in
-the flow snapshot. Ordinary depots are valid resupply points.
+A Loop 3 resupply point can be modeled as a stationary depot endpoint with a StockingPolicy for each
+item. Shipments replenish its Charter-separated compartment; units later draw only from floating
+stock under Loop 3 rules. Protected stock and stock backing exact reservations remain inaccessible.
+No shipment targets a mobile unit, and no per-unit traffic is embedded in the flow snapshot.
 
-The point keeps `TargetQuantity` above `StockGoalQuantity` so working stock is normally available.
-At the goal, units wait until a later Manager pass lowers it or new stock arrives. This may visibly
-produce suffering beside protected goods. Resupply-point IDs, registries, placement, local
-admission, and behavior remain Loop 3 work.
+Resupply-point IDs, registries, placement, local admission, unit demand compilation, and unit draw
+behavior remain Loop 3 work.
 
 ### Automated validation
 
-- Flow and plan tests cover every example above and contributor-preserving aggregation.
-- Shipment tests cover exact reservations, destination capacity, partial execution, title, parent
-  remainder, band derivation, remainder merging, order terminal states, cargo recovery, expiry, and
-  stalls.
-- No internal leg is ever refused by its own Charter's stock goal, and no sequence of Hard aid
-  approvals draws goal-protected stock below zero.
-- Scenario tests cover healthy service, direct bypass, standby, aid, third-party carriage,
-  unreachable support, blocked routes, competing aid, and full/partially available destinations.
+- Flow and policy tests cover every example above and contributor-preserving aggregation.
+- Policy tests cover capacity validation, neutral clipping, standing-buffer replenishment, live
+  reservation backing, Protected exclusion, and attributed exceptional breach.
+- Order tests cover Minimum/Total outcomes, settling loaded siblings, fixed-point extension,
+  deadline-tick ordering, late delivery, supersession, and small-deficit suppression.
+- Package tests cover deterministic rounding, fallback, target-seeking top-up, forecast invalidation,
+  and non-depot reservation rejection.
+- Planning tests cover one-to-three legs, 150% overcommit, stable source/hauler ties, full destination
+  capacity, internal excess, aid staging, and recovery-capacity consumption.
+- ProductionMaintenance tests prove that input, output, bypass, and backhaul use the same leg
+  primitives as inter-depot shipping.
+- Public-work tests cover partial guarantees, exact aid caps, donor-title staging, public stamped
+  terms, and delivery-time title transfer.
 - Fact-consumer removal cannot change Manager behavior.
 - Same seed and captured state produce canonical equivalent results.
-- Item/title conservation and reservation audits balance on every terminal path.
+- Every terminal and settling path reconciles item quantity, title, policy partitions, reservations,
+  cargo, order credit, excess, and capacity.
 
 ## Completion gate
 
-Iteration 1B is complete when standing services move real Charter goods through a stable multi-stage
-economy; rebuilt flows expose credible cadence, present quantity, deadlines, and impairment age;
-depot plans distinguish desired target, protected goal, reservations, and traffic; and shipment
-terms permit useful uncertainty without double promises.
+Iteration 1B is complete when ProductionMaintenance moves real Charter goods through a stable
+multi-stage economy; rebuilt flows expose credible cadence, present quantity, deadlines, and
+impairment age; depot plans expose additive StockingPolicy pools and their physical partitions; and
+destination-driven orders execute through source-specific legs with stamped named packages.
 
-The healthy scenario must show direct local bypass, deliberate standby, deliberate parallel legs,
-partial execution, accepted aid, third-party carriage, and delivery-time title transfer. Failures
-must leave exact physical remainders and distinct diagnoses. No code path may silently nationalize,
-duplicate, destroy, reserve twice, release loaded cargo by timeout, deliver directly to a unit,
-starve a facility to protect its own Charter's stock goal, or dispatch a truck for a remainder below
-the replan threshold.
+The healthy scenario must show direct local bypass, output top-up, deliberate parallel legs,
+bounded over-provision, partial execution, accepted aid, third-party carriage, donor staging, and
+delivery-time title transfer. Failures must leave exact physical remainders and distinct diagnoses.
+No code path may silently nationalize, duplicate, destroy, reserve twice, spend Protected stock,
+release loaded cargo by timeout, deliver directly to a unit, exceed accepted aid, or open a new
+order for a residual depot deficit below the useful-shipment floor.

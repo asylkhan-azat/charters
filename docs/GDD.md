@@ -156,11 +156,11 @@ infrastructure with Charter-separated compartments. Managers replenish the point
 it to transfer food, ammunition, and later fuel locally.
 
 Unit consumption contributes rebuilt factual flows through its assigned point. The point maintains a
-desired stock target above a protected stock goal so routine working stock remains available. Unit
-resupply has Soft access only: it cannot draw the protected floor. If the Manager does not lower the
-goal on a later planning pass or replenish the point, units may visibly suffer beside protected
-stock. This makes cautious, stale, or politically constrained planning physical rather than giving
-convoys a direct-to-moving-unit exception.
+StockingPolicy for each item. Units can draw only floating stock; Protected stock and stock backing
+exact reservations remain inaccessible. If a later policy compilation does not reclassify Protected
+stock or new goods do not arrive, units may visibly suffer beside stored goods. This makes cautious,
+stale, or politically constrained planning physical rather than giving convoys a
+direct-to-moving-unit exception.
 
 **Medical items** are consumables with distinct effects (produced and hauled like everything else):
 
@@ -260,7 +260,7 @@ Leaders hold opinions of each other (friendship ↔ feud), seeded on creation an
   to the public **Request Board** (§10.3): "Ashfield Charter requests 400 shells delivered to North
   Depot by the next offensive."
 - Donors choose whether to pledge goods and logists choose which concrete **Haul Jobs** to serve,
-  weighted by relationship, distance, existing service commitments, and their own leader's doctrine.
+  weighted by relationship, distance, existing accepted work, and their own leader's doctrine.
   **Friends release stock and send convoys; feuding neighbors watch you starve.**
 
 **The feud ladder.** Like unrest (§13.3), feuds escalate through visible, *non-violent* rungs — hostility inside the nation is expressed purely through refusal and politics, never guns or theft:
@@ -336,10 +336,10 @@ Interaction is via a **structured action/petition system** (no freeform dialogue
 | Appoint Marshal | Name one leader Marshal of a front: charters fighting there coordinate under his operational lead | Coordination bonus + prestige for him; resentment from everyone he now outranks, scaled by their pride |
 | Request operation | "Take Region X" / "Fortify the river line" / "Prioritize shell production" | **First request each council is free; each subsequent one costs a small amount of Influence** (anti-micromanagement tax). Compliance depends on loyalty, doctrine, feasibility |
 | **Grand Plan** | Broadcast a strategic goal to all leaders, or a chosen subset: *"The Emperor wants the Eastern Mountains conquered."* Charters weigh it against their own doctrine and situation. Each targeted leader answers with a public **pledge** — units, goods, or a polite demurral — so the player sees coalition strength (and who is dragging their feet) before anything launches | **Influence** (scales with audience size) |
-| Council Appeal | Publicly endorse one existing Aid Request until the next council | Free, but limited to one active appeal; increases voluntary attention without overriding stock goals or commitments |
-| Brokered Pledge | Ask one capable Charter to make a minor, substantial, or all-feasible contribution to an Aid Request | Leader may accept, counter, or refuse; an accepted exact pledge becomes a public commitment |
-| Lower the Stock Goal | Ask a Charter to lower one protected item goal at a named depot for one council cycle | Voluntary; forcing it is a Direct Order and risks the Charter's own future supply |
-| Haul Mobilization | Ask a Charter to expose its uncommitted hauling capacity to public Haul Jobs in a named scope | Voluntary; standing services and shipments already carrying cargo remain protected |
+| Council Appeal | Publicly endorse one existing Aid Request until the next council | Free, but limited to one active appeal; increases voluntary attention without overriding stocking policy or exact reservations |
+| Brokered Pledge | Ask one capable Charter to make a minor, substantial, or all-feasible contribution to an Aid Request | Leader may accept, counter, or refuse; an accepted exact portion becomes a donor-owned order |
+| Reclassify Protected Stock | Ask a Charter to reduce one item's Protected pool at a named depot for one council cycle | Voluntary; forcing it is a Direct Order and risks the Charter's own future supply |
+| Haul Mobilization | Ask a Charter to expose available hauling capacity to public Haul Jobs in a named scope | Voluntary; retained ProductionMaintenance haulers and loaded shipments remain protected |
 | The General's Guarantee | Stake the player's word on an Aid Request, pledge, or declared operation | Success earns political credit; failure or abandonment costs Influence and trust |
 | Red Line | Forbid new offensive commitments in a named region until the next council | **Influence** + resentment; defence, retreat, and logistics remain legal |
 | Operational Veto | Approve, delay, forbid, or demand preparation for a disclosed major operation | Approval is free; restraint costs Influence and loyalty, but is narrower than a Red Line |
@@ -359,28 +359,27 @@ remain responsible for converting accepted political direction into feasible phy
 
 Unless a rule says otherwise, a temporary council effect lasts until the next scheduled council.
 An Emergency Summons opens a council and therefore permits the same actions; none becomes a separate
-observer-phase button. Brokered Pledge, Lower the Stock Goal, and Haul Mobilization are specialized
+observer-phase button. Brokered Pledge, Reclassify Protected Stock, and Haul Mobilization are specialized
 requests and share the normal first-free-then-Influence request allowance. Only one Appeal, one
 Guarantee, and one Grant of Priority may be active at a time; Public Censure is limited to once per
 council.
 
 - **Council Appeal.** The player selects one published Aid Request. Every eligible Leader treats the
   appeal as a visible positive factor when deciding whether to donate goods or accept its Haul Jobs,
-  but may still protect stock goals, preserve standing commitments, or refuse for an attributable
+  but may still preserve Protected stock, exact reservations, retained work, or refuse for an attributable
   reason. The appeal neither promises a result nor creates reservations by itself.
 - **Brokered Pledge.** The player selects an Aid Request, one capable Charter, and a broad requested
   contribution: minor, substantial, or all feasible. The Leader accepts, counters, or refuses. On
-  acceptance, the Charter's Manager resolves the band into an exact feasible quantity; that public
-  pledge creates the ordinary goods and carriage commitments required to fulfill it.
-- **Lower the Stock Goal.** The player asks a Charter to lower `StockGoalQuantity` for one item in
-  one depot. The Leader may lower it partway, lower it to a survival floor, or refuse. Newly
-  unprotected goods become available to Aid Requests and to units drawing supply; the Charter's own
-  factories could already be served from them. They do not teleport or change title. A Direct Order
-  can compel goal sacrifice but cannot duplicate goods, cancel cargo in transit, or erase an
-  existing hard commitment.
+  acceptance, the Charter's Manager resolves the scope into an exact feasible quantity; that public
+  pledge creates an ordinary donor-owned aid order with disclosed guarantees and carriage terms.
+- **Reclassify Protected Stock.** The player asks a Charter to lower `ProtectedQuantity` for one item
+  in one depot on a later policy compilation. The Leader may lower it partway, lower it to a survival
+  floor, or refuse. Newly floating or reservable goods become available to later work; they do not
+  teleport or change title. A Direct Order can compel policy sacrifice but cannot duplicate goods,
+  cancel cargo in transit, or unback a live exact reservation.
 - **Haul Mobilization.** The player asks one Charter to favor public Haul Jobs, optionally scoped to
-  a region or beneficiary. Only genuinely uncommitted capacity changes priority: active shipments,
-  cargo already picked up, and valid standing facility services remain protected. The Leader may
+  a region or beneficiary. Only genuinely available capacity changes priority: active shipments,
+  loaded cargo, and valid retained ProductionMaintenance remain protected. The Leader may
   accept, narrow the scope, or refuse.
 - **The General's Guarantee.** The player attaches their credibility to one Aid Request, accepted
   pledge, or declared operation and its existing success condition. Leaders value cooperation more
@@ -406,7 +405,8 @@ council.
 - **Grant of Priority.** The player names one Charter and one category of public cooperation, such
   as food aid, ammunition aid, or hauling. For one cycle, eligible Leaders treat helping that
   Charter as prestigious service to the nation. The grant affects future as well as existing board
-  work in its category, but never breaches stock goals or exact commitments. The beneficiary appreciates
+  work in its category, but never spends Protected stock or breaches exact reservations. The
+  beneficiary appreciates
   the favor; rivals can resent repeated preference.
 
 Council Appeal and Grant of Priority are deliberately different. An appeal highlights one concrete,
@@ -437,7 +437,7 @@ Two rules keep it from being generic mana:
   carried inventory (weapons, ammo). Nobody can hide a dead squad or invent a phantom one. **Public
   Request Board traffic is also inherently public** — Aid Requests, accepted pledges, and Haul Jobs
   are broadcast for other Charters to act on, so their declared quantities and fulfillment are
-  truth, not testimony. Private facility services, depot plans, and internal shipment orders are not
+  truth, not testimony. Private ProductionMaintenance, depot plans, and internal shipment orders are not
   board traffic. The pain map (§3.3) exposes the location, category, time pressure, and suffering
   duration of unpublished local demand, but not its exact quantity, supporting-depot stock,
   diagnosis, or Manager plan.
@@ -512,7 +512,7 @@ Consequences: specialization is sticky, quota demands have visible costs, the Sh
   facility a sticky supporting depot. Its compartment aggregates physical contributors, stocking
   policy, reservations, and planned traffic. Goods normally consolidate at depots, and every
   inter-Charter hand-over terminates in the receiver's compartment. A same-Charter shipment may move
-  directly between facilities when it saves enough route time without breaking commitments.
+  directly between facilities when it saves enough route time without breaking live order terms.
 - **Local conditions are facts; urgency is a decision.** Systems rebuild consumption and supply
   value snapshots from current physical state every logistics phase. They expose recipe batch, both
   the recipe's full-crew cadence and the rate its current crew can actually sustain, gross stored
@@ -521,74 +521,79 @@ Consequences: specialization is sticky, quota demands have visible costs, the Sh
   restart; forecasts read the current crew. The snapshots have no persistent lifecycle. A deadline
   appears only when uninterrupted current operation can reach it; conditional forecasts belong to
   Manager planning. Transition facts support history and diagnostics but never drive behavior.
-- **Targets and protected goals are distinct.** For each Charter, depot, and item, the Manager
-  compiles a desired stock target from consumption cover and standing objectives, capped by physical
-  capacity. Cover is measured over a horizon that widens for distant facilities, so a far-off mine is
-  stocked for the round trip it actually has. It separately compiles a protected stock goal below or
-  equal to that target. Objectives persist until changed or withdrawn, even after attainment. Stock
-  above the goal is routine working stock; stock above the target is never thrown away, it merely
-  stops attracting deliveries; capacity clipping remains an attributed shortfall.
-- **The goal guards against what a Charter cannot take back.** Moving goods between a Charter's own
-  depots and factories never touches the protected goal: the Manager scheduled that move and can
-  redirect it later. The goal bites only on draws it does not control — donated aid, and later,
-  supplies drawn by units in the field. A Charter never starves its own factory to protect a number.
-- **Access and promises are independent.** Soft work can claim only unreserved stock above the
-  protected goal. Hard work may reserve into goal-protected stock and exists only where a Leader has
-  approved a specific donation. Planned work has no exact goods promise; Reserved work protects an
-  exact quantity. Ordinary internal work is Planned; important internal work is partly Reserved.
-  Accepted aid is Soft/Reserved unless Leader policy explicitly approves Hard access.
-- **Facility service is standing work.** Facility buffers are sized for several production batches
-  but remain much smaller than depot compartments. Managers create persistent depot↔facility service
-  plans that may deliver inputs and collect outputs on the same trip. High-throughput facilities may
-  retain a dedicated shuttle; nearby low-throughput facilities may share a milk run; sporadic
-  facilities use spot collection. A truck deliberately waiting for forecast output is on standby,
-  not idle, and ordinary replanning cannot offer its capacity elsewhere. It leaves when a useful
-  pickup threshold, a buffer deadline, or a maximum wait is reached, and is released if the
-  production forecast becomes invalid.
+- **Depot policy is additive and physical.** For each Charter, depot, and item, the Manager compiles
+  one `StockingPolicy`: Target is desired floating working stock, Protected is wholly inaccessible,
+  and Reservation is the pool from which exact named reservations can be backed. All three are
+  non-negative and their sum cannot exceed item capacity. Exact reservations occupy Reservation;
+  they do not create a fourth policy allowance.
+- **Policy compiles from need and doctrine.** Target follows consumption cover and standing
+  objectives over a horizon wide enough for the actual replenishment route. Neutral policy maintains
+  a reservable buffer, and Leaders may change cover, protection caution, guarantees, package
+  preference, parallelism, and redundancy. If the requested policy cannot fit, compilation preserves
+  Protected, then Reservation, then Target and attributes the unmet component. Stock above Target is
+  retained as floating excess but attracts no further delivery.
+- **Stock partitions stay visible.** A depot can separately expose Protected, exactly reserved,
+  ready-to-reserve, floating Target, and floating excess stock. Ordinary activity consumes only
+  floating stock; exact reservations draw only from the reservable pool; neither crosses Protected.
+  Policy changes cannot unback live reservations. Destruction or capture may breach a guarantee,
+  but execution records that breach instead of silently spending Protected goods.
+- **ProductionMaintenance is standing work.** One persistent responsibility links a facility, its
+  supporting depot, and at most one retained primary hauler. It sequences input before output,
+  renewal, standby, release, direct bypass, and combined backhaul. Every quantity and trip still uses
+  ordinary shipment orders and legs. Output waiting uses the output leg's own top-up terms rather
+  than a separate standby formula, and urgent overflow creates ordinary extra legs instead of
+  retaining several haulers.
 - **Private work and public cooperation are separate.** Physical flows, depot plans, facility
-  services, and shipment orders stay inside the Charter. If the Manager cannot cover goods
+  maintenance, and shipment orders stay inside the Charter. If the Manager cannot cover goods
   before they matter, it raises the conflict to its Leader; if it lacks carriage, it seeks help only
   inside delegated policy or after the same escalation. The Leader may reprioritize internal work,
-  lower a stock goal, approve Hard access, refuse the sacrifice, or publish to the public Request Board:
+  change future stocking policy, refuse the sacrifice, or publish to the public Request Board:
   - an **Aid Request** asks other Charters to deliver an exact item and quantity into a named
     receiving depot compartment by a declared time; and
-  - a **Haul Job** asks a logist to carry already identified goods over a concrete origin,
-    destination, quantity, and delivery window.
+  - a **Haul Job** asks a logist to carry one concrete leg whose intended quantity, exact guarantee,
+    minimum departure, top-up time, and deadline are public.
   Pure logist Charters can claim Haul Jobs for several factions. Internal transfers are never public
   request modes, and routine logistics has no request-to-own operation.
-- **Pledges become shipments.** A donor that accepts an Aid Request makes a Reserved supply
-  commitment against Soft stock unless its Leader approves Hard access. The exact quantity is
-  protected at a concrete source with matching destination capacity; multiple donors may cover
-  portions. If donor and receiver use the same depot, delivery is a zero-distance atomic move.
-  Otherwise an internal logist or a claimed Haul Job becomes a physical shipment.
-- **Orders tolerate physical uncertainty.** A parent shipment order creates one-item legs with
-  snapshotted target, minimum departure, access, reservation, pickup deadline, top-up, and
-  fallback terms. Managers may create several parallel legs even when one truck could eventually
-  carry the target. Planned legs may short-load above their minimum; Reserved legs may accumulate
-  exact source reservations while waiting. Unpicked remainder returns to the parent for a later
-  planning pass.
-- **Urgency is earned, not assigned.** How hard a shipment tries — how much it reserves, how long it
-  waits, how little it will settle for — follows from how soon the shortage bites measured against
-  how long resupply actually takes on that route. A facility already starving gets the most
-  aggressive terms. A distant facility escalates sooner than a near one facing the same deadline.
-  Nothing is hand-flagged as important. Small leftovers merge into later runs instead of sending a
-  truck out for a handful of items.
+- **Accepted aid becomes donor-owned orders.** Every donor acceptance creates an order for that
+  accepted portion, with success requiring the whole accepted quantity. The chosen execution package
+  determines how much source stock is exactly guaranteed upfront; aid may therefore be knowingly
+  partially guaranteed. Recipient capacity is held for the accepted amount. Redundant cargo stages
+  under donor title in the donor's compartment at the destination depot, or returns through its
+  recovery route. Same-depot aid is an ordinary zero-distance delivery.
+- **Orders describe conditional success.** One destination need owns a Total quantity, a Minimum
+  success quantity, an optional required-by time, a deadline, credited and excess delivery, outcome,
+  and physical settlement. Reaching Minimum fixes success and cancels releasable unpicked work;
+  loaded cargo still settles toward Total or as excess. Missing Minimum at the deadline fixes failure.
+  Delivery on the deadline tick counts before evaluation; later cargo remains physical but cannot
+  rewrite the outcome. Changed needs supersede rather than resize live conditions.
+- **Legs choose sources and stamp named execution packages.** Each source-specific leg gets fixed
+  reservation bounds, minimum departure, minimum delivery, top-up time, forecast bias, destination
+  capacity, and recovery capacity. The Manager chooses from Efficient, Balanced, Expedite, and
+  Guaranteed according to urgency and Leader preference. Forecast may influence whether to wait or
+  dispatch, but never becomes physical stock or satisfies a reservation.
+- **Guarantees require a depot.** Facility output can be collected directly only under packages that
+  require no upfront reservation. Guaranteed onward movement first consolidates through a depot.
+  During top-up the truck seeks the full planned load and departs at expiry only if its physical load
+  meets the stamped minimum.
+- **Parallelism is bounded.** Managers pursue Total by default and may use up to three live legs and
+  at most 150% of remaining Total when Leader policy wants force-majeure redundancy. Every leg holds
+  destination capacity for its full planned amount and, once loaded, recovery capacity for the
+  remainder it may return after minimum delivery. Residual depot deficits below a useful-shipment
+  floor do not immediately dispatch another truck.
 - **Cargo preserves title.** A logist cargo hold contains shipment lots with item, quantity,
-  title-holder, and beneficiary separate from the carrier's affiliation. Pickup changes custody
-  only. Delivery into the requested compartment atomically changes title when donor and recipient
-  differ, satisfies the public commitment, and awards aid credit. A full destination leaves the
-  goods in cargo; it never silently transfers title or destroys them.
-- **Commitments reserve physical capacity.** Exact source reservations are mirrored by destination
-  capacity reservations; active services and shipments reserve hauling capacity. Unreserved pickup
-  acquires goods and destination capacity atomically. Pre-pickup commitments may expire and release
-  cleanly. Delivery may admit only part of a cargo: the delivered portion alone advances title and
-  commitment arithmetic, while the remainder stays on the truck until delivery, return, recovery,
-  capture, or explicit loss. A timeout diagnoses failure but cannot release physical cargo by fiat.
+  title-holder, beneficiary, and source leg separate from the carrier's affiliation. Pickup changes
+  custody only. Recipient-admitted aid up to the accepted amount atomically changes title and awards
+  credit; internal excess is recorded separately. A broken destination claim leaves goods in cargo;
+  it never silently transfers title or destroys them.
+- **Loaded cargo outlives planning.** Pre-pickup cancellation may release stock, capacity, and
+  carriage. Once loaded, order success, failure, supersession, or timeout cannot release the hauler
+  or recreate cargo elsewhere. The cargo must deliver, stage, wait, return, recover, be captured, or
+  be explicitly lost.
 - **Planning has a cadence.** Managers replace or resize plans only on fixed planning ticks. A
   short-load, invalid forecast, or lost route is diagnosed immediately but waits for the next pass
   before new work is planned. Ordinary mistakes arise from stale plans and competition for
   unreserved stock, not injected randomness.
-- **Political accounting follows agreed delivery.** A pledge is an offer the receiver accepts, never
+- **Political accounting follows agreed delivery.** An aid offer is accepted by the receiver, never
   a unilateral dump. Aid credit and title transfer occur at the receiving depot. Loss reports
   identify donor, title-holder, beneficiary, carrier, and physical host. Pre-pickup withdrawal has a
   light consequence; an avoidable failure after pickup has a stronger carriage consequence.
@@ -599,9 +604,9 @@ Consequences: specialization is sticky, quota demands have visible costs, the Sh
   junk from the back of the depot.
 - **Spot and standing.** Public Aid Requests and Haul Jobs are one-off in the MVP. Post-MVP
   **standing contracts** ("500 shells to North Depot, weekly") turn repeated public cooperation into
-  stable inter-Charter routes. Internal facility services are already persistent Manager work and do
-  not require a political contract. Regular external partners bond, invest in route infrastructure,
-  and create named roads (§17).
+  stable inter-Charter routes. Internal ProductionMaintenance is already persistent Manager work and
+  does not require a political contract. Regular external partners bond, invest in route
+  infrastructure, and create named roads (§17).
 - **Cry-wolf credibility (post-MVP):** requesters self-declare priority, so what stops inflation? Charters whose "critical" requests are repeatedly found overblown (delivered, then the stock sat unused) get their priorities discounted by other charters' logists. Self-regulating, zero UI — and it produces the emergent character of *the charter nobody believes anymore*.
 - **Escort requests** link to concrete Haul Jobs: convoys through dangerous territory post them, and
   *fighting* charters can claim them. Combat charters get an economy role between offensives, escort
@@ -757,10 +762,11 @@ At campaign end — any ending — every charter receives a **fate card** genera
   modules without a second loadout mechanic. **No fuel in MVP** — trucks pre-exist, aren't produced,
   and run free until the first content patch. Facilities are pre-placed (no construction).
 - **Logistics:** explicit Charter title throughout facility buffers, depot compartments, and shipment
-  cargo; rebuilt consumption/supply flows; target/goal depot plans; persistent facility services;
-  private parent orders and partial shipment legs; public Aid Requests and concrete Haul Jobs;
-  delivery-time title transfer; and the hosting grace timer (§10.3). Group-targeted Aid Requests are
-  schema-reserved only — near-degenerate at eight items.
+  cargo; rebuilt consumption/supply flows; additive StockingPolicies and physical partitions;
+  persistent ProductionMaintenance; destination-driven orders and source-specific legs with named
+  execution packages; public Aid Requests and fully disclosed Haul Jobs; delivery-time title
+  transfer; and the hosting grace timer (§10.3). Group-targeted Aid Requests are schema-reserved only
+  — near-degenerate at eight items.
 - **Charters:** petition-event formation only (pre-rolled compositions); 3–5 charters/side; leaders with loyalty + 2–3 doctrine/personality traits; simple friend/feud pairs affecting the request board.
 - **Manpower:** simplified tap (§5.6) — towns trickle recruits, auto-routed to pre-placed generic training camps; training costs time only.
 - **Campaign open:** the Phony War phase (§12) as the diegetic tutorial.
@@ -787,7 +793,7 @@ At campaign end — any ending — every charter receives a **fate card** genera
     equipment variants, Researcher units, design bureau proposals, inventor prestige (§10.4).
 12. Seasons & weather calendar (§4.4); terrain scarring (§11); skimming (§10.3); full unrest ladder + opposition blocs (§13.3); full feud ladder (§6.5).
 13. Council levers 2.0: rights grants (§7), Compacts (§3.2), Grand Plans with pledge rolls, joint
-    operations, Marshal appointments, and the scoped appeals, pledges, stock-goal/haul requests,
+    operations, Marshal appointments, and the scoped appeals, pledges, stocking-policy/haul requests,
     guarantees, operational restraints, censures, and priority grants in §8.2. MVP councils use the
     base action set only.
 14. Logistics 2.0: standing contracts, escort requests, recovery hauling (§10.3); Damaged state & workshops, captured equipment (§11); denial warfare/demolition (§10.2); full manpower pipeline with specialized schools and goods costs (§5.6).
@@ -805,9 +811,9 @@ At campaign end — any ending — every charter receives a **fate card** genera
 1. **Charter combat/logistics AI quality** — it *is* the game; design and test it explicitly before committing to an implementation.
 2. **Attribution/readability** — the player must be able to diagnose "why did the front fall." Event feed, recap, and pain map are first-class UI, not polish.
 3. **Observer-phase deadness** — if ~3 minutes of watching is boring, the rhythm fails. Test early with real players.
-4. **Depot-service economics** — insufficient local hauling, unstable facility service, or bad
-   demand aggregation can cascade through the whole production chain; needs early simulation testing
-   at toy scale before personality or combat complicates attribution.
+4. **Depot-maintenance economics** — insufficient local hauling, unstable ProductionMaintenance, or
+   bad demand aggregation can cascade through the whole production chain; needs early simulation
+   testing at toy scale before personality or combat complicates attribution.
 
 ---
 
